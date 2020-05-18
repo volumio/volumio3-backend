@@ -1212,6 +1212,43 @@ ControllerSystem.prototype.getCPUCoresNumber = function () {
     }
 };
 
+ControllerSystem.prototype.getTimeZone = function () {
+  const defer = libQ.defer();
+  // Parse timedatectl's output
+  const timeZoneRegex = /(?:Time\szone):\s(\w+.\w+)\s\((\w+),\s([-+0-9]+)\)/gi
+  // Alternatively, we can just get the offset and acronym using `date +"%Z %z"`
+  const tzcmd = 'timedatectl'
+  exec(tzcmd, (err, response) => {
+    if (err) {
+      this.logger.error(`Cannot get TimeZone: ${err}`);
+      return defer.resolve(err);
+    }
+    const match = timeZoneRegex.exec(response);
+    const [, name, acronym, offset] = match;
+    defer.resolve({
+      name: name,
+      acronym: acronym,
+      offset: offset
+    });
+  });
+  return defer.promise;
+};
+
+ControllerSystem.prototype.setTimeZone = function (data) {
+  const defer = libQ.defer();
+  const tz = data.name || 'UTC' // Fall back to UTC if nothing is provided
+  this.logger.info(`Setting time zone to ${tz}`);
+  const tzcmd = 'sudo timedatectl set-timezone'
+  exec(`${tzcmd} ${tz}`, (err, response) => {
+    if (err) {
+      this.logger.error(`Cannot set TimeZone: ${err}`);
+      return defer.resolve(err);
+    }
+    defer.resolve(response);
+  })
+  return defer.promise;
+};
+
 ControllerSystem.prototype.enableLiveLog = function (data) {
   if (data === 'true') {
     try {
