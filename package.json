@@ -1,5 +1,5 @@
 {
-  "name": "Volumio2",
+  "name": "volumio3-backend",
   "version": "2.0.0",
   "private": false,
   "license": "GPL-3.0-only",
@@ -74,10 +74,10 @@
   "description": "Audiophile Music Player/Streamer",
   "repository": {
     "type": "git",
-    "url": "https://github.com/volumio/Volumio2"
+    "url": "https://github.com/volumio/volumio3-backend"
   },
   "bugs": {
-    "url": "https://github.com/volumio/Volumio2/issues"
+    "url": "https://github.com/volumio/volumio3-backend/issues"
   },
   "semistandard": {
     "ignore": [

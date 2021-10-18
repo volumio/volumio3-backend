@@ -2,7 +2,7 @@
 set -eo pipefail
 
 # Define defaults
-REPO='https://github.com/volumio/Volumio2.git'
+REPO='https://github.com/volumio/volumio3-backend.git'
 BRANCH=''
 # Workaround for old behaviour 
 [[ $# = 3 ]] && echo "[pull] Unknown number of arguments, if <$3> is a repo, please use the -r flag!" && exit 1
