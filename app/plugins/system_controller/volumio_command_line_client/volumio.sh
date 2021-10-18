@@ -43,8 +43,8 @@ vrestart                           Restarts Volumio Service
 
 [[VOLUMIO DEVELOPMENT]]
 
-pull                               Pulls latest github status on master from https://github.com/volumio/Volumio2.git
-pull -b <branch>                   Pulls branch <branch> from https://github.com/volumio/Volumio2.git
+pull                               Pulls latest github status on master from https://github.com/volumio/volumio3-backend.git
+pull -b <branch>                   Pulls branch <branch> from https://github.com/volumio/volumio3-backend.git
 pull -b <branch> -r <repository>   Pulls branch <branch> from git repository <repository>
 dev                                Start Volumio in develpment mode, with Nodemon and Remote Debugger
 kernelsource                       Gets Current Kernel source (Raspberry PI only)
