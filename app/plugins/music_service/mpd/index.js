@@ -3359,12 +3359,13 @@ ControllerMpd.prototype.parseListAlbum = function (err, msg, defer, response, ur
         if (VA === 1) {
           var artist = self.searchFor(lines, i + 1, 'AlbumArtist:');
         } else {
-          if (artistsort) {						// Fix - now set by artistsort variable
-            var findartist = 'AlbumArtist:';
+          var artistSortAlbumArtist = self.searchFor(lines, i + 1, 'AlbumArtist:');
+          var artistSortArtist = self.searchFor(lines, i + 1, 'Artist:');
+          if (artistsort && artistSortAlbumArtist) {
+            var artist = artistSortAlbumArtist;
           } else {
-            var findartist = 'Artist:';
+            var artist = artistSortArtist;
           }
-          var artist = self.searchFor(lines, i + 1, findartist);
         }
         var album = self.searchFor(lines, i + 1, 'Album:');
         var genre = self.searchFor(lines, i + 1, 'Genre:');
