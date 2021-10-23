@@ -2462,7 +2462,7 @@ ControllerMpd.prototype.scanFolder = function (uri) {
     try {
       var stat = libFsExtra.statSync(uri);
     } catch (err) {
-      console.log("scanFolder - failure to stat '" + uri + "'");
+      self.logger.error("scanFolder - failure to stat '" + uri + "'");
       return uris;
     }
   }
@@ -2474,7 +2474,7 @@ ControllerMpd.prototype.scanFolder = function (uri) {
         uris = uris.concat(self.scanFolder(uri + '/' + files[i]));
       }
     } catch (e) {
-      console.log("Failed to stat '" + uri + "'");
+      self.logger.error("Failed to stat '" + uri + "'");
     }
   } else if (isofile) {
     var defer = libQ.defer();
@@ -3004,7 +3004,7 @@ ControllerMpd.prototype.listAlbums = function (ui) {
         }
       });
     } else {
-      console.log('listAlbums - loading Albums from cache');
+      self.logger.info('listAlbums - loading Albums from cache');
       if (ui) {
         defer.resolve(response);
       }
