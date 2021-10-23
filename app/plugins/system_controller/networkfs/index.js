@@ -1056,7 +1056,7 @@ ControllerNetworkfs.prototype.mountDevice = function (device) {
   if (fsLabel && device.DEVNAME && device.ID_FS_TYPE) {
     	if (self.isDeviceToBeMounted(device)) {
     	  self.logger.info('Mounting Device ' + fsLabel);
-    	  if (fsLabel === 'issd' || fsLabel === 'ihdd' || fsLabel === 'Internal SSD' || fsLabel === 'Internal HDD') {
+    	  if (self.checkLabelForInternalDiskToBeMounted(fsLabel)) {
     	    var mountFolder = removableMountPoint + 'INTERNAL/';
     	    self.switchInternalMemoryPosition();
     	  } else {
@@ -1094,8 +1094,14 @@ ControllerNetworkfs.prototype.isDeviceToBeMounted = function (device) {
     if (self.isUsbDevice(device)) {
       return true;
     } else {
+      if (self.checkLabelForInternalDiskToBeMounted(fsLabel)) {
+        return true;
+      } else {
+        return false;
+      }
       // TODO: We need to save internal HDDs partitions that we want to mount. This has to be done in the UI.
       // Here we must check if ther uuid or label is saved by user as mountable and mount it.
+      // For now: setting one of the internal label shall do the trick
       return false;
     }
   } else {
@@ -1119,6 +1125,17 @@ ControllerNetworkfs.prototype.isUsbDevice = function (device) {
   }
 };
 
+ControllerNetworkfs.prototype.checkLabelForInternalDiskToBeMounted = function (label) {
+  var self = this;
+
+  // Those labels if set to an hard drive, will result in it mounting as internal drive
+  if (label === 'issd' || label === 'ihdd' || label === 'Internal SSD' || label === 'Internal HDD') {
+    return true;
+  } else {
+    return false;
+  }
+};
+
 ControllerNetworkfs.prototype.umountDevice = function (device) {
   var self = this;
 
@@ -1131,7 +1148,7 @@ ControllerNetworkfs.prototype.umountDevice = function (device) {
   }
 
   if (fsLabel && device.DEVNAME && device.ID_FS_TYPE) {
-    if (fsLabel === 'issd' || fsLabel === 'ihdd' || fsLabel === 'Internal SSD' || fsLabel === 'Internal HDD') {
+    if (self.checkLabelForInternalDiskToBeMounted(fsLabel)) {
       var mountFolder = removableMountPoint + 'INTERNAL/';
     } else {
       var mountFolder = removableMountPoint + 'USB/' + fsLabel;
@@ -1201,7 +1218,7 @@ ControllerNetworkfs.prototype.mountPartition = function (partitionData) {
   try {
     execSync(mountCMD, {uid: 1000, gid: 1000});
     self.storeMountedFolder(partitionData.mountFolder);
-    if (partitionData.label === 'issd' || partitionData.label === 'ihdd' || partitionData.label === 'Internal SSD' || partitionData.label === 'Internal HDD') {
+    if (checkLabelForInternalDiskToBeMounted(partitionData.label)) {
       self.bindInternalMemoryPosition();
     } else {
       var message = partitionData.label + ' ' + self.commandRouter.getI18nString('COMMON.CONNECTED');
