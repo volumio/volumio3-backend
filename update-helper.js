@@ -151,16 +151,20 @@ function restoreVolumio () {
     if (!fs.existsSync('/mnt/overlay')) {
       execSync('/bin/mkdir /mnt/overlay', {uid: 1000, gid: 1000});
     }
-    execSync('/usr/bin/sudo /bin/mount /dev/mmcblk0p3 /mnt/overlay', {uid: 1000, gid: 1000});
-    console.log('Overlay partition mounted, deleting /volumio folder on overlay');
-    execSync('/bin/rm -rf /mnt/overlay/dyn/volumio', {uid: 1000, gid: 1000});
+    var dataPart = execSync("/bin/lsblk  -o name,label | grep volumio_data | sed 's/..//' | awk '{print $1}'| tr -d '\n'", {uid: 1000, gid: 1000});
+    execSync('/usr/bin/sudo /bin/mount /dev/' + dataPart + ' /mnt/overlay', {uid: 1000, gid: 1000});
+    console.log('Overlay partition mounted');
+    console.log('Deleting /volumio folder on overlay')
+    execSync('[ -d /mnt/overlay/dyn/volumio ] && /bin/rm -rf /mnt/overlay/dyn/volumio', {uid: 1000, gid: 1000});
+    console.log('Deleting /myvolumio folder on overlay')
+    execSync('[ -d /mnt/overlay/dyn/myvolumio ] && /bin/rm -rf /mnt/overlay/dyn/myvolumio', {uid: 1000, gid: 1000});
     console.log('Cleaning environment');
+    execSync('/bin/sync', {uid: 1000, gid: 1000});
     execSync('/usr/bin/sudo /bin/umount /mnt/overlay', {uid: 1000, gid: 1000});
     execSync('/bin/rm -rf /mnt/overlay', {uid: 1000, gid: 1000});
-    execSync('/bin/sync', {uid: 1000, gid: 1000});
-    console.log('Done, restarting system');
-    return reboot();
+    console.log('Done');
+    return;
   } catch (e) {
-    console.log('Could not restore /volumio folder: ' + e);
+    console.log('Could not restore volumio folders: ' + e);
   }
 }
