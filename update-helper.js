@@ -162,7 +162,7 @@ function restoreVolumio () {
     execSync('/bin/sync', {uid: 1000, gid: 1000});
     execSync('/usr/bin/sudo /bin/umount /mnt/overlay', {uid: 1000, gid: 1000});
     execSync('/bin/rm -rf /mnt/overlay', {uid: 1000, gid: 1000});
-    console.log('Done');
+    console.log('Done, reboot the system for changes to take effect');
     return;
   } catch (e) {
     console.log('Could not restore volumio folders: ' + e);
