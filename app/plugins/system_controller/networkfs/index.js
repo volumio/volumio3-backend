@@ -1014,6 +1014,12 @@ ControllerNetworkfs.prototype.initUdevWatcher = function () {
     }
   });
 
+  monitor.on('change', function (device) {
+    if (device.DEVTYPE) {
+      deviceChangeAction(device);
+    }
+  });
+
   monitor.on('remove', function (device) {
     if (device.DEVTYPE) {
       deviceRemoveAction(device);
@@ -1028,6 +1034,18 @@ ControllerNetworkfs.prototype.initUdevWatcher = function () {
         }
         break;
       case 'disk':
+        break;
+      default:
+        break;
+    }
+  }
+
+  function deviceChangeAction (device) {
+    switch (device.DEVTYPE) {
+      case 'partition':
+        break;
+      case 'disk':
+        self.notifyCDChange(device);
         break;
       default:
         break;
@@ -1327,4 +1345,15 @@ ControllerNetworkfs.prototype.properQuote = function (str) {
   output = "'" + output + "'";
 
   return output;
+};
+
+ControllerNetworkfs.prototype.notifyCDChange = function (device) {
+  var self = this;
+
+  // If audio track are present, CD is inserted
+  if (device.ID_CDROM_MEDIA_TRACK_COUNT_AUDIO) {
+    self.commandRouter.executeOnPlugin('music_service', 'cd_controller', 'detectCD', '');
+  } else {
+    self.commandRouter.executeOnPlugin('music_service', 'cd_controller', 'removeCD', '');
+  }
 };
