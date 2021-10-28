@@ -1045,7 +1045,6 @@ ControllerNetworkfs.prototype.initUdevWatcher = function () {
       case 'partition':
         break;
       case 'disk':
-        self.notifyCDChange(device);
         break;
       default:
         break;
@@ -1351,15 +1350,4 @@ ControllerNetworkfs.prototype.properQuote = function (str) {
   output = "'" + output + "'";
 
   return output;
-};
-
-ControllerNetworkfs.prototype.notifyCDChange = function (device) {
-  var self = this;
-
-  // If audio track are present, CD is inserted
-  if (device.ID_CDROM_MEDIA_TRACK_COUNT_AUDIO) {
-    self.commandRouter.executeOnPlugin('music_service', 'cd_controller', 'detectCD', '');
-  } else {
-    self.commandRouter.executeOnPlugin('music_service', 'cd_controller', 'removeCD', '');
-  }
 };
