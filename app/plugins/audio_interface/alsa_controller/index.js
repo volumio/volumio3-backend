@@ -2201,7 +2201,7 @@ ControllerAlsa.prototype.getPluginALSAContributions = function () {
 
       let plugin = plugins[i].catPlugin[j];
   
-      if(plugin.enabled === true) {
+      if(this.commandRouter.pluginManager.isEnabled(category, plugin.name)) {
         // Check to see if there is an ALSA contribution from this plugin
         let folder = self.commandRouter.pluginManager.findPluginFolder(category, plugin.name);
         
