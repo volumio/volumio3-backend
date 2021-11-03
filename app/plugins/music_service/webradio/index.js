@@ -543,7 +543,12 @@ ControllerWebradio.prototype.explodeUri = function (data) {
     Promise.all([streamUrl, streamDescribe, streamNowPlaying]).then(function (results) {
       explodedUri.uri = results[0].body[0].url;
       explodedUri.name = results[1].body[0].name;
-      explodedUri.albumart = results[2].body[0].image;
+      explodedUri.albumart = results[2].body[0].image.replace('__', '');
+      // Fix for TuneIn API sometimes not providing correct albumart URL
+      if (data.albumart) {
+        explodedUri.albumart = data.albumart;
+      }
+
       defer.resolve(explodedUri);
     })
       .catch(function (err) {
