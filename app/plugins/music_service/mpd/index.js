@@ -34,6 +34,7 @@ function ControllerMpd (context) {
   this.configManager = this.context.configManager;
   this.config = new (require('v-conf'))();
   this.registeredCallbacks = [];
+  this.dsdOutputEnabled = false;
 }
 
 // Public Methods ---------------------------------------------------------------------------------------
@@ -1000,11 +1001,11 @@ ControllerMpd.prototype.createMPDFile = function (callback) {
         mpdvolume = false;
       }
 
-      var conf1 = data.replace('${gapless_mp3_playback}', self.checkTrue('gapless_mp3_playback'));
-      var conf2 = conf1.replace('${device}', outdev);
-      var conf3 = conf2.replace('${volume_normalization}', self.checkTrue('volume_normalization'));
-      var conf4 = conf3.replace('${audio_buffer_size}', self.config.get('audio_buffer_size'));
-      var conf5 = conf4.replace('${buffer_before_play}', self.config.get('buffer_before_play'));
+      var conf1 = data.replace(/\${gapless_mp3_playback}/g, self.checkTrue('gapless_mp3_playback'));
+      var conf2 = conf1.replace(/\${device}/g, outdev);
+      var conf3 = conf2.replace(/\${volume_normalization}/g, self.checkTrue('volume_normalization'));
+      var conf4 = conf3.replace(/\${audio_buffer_size}/g, self.config.get('audio_buffer_size'));
+      var conf5 = conf4.replace(/\${buffer_before_play}/g, self.config.get('buffer_before_play'));
       if (self.config.get('dop', false)) {
         var dop = 'yes';
       } else {
@@ -1029,7 +1030,7 @@ ControllerMpd.prototype.createMPDFile = function (callback) {
         dopString = dopString + os.EOL + '                period_time     "40000';
       }
 
-      var conf6 = conf5.replace('${dop}', dopString);
+      var conf6 = conf5.replace(/\${dop}/g, dopString);
 
       if (mixer) {
         if (mixer.length > 0 && mpdvolume) {
@@ -1037,10 +1038,10 @@ ControllerMpd.prototype.createMPDFile = function (callback) {
         }
       }
 
-      var conf7 = conf6.replace('${mixer}', mixerstrings);
+      var conf7 = conf6.replace(/\${mixer}/g, mixerstrings);
 
       if (self.config.get('iso', false)) {
-        var conf9 = conf7.replace('${format}', '');
+        var conf9 = conf7.replace(/\${format}/g, '');
       } else {
         var multiThreadSox = self.checkIfSoxCanBeMultithread();
         if (multiThreadSox) {
@@ -1049,28 +1050,28 @@ ControllerMpd.prototype.createMPDFile = function (callback) {
           var soxThreads = '1';
         }
         if (resampling) {
-          var conf8 = conf7.replace('${sox}', 'resampler {      ' + os.EOL + '  		plugin "soxr"' + os.EOL + '  		quality "' + resampling_quality + '"' + os.EOL + '  		threads "' + soxThreads + '"' + os.EOL + '}');
-          var conf9 = conf8.replace('${format}', 'format      "' + resampling_samplerate + ':' + resampling_bitdepth + ':2"');
+          var conf8 = conf7.replace(/\${sox}/g, 'resampler {      ' + os.EOL + '  		plugin "soxr"' + os.EOL + '  		quality "' + resampling_quality + '"' + os.EOL + '  		threads "' + soxThreads + '"' + os.EOL + '}');
+          var conf9 = conf8.replace(/\${format}/g, 'format      "' + resampling_samplerate + ':' + resampling_bitdepth + ':2"');
         } else {
-          var conf8 = conf7.replace('${sox}', 'resampler {      ' + os.EOL + '  		plugin "soxr"' + os.EOL + '  		quality "high"' + os.EOL + '  		threads "' + soxThreads + '"' + os.EOL + '}');
-          var conf9 = conf8.replace('${format}', '');
+          var conf8 = conf7.replace(/\${sox}/g, 'resampler {      ' + os.EOL + '  		plugin "soxr"' + os.EOL + '  		quality "high"' + os.EOL + '  		threads "' + soxThreads + '"' + os.EOL + '}');
+          var conf9 = conf8.replace(/\${format}/g, '');
         }
       }
 
       if (self.config.get('iso', false)) {
         // iso enabled
         var isopart = 'decoder { ' + os.EOL + 'plugin "sacdiso"' + os.EOL + 'dstdec_threads "2"' + os.EOL + 'edited_master "true"' + os.EOL + 'lsbitfirst "false"' + os.EOL + 'playable_area "stereo"' + os.EOL + '}' + os.EOL + 'decoder { ' + os.EOL + 'plugin "ffmpeg"' + os.EOL + 'enabled "no"' + os.EOL + '}' + os.EOL;
-        var conf10 = conf9.replace('"${sacdiso}"', isopart);
-        var conf11 = conf10.replace('${sox}', '');
+        var conf10 = conf9.replace(/\${sacdiso}/g, isopart);
+        var conf11 = conf10.replace(/\${sox}/g, '');
       } else {
         // iso disabled
-        var conf11 = conf9.replace('"${sacdiso}"', ' ');
+        var conf11 = conf9.replace(/\${sacdiso}/g, ' ');
       }
 
       if (ffmpeg) {
-        var conf12 = conf11.replace('"${ffmpeg}"', 'decoder { ' + os.EOL + 'plugin "ffmpeg"' + os.EOL + 'enabled "yes"' + os.EOL + 'analyzeduration "1000000000"' + os.EOL + 'probesize "1000000000"' + os.EOL + '}' + os.EOL);
+        var conf12 = conf11.replace(/\${ffmpeg}/g, 'decoder { ' + os.EOL + 'plugin "ffmpeg"' + os.EOL + 'enabled "yes"' + os.EOL + 'analyzeduration "1000000000"' + os.EOL + 'probesize "1000000000"' + os.EOL + '}' + os.EOL);
       } else {
-        var conf12 = conf11.replace('"${ffmpeg}"', ' ');
+        var conf12 = conf11.replace(/\${ffmpeg}/g, ' ');
       }
 
       for (var callback of self.registeredCallbacks) {
@@ -1086,7 +1087,7 @@ ControllerMpd.prototype.createMPDFile = function (callback) {
           specialSettings = specialSettings + os.EOL + '                ' + additionalConfs[i];
         }
       }
-      var conf13 = conf12.replace('${special_settings}', specialSettings);
+      var conf13 = conf12.replace(/\${special_settings}/g, specialSettings);
 
       fs.writeFile('/etc/mpd.conf', conf13, 'utf8', function (err) {
         if (err) {
@@ -2687,12 +2688,16 @@ ControllerMpd.prototype.clearAddPlayTrack = function (track) {
 
     self.logger.verbose('ControllerMpd::clearAddPlayTracks ' + uri);
 
+    var defer = libQ.defer();
     var urilow = uri.toLowerCase();
     if (urilow.endsWith('.dff') || urilow.endsWith('.dsd') || urilow.endsWith('.dxd') || urilow.endsWith('.dsf')) {
+      self.enableDSDOutput();
       self.dsdVolume();
+    } else {
+      self.disableDSDOutput();
     }
     // Clear the queue, add the first track, and start playback
-    var defer = libQ.defer();
+
     var cmd = libMpd.cmd;
 
     var safeUri = uri.replace(/"/g, '\\"');
@@ -3704,6 +3709,11 @@ ControllerMpd.prototype.prefetch = function (trackBlock) {
   if (urilow.endsWith('.dff') || urilow.endsWith('.dsd') || urilow.endsWith('.dxd') || urilow.endsWith('.dsf')) {
     setTimeout(function () {
       self.dsdVolume();
+      self.enableDSDOutput();
+    }, 5000);
+  } else {
+    setTimeout(function () {
+      self.disableDSDOutput();
     }, 5000);
   }
   var safeUri = uri.replace(/"/g, '\\"');
@@ -3809,6 +3819,33 @@ ControllerMpd.prototype.dsdVolume = function () {
   if (dsd_autovolume) {
     self.logger.info('Setting Volume to 100 automatically for DSD');
     self.commandRouter.volumiosetvolume(100);
+  }
+};
+
+ControllerMpd.prototype.enableDSDOutput = function () {
+  var self = this;
+  var defer = libQ.defer();
+  console.log("enableDSDOutput!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+  var multiroomPlugin = self.commandRouter.pluginManager.getPlugin('audio_interface', 'multiroom');
+  if (multiroomPlugin != undefined && typeof multiroomPlugin.enableMultiroomDSDOutput === 'function') {
+    console.log("FOUND!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    self.dsdOutputEnabled = true;
+    return multiroomPlugin.enableMultiroomDSDOutput();
+  } else {
+    console.log("NOTFOUND!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    return defer.promise;
+  }
+};
+
+ControllerMpd.prototype.disableDSDOutput = function () {
+  var self = this;
+  console.log("disableDSDOutput!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+  if (self.dsdOutputEnabled) {
+    console.log("DISABLING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    self.disableOutput("1");
+    self.disableOutput("2");
+    self.enableOutput("0");
+    self.dsdOutputEnabled = false;
   }
 };
 

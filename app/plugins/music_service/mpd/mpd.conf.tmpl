@@ -37,9 +37,9 @@ input {
 
 # Decoder ################################################################
 
-"${ffmpeg}"
+${ffmpeg}
 
-"${sacdiso}"
+${sacdiso}
 
 ###############################################################################
 
@@ -55,19 +55,28 @@ audio_output {
 		${mixer}
 		${format}
 		${special_settings}
-
 }
 
-
-
-
+audio_output {
+	enabled         "no"
+    type            "alsa"
+	name			"native_dsd"
+	device			"volumioOutput"
+	dop				"${dop}"
+	${mixer}
+	${format}
+	${special_settings}
+}
 
 audio_output {
-    type            "fifo"
-    enabled         "no"
-    name            "multiroom"
-    path            "/tmp/snapfifo"
-    format          "44100:16:2"
+	enabled         "no"
+	type            "alsa"
+	name			"downsample_dsd"
+	device			"${device}"
+	dsd_usb			"no"
+	${mixer}
+	${format}
+	${special_settings}
 }
 
 #replaygain			"album"
