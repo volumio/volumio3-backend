@@ -181,6 +181,7 @@
           "element": "select",
           "doc": "TRANSLATE.PLAYBACK_OPTIONS.BUFFER_BEFORE_PLAY_DOC",
           "label": "TRANSLATE.PLAYBACK_OPTIONS.BUFFER_BEFORE_PLAY",
+          "hidden": true,
           "value":  {
             "value":"20%",
             "label": "20%"
