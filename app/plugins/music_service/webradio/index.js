@@ -536,14 +536,18 @@ ControllerWebradio.prototype.explodeUri = function (data) {
 
     let parsedUrl = url.parse(uri, true);
     let streamId = parsedUrl.query.id;
-
     let streamUrl = self.tuneIn.tune_radio(streamId);
     let streamDescribe = self.tuneIn.describe(streamId);
+    let streamNowPlaying = self.tuneIn.describe(streamId, true);
 
-    Promise.all([streamUrl, streamDescribe]).then(function (results) {
+    Promise.all([streamUrl, streamDescribe, streamNowPlaying]).then(function (results) {
       explodedUri.uri = results[0].body[0].url;
       explodedUri.name = results[1].body[0].name;
-      explodedUri.albumart = results[1].body[0].logo;
+      explodedUri.albumart = results[2].body[0].image.replace('__', '');
+      // Fix for TuneIn API sometimes not providing correct albumart URL
+      if (data.albumart) {
+        explodedUri.albumart = data.albumart;
+      }
 
       defer.resolve(explodedUri);
     })
