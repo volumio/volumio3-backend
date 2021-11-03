@@ -3825,23 +3825,18 @@ ControllerMpd.prototype.dsdVolume = function () {
 ControllerMpd.prototype.enableDSDOutput = function () {
   var self = this;
   var defer = libQ.defer();
-  console.log("enableDSDOutput!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
   var multiroomPlugin = self.commandRouter.pluginManager.getPlugin('audio_interface', 'multiroom');
   if (multiroomPlugin != undefined && typeof multiroomPlugin.enableMultiroomDSDOutput === 'function') {
-    console.log("FOUND!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
     self.dsdOutputEnabled = true;
     return multiroomPlugin.enableMultiroomDSDOutput();
   } else {
-    console.log("NOTFOUND!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
     return defer.promise;
   }
 };
 
 ControllerMpd.prototype.disableDSDOutput = function () {
   var self = this;
-  console.log("disableDSDOutput!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
   if (self.dsdOutputEnabled) {
-    console.log("DISABLING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
     self.disableOutput("1");
     self.disableOutput("2");
     self.enableOutput("0");
