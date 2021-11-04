@@ -11,6 +11,7 @@ var crypto = require('crypto');
 var calltrials = 0;
 var additionalSVInfo;
 const { v4: uuidv4 } = require('uuid');
+var hwUuid;
 
 // Define the ControllerSystem class
 module.exports = ControllerSystem;
@@ -37,7 +38,7 @@ ControllerSystem.prototype.onVolumioStart = function () {
 
   var uuid = this.config.get('uuid');
   if (uuid == undefined) {
-    console.log('No id defined. Creating one');
+    self.logger.info('No id defined. Creating one');
     self.config.addConfigValue('uuid', 'string', uuidv4());
   }
 
@@ -46,7 +47,18 @@ ControllerSystem.prototype.onVolumioStart = function () {
 
   process.env.ADVANCED_SETTINGS_MODE = this.config.get('advanced_settings_mode', true);
 
-  return libQ.all(self.deviceDetect(), self.callHome());
+  return libQ.all(self.deviceDetect());
+};
+
+ControllerSystem.prototype.onStart = function () {
+  var self = this;
+  var defer = libQ.defer();
+
+  self.callHome();
+  self.initializeFirstStart();
+  
+  defer.resolve('OK')
+  return defer.promise;
 };
 
 ControllerSystem.prototype.onStop = function () {
@@ -300,17 +312,17 @@ ControllerSystem.prototype.setHostname = function (hostname) {
 
   fs.writeFile('/etc/hostname', newhostname, function (err) {
     if (err) {
-      console.log(err);
+      self.logger.error('Failed to set hostname: ' + err);
       self.commandRouter.pushToastMessage('alert', self.commandRouter.getI18nString('SYSTEM.SYSTEM_NAME'), self.commandRouter.getI18nString('SYSTEM.SYSTEM_NAME_ERROR'));
     } else {
       exec('/usr/bin/sudo /bin/chmod 777 /etc/hosts', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
         if (error !== null) {
-          console.log('Cannot set permissions for /etc/hosts: ' + error);
+          self.logger.error('Cannot set permissions for /etc/hosts: ' + error);
         } else {
           self.logger.info('Permissions for /etc/hosts set');
           exec('/usr/bin/sudo /bin/hostname ' + newhostname, {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
             if (error !== null) {
-              console.log('Cannot set new hostname: ' + error);
+              self.logger.error('Cannot set new hostname: ' + error);
             } else {
               self.logger.info('New hostname set');
             }
@@ -319,19 +331,19 @@ ControllerSystem.prototype.setHostname = function (hostname) {
 
         fs.writeFile('/etc/hosts', '127.0.0.1       localhost ' + newhostname, function (err) {
           if (err) {
-            console.log(err);
+            self.logger.error('Failed to write hosts file: ' + err);
           } else {
             self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('SYSTEM.SYSTEM_NAME'), self.commandRouter.getI18nString('SYSTEM.SYSTEM_NAME_NOW') + ' ' + hostname);
             self.logger.info('Hostname now is ' + newhostname);
             var avahiconf = '<?xml version="1.0" standalone="no"?><service-group><name replace-wildcards="yes">' + hostname + '</name><service><type>_http._tcp</type><port>80</port></service></service-group>';
             exec('/usr/bin/sudo /bin/chmod -R 777 /etc/avahi/services/', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
               if (error !== null) {
-                console.log('Cannot set permissions for /etc/avahi/services/: ' + error);
+                self.logger.error('Cannot set permissions for /etc/avahi/services/: ' + error);
               } else {
                 self.logger.info('Permissions for /etc/avahi/services/volumio.service');
                 fs.writeFile('/etc/avahi/services/volumio.service', avahiconf, function (err) {
                   if (err) {
-                    console.log(err);
+                    self.logger.error(err);
                   } else {
                     self.logger.info('Avahi name changed to ' + newhostname);
                   }
@@ -357,7 +369,7 @@ ControllerSystem.prototype.restartAvahi = function () {
     gid: 1000
   }, function (error, stdout, stderr) {
     if (error !== null) {
-      console.log(error);
+      self.logger.error('Failed to restart Avahi: ' + error);
       self.commandRouter.pushToastMessage('alert', self.commandRouter.getI18nString('SYSTEM.SYSTEM_NAME'), self.commandRouter.getI18nString('SYSTEM.SYSTEM_NAME_ERROR'));
     } else {
       self.logger.info('Avahi Daemon Restarted');
@@ -381,7 +393,7 @@ ControllerSystem.prototype.getSystemVersion = function () {
     'variant': null,
     'hardware': null
   };
-  // console.log(file);
+
   var nLines = file.length;
   var str;
   for (var l = 0; l < nLines; l++) {
@@ -446,8 +458,7 @@ ControllerSystem.prototype.setTestSystem = function (data) {
     fs.exists('/data/test', function (exists) {
       exec('rm /data/test', function (error, stdout, stderr) {
         if (error !== null) {
-          console.log(error);
-          self.logger.info('Cannot delete test file: ' + error);
+          self.logger.error('Cannot delete test file: ' + error);
         } else {
           self.logger.info('Test File deleted');
         }
@@ -470,8 +481,7 @@ ControllerSystem.prototype.setTestPlugins = function (data) {
     fs.exists('/data/testplugins', function (exists) {
       exec('rm /data/testplugins', function (error, stdout, stderr) {
         if (error !== null) {
-          console.log(error);
-          self.logger.info('Cannot delete plugins test file: ' + error);
+          self.logger.error('Cannot delete plugins test file: ' + error);
         } else {
           self.logger.info('Plugins Test File deleted');
         }
@@ -601,14 +611,13 @@ ControllerSystem.prototype.callHome = function () {
     var macaddr = fs.readFileSync('/sys/class/net/eth0/address', 'utf8');
     var anonid = macaddr.toString().replace(':', '');
   } catch (e) {
-    console.log(e);
     var anonid = self.config.get('uuid');
   }
   var md5 = crypto.createHash('md5').update(anonid).digest('hex');
   var info = self.getSystemVersion();
   info.then(function (infos) {
     if ((infos.variant) && (infos.systemversion) && (infos.hardware) && (md5)) {
-      console.log('Volumio Calling Home');
+      self.logger.info('Volumio Calling Home');
       exec('/usr/bin/curl -X POST --data-binary "device=' + infos.hardware + '&variante=' + infos.variant + '&version=' + infos.systemversion + '&uuid=' + md5 + '" http://updates.volumio.org/downloader-v1/track-device',
         function (error, stdout, stderr) {
           if (error !== null) {
@@ -639,8 +648,7 @@ ControllerSystem.prototype.enableSSH = function (data) {
 
   exec('/usr/bin/sudo /bin/systemctl ' + immediate + ' ssh.service && /usr/bin/sudo /bin/systemctl ' + action + ' ssh.service', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
     if (error !== null) {
-      console.log(error);
-      self.logger.info('Cannot ' + action + ' SSH service: ' + error);
+      self.logger.error('Cannot ' + action + ' SSH service: ' + error);
     } else {
       self.logger.info(action + ' SSH service success');
     }
@@ -716,7 +724,6 @@ ControllerSystem.prototype.getDisks = function () {
   }
   var final = {'current': currentdisk, 'available': availablearray};
   defer.resolve(final);
-  // console.log('BBBBBBBBBBBBBBBBBBBBBBBBBBB'+JSON.stringify(final))
 
   return defer.promise;
 };
@@ -988,8 +995,7 @@ ControllerSystem.prototype.saveHDMISettings = function (data) {
 
     exec('/usr/bin/sudo /bin/systemctl ' + immediate + ' volumio-kiosk.service && /usr/bin/sudo /bin/systemctl ' + action + ' volumio-kiosk.service', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
       if (error !== null) {
-        console.log(error);
-        self.logger.info('Cannot ' + action + ' volumio-kiosk service: ' + error);
+        self.logger.error('Cannot ' + action + ' volumio-kiosk service: ' + error);
       } else {
         self.logger.info(action + ' volumio-kiosk service success');
         self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('SYSTEM.HDMI_UI'), self.commandRouter.getI18nString('SYSTEM.SYSTEM_CONFIGURATION_UPDATE_SUCCESS'));
@@ -1099,14 +1105,21 @@ ControllerSystem.prototype.getHwuuid = function () {
   var self = this;
   var defer = libQ.defer();
 
-  try {
-    var macaddr = fs.readFileSync('/sys/class/net/eth0/address', 'utf8');
-    var anonid = macaddr.toString().replace(':', '');
-  } catch (e) {
-    var anonid = this.config.get('uuid');
+  if (hwUuid) {
+    return hwUuid;
+  } else {
+    var ethHwUuuid = self.getHwuuidEth();
+    var wlanHwUuuid = self.getHwuuidWlan();
+    if (ethHwUuuid || wlanHwUuuid) {
+      var hwUuidRaw = ethHwUuuid || wlanHwUuuid;
+      hwUuid = crypto.createHash('md5').update(hwUuidRaw).digest('hex');
+      return hwUuid;
+    } else {
+      var anonid = this.config.get('uuid');
+      hwUuid = crypto.createHash('md5').update(anonid).digest('hex');
+      return hwUuid;
+    }
   }
-
-  return crypto.createHash('md5').update(anonid).digest('hex');
 };
 
 ControllerSystem.prototype.getPrivacySettings = function () {
@@ -1207,5 +1220,59 @@ ControllerSystem.prototype.enableLiveLog = function (data) {
       this.livelogchild.kill();
       this.livelogchild = undefined;
     }
+  }
+};
+
+ControllerSystem.prototype.getHwuuidEth = function () {
+  var self = this;
+
+  var anonid = undefined;
+  try {
+    var macaddr = fs.readFileSync('/sys/class/net/eth0/address', 'utf8');
+    anonid = macaddr.toString().replace(':', '');
+  } catch (e) {}
+  return anonid;
+};
+
+ControllerSystem.prototype.getHwuuidWlan = function () {
+  var self = this;
+
+  var anonid = undefined;
+  try {
+    var macaddr = fs.readFileSync('/sys/class/net/wlan0/address', 'utf8');
+    anonid = macaddr.toString().replace(':', '');
+  } catch (e) {}
+  return anonid;
+};
+
+ControllerSystem.prototype.initializeFirstStart = function () {
+  var self = this;
+
+  // We set default value to false if config not found, so this setting won't affect devices updating from previous versions
+  var isFirstStart = self.config.get('first_start', false);
+  if (isFirstStart) {
+    self.logger.info('System is starting for the first time, setting unique name for it');
+    var playerName = self.config.get('playerName');
+    var sysShortID = self.getHwuuid().toUpperCase().substring(0,5);
+    var newPlayerName = playerName + '-' + sysShortID;
+    var options = { "player_name": newPlayerName };
+    self.logger.info('Setting player name on first start: ' + newPlayerName);
+    self.saveGeneralSettings(options);
+
+    self.logger.info('Setting Hotspot Unique name on first start: ' + newPlayerName);
+    var hotspotOptions = {
+      enable_hotspot: true,
+      hotspot_fallback: false,
+      hotspot_name: newPlayerName,
+      hotspot_protection: false,
+      hotspot_channel: { value: 4, label: '4' }
+    };
+    self.commandRouter.executeOnPlugin(
+        'system_controller',
+        'network',
+        'saveHotspotSettings',
+        hotspotOptions
+    );
+    self.config.set('first_start', false)
   }
 };
