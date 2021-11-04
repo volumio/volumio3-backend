@@ -11,6 +11,7 @@ var crypto = require('crypto');
 var calltrials = 0;
 var additionalSVInfo;
 const { v4: uuidv4 } = require('uuid');
+var hwUuid;
 
 // Define the ControllerSystem class
 module.exports = ControllerSystem;
@@ -1099,14 +1100,19 @@ ControllerSystem.prototype.getHwuuid = function () {
   var self = this;
   var defer = libQ.defer();
 
-  try {
-    var macaddr = fs.readFileSync('/sys/class/net/eth0/address', 'utf8');
-    var anonid = macaddr.toString().replace(':', '');
-  } catch (e) {
-    var anonid = this.config.get('uuid');
+  if (hwUuid) {
+    return hwUuid;
+  } else {
+    if (self.getHwuuidEth() || self.ggetHwuuidWlan()) {
+      var hwUuidRaw = self.getHwuuidEth() || self.ggetHwuuidWlan();
+      hwUuid = crypto.createHash('md5').update(hwUuidRaw).digest('hex');
+      return hwUuid;
+    } else {
+      var anonid = this.config.get('uuid');
+      hwUuid = crypto.createHash('md5').update(anonid).digest('hex');
+      return hwUuid;
+    }
   }
-
-  return crypto.createHash('md5').update(anonid).digest('hex');
 };
 
 ControllerSystem.prototype.getPrivacySettings = function () {
@@ -1208,4 +1214,28 @@ ControllerSystem.prototype.enableLiveLog = function (data) {
       this.livelogchild = undefined;
     }
   }
+};
+
+ControllerSystem.prototype.getHwuuidEth = function () {
+  var self = this;
+
+  var anonid = undefined;
+  try {
+    var macaddr = fs.readFileSync('/sys/class/net/eth0/address', 'utf8');
+    anonid = macaddr.toString().replace(':', '');
+  } catch (e) {
+    var anonid = this.config.get('uuid');
+  }
+  return anonid;
+};
+
+ControllerSystem.prototype.getHwuuidWlan = function () {
+  var self = this;
+
+  var anonid = undefined;
+  try {
+    var macaddr = fs.readFileSync('/sys/class/net/wlan0/address', 'utf8');
+    anonid = macaddr.toString().replace(':', '');
+  } catch (e) {}
+  return anonid;
 };
