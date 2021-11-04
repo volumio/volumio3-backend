@@ -22,7 +22,7 @@ This repository contains the source code of Volumio's Backend, which is a Node.J
 
 Volumio is made with several components, some of which are open-source. They are:
 
-* [Volumio OS Build System ](https://github.com/volumio/volumio-os)
+* [Volumio OS Build System ](https://github.com/volumio/volumio3-os)
 * [Volumio Backend](https://github.com/volumio/volumio3-backend)
 * [Volumio User interface](https://github.com/volumio/Volumio2-UI)
 
