@@ -69,6 +69,10 @@ function CoreVolumeController (commandRouter) {
   volumesteps = this.commandRouter.executeOnPlugin('audio_interface', 'alsa_controller', 'getConfigParam', 'volumesteps');
   mixertype = this.commandRouter.executeOnPlugin('audio_interface', 'alsa_controller', 'getConfigParam', 'mixer_type');
 
+  if (process.env.MODULAR_ALSA_PIPELINE === 'true' && mixertype === 'Software') {
+    mixer = 'SoftMaster';
+  }
+
   var amixer = function (args, cb) {
     var ret = '';
     var err = null;
@@ -394,58 +398,41 @@ CoreVolumeController.prototype.alsavolume = function (VolumeInteger) {
           }
           break;
         case '+':
-          self.getVolume(function (err, vol) {
+          VolumeInteger = Number(currentvolume) + Number(volumesteps);
+          if (VolumeInteger > 100) {
+            VolumeInteger = 100;
+          }
+          if (VolumeInteger > maxvolume) {
+            VolumeInteger = maxvolume;
+          }
+          currentvolume = VolumeInteger;
+          Volume.vol = VolumeInteger;
+          Volume.mute = false;
+          Volume.disableVolumeControl = false;
+          defer.resolve(Volume);
+          self.setVolume(VolumeInteger, function (err) {
             if (err) {
-              self.logger.error('Cannot get ALSA Volume: ' + err);
+              self.logger.error('Cannot set ALSA Volume: ' + err);
             }
-            if (!vol || currentmute) {
-              vol = currentvolume;
-            }
-            VolumeInteger = Number(vol) + Number(volumesteps);
-            if (VolumeInteger > 100) {
-              VolumeInteger = 100;
-            }
-            if (VolumeInteger > maxvolume) {
-              VolumeInteger = maxvolume;
-            }
-            currentvolume = VolumeInteger;
-            Volume.vol = VolumeInteger;
-            Volume.mute = false;
-            Volume.disableVolumeControl = false;
-            defer.resolve(Volume);
-            self.setVolume(VolumeInteger, function (err) {
-              if (err) {
-                self.logger.error('Cannot set ALSA Volume: ' + err);
-              }
-            });
           });
           break;
         case '-':
-          // Decrease volume by one (TEST ONLY FUNCTION - IN PRODUCTION USE A NUMERIC VALUE INSTEAD)
-          self.getVolume(function (err, vol) {
+          VolumeInteger = Number(currentvolume) - Number(volumesteps);
+          if (VolumeInteger < 0) {
+            VolumeInteger = 0;
+          }
+          if (VolumeInteger > maxvolume) {
+            VolumeInteger = maxvolume;
+          }
+          currentvolume = VolumeInteger;
+          Volume.vol = VolumeInteger;
+          Volume.mute = false;
+          Volume.disableVolumeControl = false;
+          defer.resolve(Volume);
+          self.setVolume(VolumeInteger, function (err) {
             if (err) {
-              self.logger.error('Cannot get ALSA Volume: ' + err);
+              self.logger.error('Cannot set ALSA Volume: ' + err);
             }
-            if (!vol || currentmute) {
-              vol = currentvolume;
-            }
-            VolumeInteger = Number(vol) - Number(volumesteps);
-            if (VolumeInteger < 0) {
-              VolumeInteger = 0;
-            }
-            if (VolumeInteger > maxvolume) {
-              VolumeInteger = maxvolume;
-            }
-            currentvolume = VolumeInteger;
-            Volume.vol = VolumeInteger;
-            Volume.mute = false;
-            Volume.disableVolumeControl = false;
-            defer.resolve(Volume);
-            self.setVolume(VolumeInteger, function (err) {
-              if (err) {
-                self.logger.error('Cannot set ALSA Volume: ' + err);
-              }
-            });
           });
           break;
         default:

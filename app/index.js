@@ -66,7 +66,7 @@ function CoreCommandRouter (server) {
   pluginPromise.then(() => {	  
 	  this.pushConsoleMessage('BOOT COMPLETED');
 	  metrics.log('CommandRouter');
-	  
+	  this.setStartupVolume();
 	  this.startupSound();
 	  this.closeModals();
   });
