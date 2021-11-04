@@ -69,6 +69,10 @@ function CoreVolumeController (commandRouter) {
   volumesteps = this.commandRouter.executeOnPlugin('audio_interface', 'alsa_controller', 'getConfigParam', 'volumesteps');
   mixertype = this.commandRouter.executeOnPlugin('audio_interface', 'alsa_controller', 'getConfigParam', 'mixer_type');
 
+  if (process.env.MODULAR_ALSA_PIPELINE === 'true' && mixertype === 'Software') {
+    mixer = 'SoftMaster';
+  }
+
   var amixer = function (args, cb) {
     var ret = '';
     var err = null;
