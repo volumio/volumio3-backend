@@ -139,14 +139,20 @@ volumioAppearance.prototype.getUIConfig = function () {
         self.configManager.setUIConfigParam(uiconf, 'sections[2].hidden', false);
       }
 
-      var showVolumio3UI = false;
-      var uiLayoutSettingLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CLASSIC');
+      var uiValue = "";
+      var uiLabel = "";
       if (process.env.VOLUMIO_3_UI === 'true') {
-        showVolumio3UI = true;
-        uiLayoutSettingLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CONTEMPORARY');
+        uiValue = "CONTEMPORARY";
+        uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CONTEMPORARY');
+      } else if (fs.existsSync("/data/volumio_concept_ui")) {
+        uiValue = "CONCEPT";
+        uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CONCEPT');
+      } else if (fs.existsSync("/data/volumio2ui")) {
+        uiValue = "CLASSIC";
+        uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CLASSIC');
       }
-      self.configManager.setUIConfigParam(uiconf, 'sections[2].content[0].value.value', showVolumio3UI);
-      self.configManager.setUIConfigParam(uiconf, 'sections[2].content[0].value.label', uiLayoutSettingLabel);
+      self.configManager.setUIConfigParam(uiconf, 'sections[2].content[0].value.value', uiValue);
+      self.configManager.setUIConfigParam(uiconf, 'sections[2].content[0].value.label', uiLabel);
 
       defer.resolve(uiconf);
     })
@@ -442,16 +448,27 @@ volumioAppearance.prototype.getConfigParam = function (key) {
 volumioAppearance.prototype.setVolumio3UI = function (data) {
   var self = this;
 
-  if (data && data.volumio3_ui.value === true) {
+  if (data && data.volumio3_ui.value === "CONTEMPORARY") {
     try {
       execSync('/bin/rm /data/volumio2ui');
+      execSync('/bin/rm /data/volumio_concept_ui');
       process.env.VOLUMIO_3_UI = 'true';
       self.commandRouter.reloadUi();
     } catch (e) {
       self.logger.error(e);
     }
-  } else {
+  } else if (data && data.volumio_concept_ui.value === "CONCEPT") {
     try {
+      execSync('/usr/bin/touch /data/volumio_concept_ui');
+      execSync('/bin/rm /data/volumio2ui');
+      process.env.VOLUMIO_3_UI = 'false';
+      self.commandRouter.reloadUi();
+    } catch (e) {
+      self.logger.error(e);
+    }
+  } else if (data && data.volumio_concept_ui.value === "CLASSIC") {
+    try {
+      execSync('/bin/rm /data/volumio_concept_ui');
       execSync('/usr/bin/touch /data/volumio2ui');
       process.env.VOLUMIO_3_UI = 'false';
       self.commandRouter.reloadUi();
