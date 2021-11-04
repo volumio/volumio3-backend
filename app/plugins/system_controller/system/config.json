@@ -22,5 +22,9 @@
   "show_wizard": {
     "value": true,
     "type": "boolean"
+  },
+  "first_start": {
+    "value": true,
+    "type": "boolean"
   }
 }

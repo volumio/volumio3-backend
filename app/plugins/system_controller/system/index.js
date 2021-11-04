@@ -47,7 +47,18 @@ ControllerSystem.prototype.onVolumioStart = function () {
 
   process.env.ADVANCED_SETTINGS_MODE = this.config.get('advanced_settings_mode', true);
 
-  return libQ.all(self.deviceDetect(), self.callHome());
+  return libQ.all(self.deviceDetect());
+};
+
+ControllerSystem.prototype.onStart = function () {
+  var self = this;
+  var defer = libQ.defer();
+
+  self.callHome();
+  self.initializeFirstStart();
+  
+  defer.resolve('OK')
+  return defer.promise;
 };
 
 ControllerSystem.prototype.onStop = function () {
@@ -1232,4 +1243,36 @@ ControllerSystem.prototype.getHwuuidWlan = function () {
     anonid = macaddr.toString().replace(':', '');
   } catch (e) {}
   return anonid;
+};
+
+ControllerSystem.prototype.initializeFirstStart = function () {
+  var self = this;
+
+  // We set default value to false if config not found, so this setting won't affect devices updating from previous versions
+  var isFirstStart = self.config.get('first_start', false);
+  if (isFirstStart) {
+    self.logger.info('System is starting for the first time, setting unique name for it');
+    var playerName = self.config.get('playerName');
+    var sysShortID = self.getHwuuid().toUpperCase().substring(0,5);
+    var newPlayerName = playerName + '-' + sysShortID;
+    var options = { "player_name": newPlayerName };
+    self.logger.info('Setting player name on first start: ' + newPlayerName);
+    self.saveGeneralSettings(options);
+
+    self.logger.info('Setting Hotspot Unique name on first start: ' + newPlayerName);
+    var hotspotOptions = {
+      enable_hotspot: true,
+      hotspot_fallback: false,
+      hotspot_name: newPlayerName,
+      hotspot_protection: false,
+      hotspot_channel: { value: 4, label: '4' }
+    };
+    self.commandRouter.executeOnPlugin(
+        'system_controller',
+        'network',
+        'saveHotspotSettings',
+        hotspotOptions
+    );
+    self.config.set('first_start', false)
+  }
 };
