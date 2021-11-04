@@ -121,28 +121,6 @@ ControllerAlsa.prototype.onVolumioStart = function () {
     
   }
 
-  var volumeval = this.config.get('volumestart');
-
-  var socketURL = 'http://localhost:3000';
-  var options = {
-    transports: ['websocket'],
-    'force new connection': true
-  };
-
-  var client1 = io.connect(socketURL, options);
-
-  if (volumeval != 'disabled') {
-    setTimeout(function () {
-      exec('/volumio/app/plugins/system_controller/volumio_command_line_client/volumio.sh volume ' + volumeval, {uid: 1000, gid: 1000, encoding: 'utf8'}, function (error, stdout, stderr) {
-        if (error) {
-          self.logger.error('Cannot set startup volume: ' + error);
-        } else {
-          self.logger.info('Setting volume on startup at ' + volumeval);
-        }
-      });
-    }, 5000);
-  }
-
   if (this.config.has('outputdevice') == false) {
     this.config.addConfigValue('outputdevice', 'string', '0');
     this.updateVolumeSettings();

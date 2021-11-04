@@ -96,11 +96,11 @@ PlatformSpecific.prototype.startupSound = function () {
         hwdev = '--device=plughw:' + outdev + ',0';
       }
     }
-    try {
-      execSync('/usr/bin/aplay ' + hwdev + ' /volumio/app/startup.wav');
-    } catch (e) {
-    		console.log('Cannot play startup sound');
-    }
+    exec('/usr/bin/aplay ' + hwdev + ' /volumio/app/startup.wav', function (error, stdout, stderr) {
+      if (error) {
+        self.coreCommand.pushConsoleMessage('Cannot play startup sound: ' + error);
+      }
+    });
   }
   self.coreCommand.closeModals();
   setTimeout(function () {
