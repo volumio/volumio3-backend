@@ -1103,8 +1103,10 @@ ControllerSystem.prototype.getHwuuid = function () {
   if (hwUuid) {
     return hwUuid;
   } else {
-    if (self.getHwuuidEth() || self.ggetHwuuidWlan()) {
-      var hwUuidRaw = self.getHwuuidEth() || self.ggetHwuuidWlan();
+    var ethHwUuuid = self.getHwuuidEth();
+    var wlanHwUuuid = self.getHwuuidWlan();
+    if (ethHwUuuid || wlanHwUuuid) {
+      var hwUuidRaw = ethHwUuuid || wlanHwUuuid;
       hwUuid = crypto.createHash('md5').update(hwUuidRaw).digest('hex');
       return hwUuid;
     } else {
@@ -1223,9 +1225,7 @@ ControllerSystem.prototype.getHwuuidEth = function () {
   try {
     var macaddr = fs.readFileSync('/sys/class/net/eth0/address', 'utf8');
     anonid = macaddr.toString().replace(':', '');
-  } catch (e) {
-    var anonid = this.config.get('uuid');
-  }
+  } catch (e) {}
   return anonid;
 };
 
