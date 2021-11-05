@@ -1251,28 +1251,31 @@ ControllerSystem.prototype.initializeFirstStart = function () {
   // We set default value to false if config not found, so this setting won't affect devices updating from previous versions
   var isFirstStart = self.config.get('first_start', false);
   if (isFirstStart) {
-    self.logger.info('System is starting for the first time, setting unique name for it');
     var playerName = self.config.get('playerName');
     var sysShortID = self.getHwuuid().toUpperCase().substring(0,5);
     var newPlayerName = playerName + '-' + sysShortID;
     var options = { "player_name": newPlayerName };
-    self.logger.info('Setting player name on first start: ' + newPlayerName);
-    self.saveGeneralSettings(options);
+    if (process.env.AUTO_RENAME_SYSTEM_TO_UID_ONFIRSTSTART === 'true') {
+      self.logger.info('Setting player name on first start: ' + newPlayerName);
+      self.saveGeneralSettings(options);
+    }
 
-    self.logger.info('Setting Hotspot Unique name on first start: ' + newPlayerName);
-    var hotspotOptions = {
-      enable_hotspot: true,
-      hotspot_fallback: false,
-      hotspot_name: newPlayerName,
-      hotspot_protection: false,
-      hotspot_channel: { value: 4, label: '4' }
-    };
-    self.commandRouter.executeOnPlugin(
-        'system_controller',
-        'network',
-        'saveHotspotSettings',
-        hotspotOptions
-    );
-    self.config.set('first_start', false)
+    if (process.env.AUTO_RENAME_HOTSPOT_TO_UID_ONFIRSTSTART === 'true') {
+      self.logger.info('Setting Hotspot Unique name on first start: ' + newPlayerName);
+      var hotspotOptions = {
+        enable_hotspot: true,
+        hotspot_fallback: false,
+        hotspot_name: newPlayerName,
+        hotspot_protection: false,
+        hotspot_channel: {value: 4, label: '4'}
+      };
+      self.commandRouter.executeOnPlugin(
+          'system_controller',
+          'network',
+          'saveHotspotSettings',
+          hotspotOptions
+      );
+    }
+    self.config.set('first_start', false);
   }
 };
