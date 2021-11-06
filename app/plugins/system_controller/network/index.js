@@ -370,7 +370,7 @@ ControllerNetwork.prototype.saveWiredNet = function (data) {
     config.set('ethnetmask', static_netmask);
     config.set('ethgateway', static_gateway);
 
-    self.rebuildNetworkConfig();
+    self.rebuildNetworkConfig('wired');
     self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('NETWORK.NETWORK_RESTART_TITLE'), self.commandRouter.getI18nString('NETWORK.NETWORK_RESTART_SUCCESS'));
 
     defer.resolve({});
@@ -434,7 +434,7 @@ ControllerNetwork.prototype.saveWirelessNet = function (data) {
       config.set('wirelessgateway', static_gateway);
     }
 
-    self.rebuildNetworkConfig();
+    self.rebuildNetworkConfig('wireless');
     self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('NETWORK.NETWORK_RESTART_TITLE'), self.commandRouter.getI18nString('NETWORK.NETWORK_RESTART_SUCCESS'));
 
     defer.resolve({});
@@ -694,7 +694,7 @@ ControllerNetwork.prototype.wirelessConnect = function (data) {
   });
 };
 
-ControllerNetwork.prototype.rebuildNetworkConfig = function () {
+ControllerNetwork.prototype.rebuildNetworkConfig = function (networkInterfaceToRestart) {
   var self = this;
   var staticfile = '/etc/dhcpcd.conf';
 
@@ -754,8 +754,17 @@ ControllerNetwork.prototype.rebuildNetworkConfig = function () {
         ws.end();
         staticconf.end();
         // console.log("Restarting networking layer");
-        self.commandRouter.wirelessRestart();
-        self.commandRouter.networkRestart();
+        if (networkInterfaceToRestart && networkInterfaceToRestart === 'wired') {
+          self.logger.info('Restarting Wired Network');
+          self.commandRouter.networkRestart();
+        } else if (networkInterfaceToRestart && networkInterfaceToRestart === 'wireless') {
+          self.logger.info('Restarting Wireless Network');
+          self.commandRouter.wirelessRestart();
+        } else {
+          self.logger.info('Restarting Both Wired and Wireless Networks');
+          self.commandRouter.networkRestart();
+          self.commandRouter.wirelessRestart();
+        }
       } catch (err) {
         self.commandRouter.pushToastMessage('error', self.commandRouter.getI18nString('NETWORK.NETWORK_RESTART_ERROR'), self.getI18NString('NETWORK.NETWORK_RESTART_ERROR') + err);
       }
