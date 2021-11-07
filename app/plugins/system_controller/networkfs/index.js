@@ -1241,7 +1241,7 @@ ControllerNetworkfs.prototype.mountPartition = function (partitionData) {
   try {
     execSync(mountCMD, {uid: 1000, gid: 1000});
     self.storeMountedFolder(partitionData.mountFolder);
-    if (checkLabelForInternalDiskToBeMounted(partitionData.label)) {
+    if (self.checkLabelForInternalDiskToBeMounted(partitionData.label)) {
       self.bindInternalMemoryPosition();
     } else {
       var message = partitionData.label + ' ' + self.commandRouter.getI18nString('COMMON.CONNECTED');
