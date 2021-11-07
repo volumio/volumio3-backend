@@ -792,7 +792,7 @@ function update() {
         }
         execSync("/bin/mv *.zip /tmp/plugins/" + package.name + ".zip");
         socket.emit('updatePlugin', {url: 'http://127.0.0.1:3000/plugin-serve/'
-            + package.name + ".zip", category: package.category, name: package.name})
+            + package.name + ".zip", category: package.volumio_info.plugin_type, name: package.name})
         socket.on('installPluginStatus', function (data) {
             console.log("Progress: " + data.progress + "\nStatus :" + data.message)
             if(data.message == "Plugin Successfully Installed"){
