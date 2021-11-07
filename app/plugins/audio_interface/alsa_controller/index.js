@@ -1,6 +1,5 @@
 'use strict';
 
-var io = require('socket.io-client');
 var fs = require('fs-extra');
 var exec = require('child_process').exec;
 var execSync = require('child_process').execSync;

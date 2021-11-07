@@ -23,6 +23,7 @@ function CoreStateMachine (commandRouter) {
   this.isVolatile = false;
   this.currentDisableVolumeControl = false;
   this.previousTrackonPrev = false;
+  this.lastSavedStateToString = '{}';
   /**
      * This field tells the system if it is currenty running in consume mode
      * @type {boolean} true or false wether the system is in consume mode
@@ -486,12 +487,12 @@ CoreStateMachine.prototype.getcurrentVolume = function () {
 // Announce updated Volumio state
 CoreStateMachine.prototype.pushState = function () {
   this.commandRouter.pushConsoleMessage('CoreStateMachine::pushState');
-
+  var self = this;
   var promise = libQ.defer();
 
   var state = this.getState();
+  self.saveCurrenState(state);
 
-  var self = this;
   self.commandRouter.volumioPushState(state)
     .then(function (data) {
       self.checkFavourites(state)
@@ -501,6 +502,16 @@ CoreStateMachine.prototype.pushState = function () {
     });
 
   return promise.promise;
+};
+
+CoreStateMachine.prototype.saveCurrenState = function (state) {
+  var self = this;
+
+  let newStateToString = JSON.stringify(state);
+  if (self.lastSavedStateToString !== newStateToString) {
+    self.lastSavedStateToString = newStateToString;
+    return this.commandRouter.executeOnPlugin('system_controller', 'volumiodiscovery', 'saveDeviceInfo', state);
+  }
 };
 
 CoreStateMachine.prototype.pushEmptyState = function () {

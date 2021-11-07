@@ -308,7 +308,7 @@ CoreCommandRouter.prototype.volumioSearch = function (data) {
 
 CoreCommandRouter.prototype.volumioPushState = function (state) {
   this.pushConsoleMessage('CoreCommandRouter::volumioPushState');
-  this.executeOnPlugin('system_controller', 'volumiodiscovery', 'saveDeviceInfo', state);
+
   // Announce new player state to each client interface
   var self = this;
   var res = libQ.all(
