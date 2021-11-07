@@ -935,6 +935,10 @@ PluginManager.prototype.updatePlugin = function (data) {
           self.pushMessage('installPluginStatus', {'progress': 20, 'message': self.coreCommand.getI18nString('PLUGINS.PLUGIN_STOPPED'), 'title': modaltitle});
           return e;
         })
+        .then(function (e) {
+          self.clearNodeCache(category, name);
+          return e;
+        })
         .then(self.pushMessage.bind(self, 'installPluginStatus', {
           'progress': 30,
           'message': currentMessage,
@@ -1427,6 +1431,10 @@ PluginManager.prototype.unInstallPlugin = function (category, name) {
       .then(self.removePluginFromConfiguration.bind(self, category, name))
       .then(function (e) {
         self.pushMessage('installPluginStatus', {'progress': 90, 'message': self.coreCommand.getI18nString('PLUGINS.FINALIZING_UNINSTALL'), 'title': modaltitle});
+        return e;
+      })
+      .then(function (e) {
+        self.clearNodeCache(category, name);
         return e;
       })
       .then(self.pluginFolderCleanup.bind(self, true))
@@ -2045,3 +2053,24 @@ PluginManager.prototype.detectVolumioHardware = function () {
       variant = 'volumioproducts';
     }
 };
+
+PluginManager.prototype.clearNodeCache = function (category, pluginName) {
+  let self = this;
+
+  let pathPrefix = self.findPluginFolder(category, pluginName);
+  let count = 0;
+  if (pathPrefix) {
+    pathPrefix += '/';
+    // findPluginFolder returns double slash after the base plugin path, e.g. /data/plugins//music_service/...
+    // Need to replace double slash with single
+    pathPrefix = pathPrefix.replace(/\/\//g, '/');
+    self.logger.info(`Clearing cached Node modules for ${ category }/${ pluginName } (cache key prefix: ${ pathPrefix })`);
+    for (const path in require.cache) {
+      if (path.startsWith(pathPrefix) && path.endsWith('.js')) {
+          delete require.cache[path];
+          count++;
+      }
+    }
+    self.logger.info(`Cleared ${ count } cached Node modules for ${ category }/${ pluginName }`);
+  }
+}
