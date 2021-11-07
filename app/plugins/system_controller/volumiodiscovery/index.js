@@ -92,9 +92,8 @@ ControllerVolumioDiscovery.prototype.startAdvertisement = function () {
   self.forceRename = undefined;
 
   try {
-    var systemController = self.commandRouter.pluginManager.getPlugin('system_controller', 'system');
-    var name = systemController.getConf('playerName');
-    var uuid = systemController.getConf('uuid');
+    var name = self.commandRouter.sharedVars.get('system.name');
+    var uuid = self.commandRouter.sharedVars.get('system.uuid');
     var serviceName = config.get('service');
     var servicePort = config.get('port');
 
@@ -106,23 +105,8 @@ ControllerVolumioDiscovery.prototype.startAdvertisement = function () {
     self.logger.info('Discovery: Started advertising with name: ' + name);
 
     self.ad = mdns.createAdvertisement(mdns.tcp(serviceName), servicePort, {txtRecord: txt_record}, function (error, service) {
-      var lowerServer = serviceName.toLowerCase();
-      var theName = service.name.replace(lowerServer, serviceName);
-      if ((theName != name) && (forceRename === false)) {
-        self.logger.info('Discovery: Changing my name to: ' + service.name);
-        systemController.setConf('playerName', theName);
-        self.ad.stop();
-        txt_record.volumioName = theName;
-        setTimeout(
-          function () {
-            self.ad = mdns.createAdvertisement(mdns.tcp(serviceName), servicePort, {txtRecord: txt_record}, function (error, service) {
-              if (error) {
-                self.logger.error('Discovery: advertisement start error: ' + error);
-              }
-            });
-          },
-          5000
-        );
+      if (error) {
+        self.logger.error('MDNS Advertisement error: ' + error);
       }
     });
     self.ad.on('error', function (error) {
@@ -248,8 +232,7 @@ ControllerVolumioDiscovery.prototype.initSocket = function (data) {
   // Wait untill the current connection times out
   setTimeout(() => {
     // If this device is in our mDNS cache and we got this message, then the device was offline and went back online. We reconnect the socketIO.
-    var systemController = self.commandRouter.pluginManager.getPlugin('system_controller', 'system');
-    var myuuid = systemController.getConf('uuid');
+    var myuuid = self.commandRouter.sharedVars.get('system.uuid');
     if (foundVolumioInstances.get(data.id + '.name') && !self.remoteConnections.has(data.id) && myuuid != data.id) {
       var addresses = foundVolumioInstances.get(data.id + '.addresses');
       if (addresses && addresses[0] && addresses[0].value && addresses[0].value[0].value) {
@@ -264,8 +247,7 @@ ControllerVolumioDiscovery.prototype.initSocket = function (data) {
 ControllerVolumioDiscovery.prototype.connectToRemoteVolumio = function (uuid, ip) {
   var self = this;
 
-  var systemController = self.commandRouter.pluginManager.getPlugin('system_controller', 'system');
-  var myuuid = systemController.getConf('uuid');
+  var myuuid = self.commandRouter.sharedVars.get('system.uuid');
 
   if ((!self.remoteConnections.has(uuid)) && (myuuid != uuid)) {
     var socket = io.connect('http://' + ip + ':3000');
@@ -344,8 +326,7 @@ ControllerVolumioDiscovery.prototype.saveDeviceInfo = function (data) {
   var uuid = data.uuid;
 
   if (uuid == undefined) {
-    var systemController = self.commandRouter.pluginManager.getPlugin('system_controller', 'system');
-    uuid = systemController.getConf('uuid');
+    uuid = self.commandRouter.sharedVars.get('system.uuid');
     // console.log("Using self UUID");
   }
   foundVolumioInstances.set(uuid + '.status', data.status);
@@ -363,8 +344,8 @@ ControllerVolumioDiscovery.prototype.saveDeviceInfo = function (data) {
 
 ControllerVolumioDiscovery.prototype.getDevices = function () {
   var self = this;
-  var systemController = self.commandRouter.pluginManager.getPlugin('system_controller', 'system');
-  var myuuid = systemController.getConf('uuid');
+
+  var myuuid = self.commandRouter.sharedVars.get('system.uuid');
 
   var response = {
     misc: {debug: true},
@@ -451,7 +432,7 @@ ControllerVolumioDiscovery.prototype.getThisDevice = function () {
   var thisDevice = {};
   var thisState = self.commandRouter.volumioGetState();
   var ipAddresses = self.commandRouter.executeOnPlugin('system_controller', 'network', 'getCachedPAddresses', '');
-  thisDevice.id = self.commandRouter.executeOnPlugin('system_controller', 'system', 'getConf', 'uuid');
+  thisDevice.id = self.commandRouter.sharedVars.get('system.uuid');
   if (ipAddresses && ipAddresses.eth0 && ipAddresses.eth0 != '') {
     thisDevice.host = 'http://' + ipAddresses.eth0;
   } else if (ipAddresses && ipAddresses.wlan0 && ipAddresses.wlan0 !== '192.168.211.1') {
@@ -459,7 +440,7 @@ ControllerVolumioDiscovery.prototype.getThisDevice = function () {
   } else {
     thisDevice.host = 'http://127.0.0.1';
   }
-  thisDevice.name = self.commandRouter.executeOnPlugin('system_controller', 'system', 'getConf', 'playerName');
+  thisDevice.name = self.commandRouter.sharedVars.get('system.name');
   thisDevice.type = config.get('device_type', 'device');
   thisDevice.serviceName = config.get('service');
   thisDevice.state = {
