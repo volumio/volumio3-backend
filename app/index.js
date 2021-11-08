@@ -27,7 +27,7 @@ function CoreCommandRouter (server) {
   this.sharedVars.addConfigValue('selective_search', 'boolean', true);
 
   this.logger.info('-------------------------------------------');
-  this.logger.info('-----            Volumio2              ----');
+  this.logger.info('-----            Volumio3              ----');
   this.logger.info('-------------------------------------------');
   this.logger.info('-----          System startup          ----');
   this.logger.info('-------------------------------------------');
