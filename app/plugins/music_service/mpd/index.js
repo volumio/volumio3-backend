@@ -3615,7 +3615,7 @@ ControllerMpd.prototype.listGenre = function (curUri) {
                       service: 'mpd',
                       type: 'folder',
                       title: album,
-                      artist: albumartist,
+                      artist: artist,
                       albumart: albumart,
                       uri: 'genres://' + encodeURIComponent(genreName) + '/' + encodeURIComponent(artist) + '/' + encodeURIComponent(album)});
                   }
