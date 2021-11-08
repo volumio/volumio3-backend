@@ -766,9 +766,15 @@ function install(){
         socket.emit('installPlugin', {url: 'http://127.0.0.1:3000/plugin-serve/'
             + package.name + ".zip"})
         socket.on('installPluginStatus', function (data) {
-            console.log("Progress: " + data.progress + "\nStatus :" + data.message + "\n" + data.advancedLog)
-            if(data.message == "Plugin Successfully Installed"){
+            console.log("Progress: " + data.progress + "\nStatus :" + data.message);
+            var lastMessage = data.advancedLog.substring(data.advancedLog.lastIndexOf('<br>') + 4);
+            console.log(lastMessage);
+            if(data.progress === 100){
                 console.log("Done! Plugin Successfully Installed");
+                socket.close();
+                process.exit(0);
+            } else if (data.progress === 0) {
+                console.error('Failed to Install Plugin');
                 socket.close();
                 process.exit(1);
             }
