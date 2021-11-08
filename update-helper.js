@@ -17,7 +17,7 @@ if (process.argv[3]) {
       forceUpdate();
       break;
     case 'factory':
-      factoryReset();
+      deleteUserData();
       break;
     case 'userdata':
       deleteUserData();
