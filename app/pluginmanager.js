@@ -348,9 +348,23 @@ PluginManager.prototype.getPackageJson = function (folder) {
 
   try {
     return fs.readJsonSync(folder + '/package.json');
-  } catch (ex) {
-
+  } catch (e) {
+    self.logger.error('Could not read plugin package at ' + folder + ': ' +e);
   }
+};
+
+PluginManager.prototype.setManuallyInstalledPlugin = function (folder) {
+  var self = this;
+
+  try {
+    var packageJsonPath = folder + '/package.json';
+    var packageJson = fs.readJsonSync(packageJsonPath);
+    packageJson.volumio_info.manually_installed = true;
+    fs.writeJsonSync(packageJsonPath, packageJson, {spaces: 2});
+  } catch (e) {
+    self.logger.error('Could not set manually installed plugin package at ' + folder + ': ' +e);
+  }
+
 };
 
 PluginManager.prototype.isEnabled = function (category, pluginName) {
@@ -740,6 +754,7 @@ PluginManager.prototype.installPlugin = function (url) {
   var advancedlog = '';
   var ended = false;
   var downloadCommand;
+  var manuallyInstalledPlugin = false;
 
   var currentMessage = 'Downloading plugin at ' + url;
 
@@ -751,6 +766,7 @@ PluginManager.prototype.installPlugin = function (url) {
     downloadCommand = "/usr/bin/wget -O /tmp/downloaded_plugin.zip '" + url + "'";
   } else {
     downloadCommand = '/bin/mv /tmp/plugins/' + droppedFile + ' /tmp/downloaded_plugin.zip';
+    manuallyInstalledPlugin = true;
   }
 
   self.pushMessage('installPluginStatus', {'progress': 10, 'message': self.coreCommand.getI18nString('PLUGINS.DOWNLOADING_PLUGIN'), 'title': modaltitle, 'advancedLog': advancedlog});
@@ -859,6 +875,9 @@ PluginManager.prototype.installPlugin = function (url) {
           var name = package_json.name;
           if (package_json.volumio_info && package_json.volumio_info.prettyName) {
             var name = package_json.volumio_info.prettyName;
+          }
+          if (manuallyInstalledPlugin) {
+            self.setManuallyInstalledPlugin(folder);
           }
           currentMessage = name + ' ' + self.coreCommand.getI18nString('PLUGINS.SUCCESSFULLY_INSTALLED') + ', ' + self.coreCommand.getI18nString('PLUGINS.ENABLE_PLUGIN_NOW_QUESTION');
           var enablePayload = {'name': package_json.name, 'category': category, 'action': 'enable'};
