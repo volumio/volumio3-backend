@@ -329,6 +329,7 @@ ControllerI2s.prototype.getI2SAlsaName = function (data) {
     var dacdata = fs.readJsonSync(('/volumio/app/plugins/system_controller/i2s_dacs/dacs.json'), 'utf8', {throws: false});
     var devicename = self.getAdditionalConf('system_controller', 'system', 'device');
     var alsaname = '';
+    var alsanum = '';
 
     for (var i = 0; i < dacdata.devices.length; i++) {
         if (dacdata.devices[i].name == devicename) {
@@ -336,10 +337,11 @@ ControllerI2s.prototype.getI2SAlsaName = function (data) {
             for (var i = 0; i < dacdata.devices[num].data.length; i++) {
                 if (dacdata.devices[num].data[i].name == data) {
                     alsaname = dacdata.devices[num].data[i].alsacard;
+                    alsanum = dacdata.devices[num].data[i].alsanum
                 }
             }
             if (!alsaname) {
-                alsaname = dacdata.devices[num].data[0].alsacard;
+                alsaname = alsanum;
             }
         }
     }
