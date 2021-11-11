@@ -1938,6 +1938,7 @@ InterfaceWebUI.prototype.logClientConnection = function (client) {
     let socketUserAgent = client.handshake.headers['user-agent'] || 'unknown';
     let socketHost = client.handshake.headers.host;
     let socketOrigin = client.handshake.address.split(':').pop();
-    self.logger.verbose('New Socket.io Connection from ' + socketHost + ' from ' + socketOrigin + ' UA: ' + socketUserAgent);
+    let connectedClientsNumber = this.libSocketIO.engine.clientsCount;
+    self.logger.verbose('New Socket.io Connection from ' + socketHost + ' from ' + socketOrigin + ' UA: ' + socketUserAgent + ' Total Clients: ' + connectedClientsNumber);
   } catch(e) {}
 };
