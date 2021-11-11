@@ -24,6 +24,8 @@ function InterfaceWebUI (context) {
   /** On Client Connection, listen for various types of clients requests */
   self.libSocketIO.on('connection', function (connWebSocket) {
 
+    self.logClientConnection(connWebSocket);
+    
     // Closing all modals when clients connect
     connWebSocket.emit('closeAllModals', '');
 
@@ -1927,4 +1929,15 @@ InterfaceWebUI.prototype.broadcastMessage = function (emit, payload) {
   } else {
     this.libSocketIO.sockets.emit(emit, payload);
   }
+};
+
+InterfaceWebUI.prototype.logClientConnection = function (client) {
+  var self = this;
+
+  try {
+    let socketUserAgent = client.handshake.headers['user-agent'] || 'unknown';
+    let socketHost = client.handshake.headers.host;
+    let socketOrigin = client.handshake.address.split(':').pop();
+    self.logger.verbose('New Socket.io Connection from ' + socketHost + ' from ' + socketOrigin + ' UA: ' + socketUserAgent);
+  } catch(e) {}
 };
