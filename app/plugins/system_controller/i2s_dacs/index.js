@@ -275,7 +275,10 @@ ControllerI2s.prototype.getI2sOptions = function () {
       for (var i = 0; i < dacdata.devices[num].data.length; i++) {
         var valuedata = dacdata.devices[num].data[i].id;
         var labeldata = dacdata.devices[num].data[i].name;
-        options.push({value: valuedata, label: labeldata});
+        // Show only entries which have the alsacard value
+        if (dacdata.devices[num].data[i].alsacard) {
+          options.push({value: valuedata, label: labeldata});
+        }
       }
     }
   }
