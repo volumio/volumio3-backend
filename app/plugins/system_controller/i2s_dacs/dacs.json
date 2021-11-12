@@ -1,4 +1,5 @@
-{ "devices":[
+{ "IMPORTANT NOTICE:": "Please see all relevant informations and requirements here: https://developers.volumio.com/I2S%20DACs",
+  "devices":[
   {"name":"Raspberry PI","data":[
     {"id":"adafruit-max98357","name":"Adafruit MAX98357","overlay":"max98357a","alsanum":"2","alsacard":"MAX98357A","mixer":"","modules":"","script":"","needsreboot":"yes"},
     {"id":"adafruit-uda1334a","name":"Adafruit UDA1334A","overlay":"hifiberry-dac,i2s-mmap","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"","modules":"","script":"","needsreboot":"yes"},
