@@ -813,6 +813,33 @@ function update() {
     }
 }
 
+// ================================ LIST ====================================
+
+function list() {
+    unirest
+        .get('http://127.0.0.1:3000/api/v1/getInstalledPlugins')
+        .then(function (response) {
+            if (response && response.status === 200 && response.body) {
+                console.log('----------------------- Installed Plugins:')
+                console.log(response.body)
+                console.log('------------------------------------------')
+                process.exitCode = 0;
+            } else {
+                process.exitCode = 1;
+            }
+        });
+}
+
+// ================================ HELP ====================================
+
+function help() {
+    console.log('Command not recognized, see below available commands\n');
+    exec("/usr/local/bin/volumio", function (error, stdout, stderr) {
+        console.log(stdout);
+        process.exitCode = 0;
+    });
+}
+
 // ================================ START =====================================
 var argument = process.argv[2];
 
@@ -835,4 +862,9 @@ switch (argument){
     case "update":
         update()
         break;
+    case "list":
+        list()
+        break;
+    default:
+        help()
 }

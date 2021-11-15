@@ -58,3 +58,17 @@ RESTApiSystem.prototype.oauth = function (req, res) {
     return res.redirect(req.query.plugin_url);
   }
 };
+
+RESTApiSystem.prototype.getInstalledPlugins = function (req, res) {
+  var self = this;
+
+  var returnedData = self.commandRouter.getInstalledPlugins();
+
+  if (returnedData != undefined) {
+    returnedData.then(function (data) {
+      if (data != undefined) {
+        res.send(data);
+      }
+    });
+  }
+};

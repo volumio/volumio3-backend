@@ -255,6 +255,10 @@ correspondent folder in data"
                     echo ""
                     echo "This command will update the plugin on your device"
                     echo ""
+                elif [ "$2" == "list" ]; then
+                    echo ""
+                    echo "This command will list installed plugins on your device"
+                    echo ""
                 fi
                /usr/bin/node /volumio/pluginhelper.js "$2"
             else
@@ -269,6 +273,7 @@ correspondent folder in data"
                 echo "submit    submits the plugin to the plugins store"
                 echo "install   installs the plugin locally"
                 echo "update    updates the plugin"
+                echo "list      list installed plugins"
                 echo ""
             fi
             ;;

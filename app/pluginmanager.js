@@ -1633,6 +1633,7 @@ PluginManager.prototype.getInstalledPlugins = function () {
               } else {
                 var prettyName = name;
               }
+              var isManuallyInstalled = package_json.volumio_info.manually_installed || false;
 
               response.push({
                 prettyName: prettyName,
@@ -1640,6 +1641,7 @@ PluginManager.prototype.getInstalledPlugins = function () {
                 category: category,
                 version: version,
                 icon: icon,
+                isManuallyInstalled: isManuallyInstalled,
                 enabled: self.config.get(key + '.enabled'),
                 active: self.config.get(key + '.status') === 'STARTED'
               });
