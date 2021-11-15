@@ -139,14 +139,20 @@ volumioAppearance.prototype.getUIConfig = function () {
         self.configManager.setUIConfigParam(uiconf, 'sections[2].hidden', false);
       }
 
-      var showVolumio3UI = false;
-      var uiLayoutSettingLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CLASSIC');
+      var uiValue = "";
+      var uiLabel = "";
       if (process.env.VOLUMIO_3_UI === 'true') {
-        showVolumio3UI = true;
-        uiLayoutSettingLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CONTEMPORARY');
+        uiValue = "CONTEMPORARY";
+        uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CONTEMPORARY');
+      } else if (fs.existsSync("/data/volumio_manifest_ui")) {
+        uiValue = "MANIFEST";
+        uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_MANIFEST');
+      } else if (fs.existsSync("/data/volumio2ui")) {
+        uiValue = "CLASSIC";
+        uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CLASSIC');
       }
-      self.configManager.setUIConfigParam(uiconf, 'sections[2].content[0].value.value', showVolumio3UI);
-      self.configManager.setUIConfigParam(uiconf, 'sections[2].content[0].value.label', uiLayoutSettingLabel);
+      self.configManager.setUIConfigParam(uiconf, 'sections[2].content[0].value.value', uiValue);
+      self.configManager.setUIConfigParam(uiconf, 'sections[2].content[0].value.label', uiLabel);
 
       defer.resolve(uiconf);
     })
@@ -442,22 +448,33 @@ volumioAppearance.prototype.getConfigParam = function (key) {
 volumioAppearance.prototype.setVolumio3UI = function (data) {
   var self = this;
 
-  if (data && data.volumio3_ui.value === true) {
+  if (data && data.volumio3_ui.value === "CONTEMPORARY") {
     try {
-      execSync('/bin/rm /data/volumio2ui');
-      process.env.VOLUMIO_3_UI = 'true';
-      self.commandRouter.reloadUi();
+      execSync('/bin/rm -f /data/volumio2ui');
+      execSync('/bin/rm -f  /data/volumio_manifest_ui');
     } catch (e) {
       self.logger.error(e);
     }
-  } else {
+    process.env.VOLUMIO_3_UI = 'true';
+    self.commandRouter.reloadUi();
+  } else if (data && data.volumio3_ui.value === "MANIFEST") {
+    try {      
+      execSync('/usr/bin/touch /data/volumio_manifest_ui');
+      execSync('/bin/rm -f  /data/volumio2ui');
+    } catch (e) {
+      self.logger.error(e);
+    }
+    process.env.VOLUMIO_3_UI = 'false';
+    self.commandRouter.reloadUi();
+  } else if (data && data.volumio3_ui.value === "CLASSIC") {
     try {
+      execSync('/bin/rm -f  /data/volumio_manifest_ui');
       execSync('/usr/bin/touch /data/volumio2ui');
-      process.env.VOLUMIO_3_UI = 'false';
-      self.commandRouter.reloadUi();
     } catch (e) {
       self.logger.error(e);
     }
+    process.env.VOLUMIO_3_UI = 'false';
+    self.commandRouter.reloadUi();
   }
 };
 

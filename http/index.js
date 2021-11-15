@@ -17,6 +17,7 @@ var background = express();
 var plugindir = '/tmp/plugins';
 var backgrounddir = '/data/backgrounds';
 var volumio2UIFlagFile = '/data/volumio2ui';
+var volumioManifestUIFlagFile = '/data/volumio_manifest_ui';
 var volumio3UIFolderPath = '/volumio/http/www3';
 
 var allowCrossDomain = function (req, res, next) {
@@ -46,7 +47,7 @@ app.use(compression());
 
 // Serving Volumio3 UI
 // Checking if we use Volumio3 UI
-if (fs.existsSync(volumio2UIFlagFile) || !fs.existsSync(volumio3UIFolderPath)) {
+if (fs.existsSync(volumio2UIFlagFile) || fs.existsSync(volumioManifestUIFlagFile) || !fs.existsSync(volumio3UIFolderPath)) {
   process.env.VOLUMIO_3_UI = 'false';
 } else {
   process.env.VOLUMIO_3_UI = 'true';
@@ -54,13 +55,18 @@ if (fs.existsSync(volumio2UIFlagFile) || !fs.existsSync(volumio3UIFolderPath)) {
 
 var staticMiddlewareUI2 = express.static(path.join(__dirname, 'www'));
 var staticMiddlewareUI3 = express.static(path.join(__dirname, 'www3'));
+var staticMiddlewareManifestUI = express.static(path.join(__dirname, 'www4'));
 
 app.use(function (req, res, next) {
   var userAgent = req.get('user-agent');
-  if ((userAgent && userAgent.includes('volumiokiosk')) || process.env.VOLUMIO_3_UI === 'false') {
-    staticMiddlewareUI2(req, res, next);
+  if (fs.existsSync(volumioManifestUIFlagFile)){
+    staticMiddlewareManifestUI(req, res, next);   
   } else {
-    staticMiddlewareUI3(req, res, next);
+    if ((userAgent && userAgent.includes('volumiokiosk')) || process.env.VOLUMIO_3_UI === 'false') {
+      staticMiddlewareUI2(req, res, next);
+    } else {
+      staticMiddlewareUI3(req, res, next);
+    }
   }
 });
 

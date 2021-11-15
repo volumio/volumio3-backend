@@ -50,17 +50,21 @@
           "doc":"TRANSLATE.APPEARANCE.USER_INTERFACE_LAYOUT_DESIGN_DOC",
           "label": "TRANSLATE.APPEARANCE.USER_INTERFACE_LAYOUT_DESIGN",
           "value":  {
-            "value":true,
+            "value": "CONTEMPORARY",
             "label": "TRANSLATE.APPEARANCE.USER_INTERFACE_CONTEMPORARY"
           },
           "options": [
             {
-              "value":true,
+              "value": "CONTEMPORARY",
               "label": "TRANSLATE.APPEARANCE.USER_INTERFACE_CONTEMPORARY"
             },
             {
-              "value":false,
+              "value": "CLASSIC",
               "label": "TRANSLATE.APPEARANCE.USER_INTERFACE_CLASSIC"
+            },
+            {
+              "value": "MANIFEST",
+              "label": "TRANSLATE.APPEARANCE.USER_INTERFACE_MANIFEST"
             }
           ]
         }

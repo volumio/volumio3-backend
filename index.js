@@ -1,4 +1,5 @@
 var path = require('path');
+var fs = require('fs-extra');
 var dotenv = require('dotenv').config({ path: path.join(__dirname, '.env')}); // eslint-disable-line
 var execSync = require('child_process').execSync;
 var expressInstance = require('./http/index.js');
@@ -49,12 +50,18 @@ expressApp.use(function (err, req, res, next) {
 
 var commandRouter = new (require('./app/index.js'))(httpServer); // eslint-disable-line
 
+var volumioManifestUIFlagFile = '/data/volumio_manifest_ui';
+
 expressApp.get('/?*', function (req, res) {
   var userAgent = req.get('user-agent');
-  if ((userAgent && userAgent.includes('volumiokiosk')) || process.env.VOLUMIO_3_UI === 'false') {
-    res.sendFile(path.join(__dirname, 'http', 'www', 'index.html'));
+  if (fs.existsSync(volumioManifestUIFlagFile)) {
+    res.sendFile(path.join(__dirname, 'http', 'www4', 'index.html')); 
   } else {
-    res.sendFile(path.join(__dirname, 'http', 'www3', 'index.html'));
+    if ((userAgent && userAgent.includes('volumiokiosk')) || process.env.VOLUMIO_3_UI === 'false') {
+      res.sendFile(path.join(__dirname, 'http', 'www', 'index.html'));         
+    } else {
+      res.sendFile(path.join(__dirname, 'http', 'www3', 'index.html'));
+    }
   }
 });
 
