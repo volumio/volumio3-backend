@@ -144,9 +144,9 @@ volumioAppearance.prototype.getUIConfig = function () {
       if (process.env.VOLUMIO_3_UI === 'true') {
         uiValue = "CONTEMPORARY";
         uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CONTEMPORARY');
-      } else if (fs.existsSync("/data/volumio_premium_ui")) {
-        uiValue = "PREMIUM";
-        uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_PREMIUM');
+      } else if (fs.existsSync("/data/volumio_manifest_ui")) {
+        uiValue = "MANIFEST";
+        uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_MANIFEST');
       } else if (fs.existsSync("/data/volumio2ui")) {
         uiValue = "CLASSIC";
         uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CLASSIC');
@@ -450,31 +450,31 @@ volumioAppearance.prototype.setVolumio3UI = function (data) {
 
   if (data && data.volumio3_ui.value === "CONTEMPORARY") {
     try {
-      execSync('/bin/rm /data/volumio2ui');
-      execSync('/bin/rm /data/volumio_premium_ui');
-      process.env.VOLUMIO_3_UI = 'true';
-      self.commandRouter.reloadUi();
+      execSync('/bin/rm -f /data/volumio2ui');
+      execSync('/bin/rm -f  /data/volumio_manifest_ui');
     } catch (e) {
       self.logger.error(e);
     }
-  } else if (data && data.volumio3_ui.value === "PREMIUM") {
-    try {
-      execSync('/usr/bin/touch /data/volumio_premium_ui');
-      execSync('/bin/rm /data/volumio2ui');
-      process.env.VOLUMIO_3_UI = 'false';
-      self.commandRouter.reloadUi();
+    process.env.VOLUMIO_3_UI = 'true';
+    self.commandRouter.reloadUi();
+  } else if (data && data.volumio3_ui.value === "MANIFEST") {
+    try {      
+      execSync('/usr/bin/touch /data/volumio_manifest_ui');
+      execSync('/bin/rm -f  /data/volumio2ui');
     } catch (e) {
       self.logger.error(e);
     }
+    process.env.VOLUMIO_3_UI = 'false';
+    self.commandRouter.reloadUi();
   } else if (data && data.volumio3_ui.value === "CLASSIC") {
     try {
-      execSync('/bin/rm /data/volumio_premium_ui');
+      execSync('/bin/rm -f  /data/volumio_manifest_ui');
       execSync('/usr/bin/touch /data/volumio2ui');
-      process.env.VOLUMIO_3_UI = 'false';
-      self.commandRouter.reloadUi();
     } catch (e) {
       self.logger.error(e);
     }
+    process.env.VOLUMIO_3_UI = 'false';
+    self.commandRouter.reloadUi();
   }
 };
 

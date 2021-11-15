@@ -63,8 +63,8 @@
               "label": "TRANSLATE.APPEARANCE.USER_INTERFACE_CLASSIC"
             },
             {
-              "value": "PREMIUM",
-              "label": "TRANSLATE.APPEARANCE.USER_INTERFACE_PREMIUM"
+              "value": "MANIFEST",
+              "label": "TRANSLATE.APPEARANCE.USER_INTERFACE_MANIFEST"
             }
           ]
         }
