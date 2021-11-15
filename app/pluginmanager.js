@@ -348,9 +348,7 @@ PluginManager.prototype.getPackageJson = function (folder) {
 
   try {
     return fs.readJsonSync(folder + '/package.json');
-  } catch (e) {
-    self.logger.error('Could not read plugin package at ' + folder + ': ' +e);
-  }
+  } catch (e) {}
 };
 
 PluginManager.prototype.setManuallyInstalledPlugin = function (folder) {
