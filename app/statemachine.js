@@ -1015,7 +1015,7 @@ CoreStateMachine.prototype.play = function (index) {
           }
         }
 
-        self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('COMMON.PLAY_TITLE'), self.commandRouter.getI18nString('COMMON.PLAY_TEXT') + trackBlock.name);
+        //self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('COMMON.PLAY_TITLE'), self.commandRouter.getI18nString('COMMON.PLAY_TEXT') + trackBlock.name);
 
         return libQ.resolve();
       }
