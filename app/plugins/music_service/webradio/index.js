@@ -485,7 +485,7 @@ ControllerWebradio.prototype.clearAddPlayTrack = function (track) {
       return self.mpdPlugin.sendMpdCommand('add "' + safeUri + '"', []);
     })
     .then(function () {
-      self.commandRouter.stateMachine.setConsumeUpdateService('mpd', true);
+      self.commandRouter.stateMachine.setConsumeUpdateService('mpd');
       return self.mpdPlugin.sendMpdCommand('play', []);
     });
 };
