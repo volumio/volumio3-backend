@@ -117,6 +117,10 @@ CoreStateMachine.prototype.getState = function () {
         this.consumeState.trackType = 'webradio';
         this.consumeState.samplerate = '';
         this.consumeState.bitdepth = '';
+        if (this.consumeState.uri && this.consumeState.title && this.consumeState.uri.includes(this.consumeState.title)) {
+          var trackBlock = this.getTrack(this.currentPosition);
+          this.consumeState.title = trackBlock.name || '';
+        }
       }
 
       return {
@@ -790,8 +794,6 @@ CoreStateMachine.prototype.syncState = function (stateService, sService) {
       this.currentChannels = null;
 
       this.commandRouter.pushDebugConsoleMessage('CURRENT POSITION ' + this.currentPosition);
-
-      // console.log("RANDOM: "+this.currentRandom+ ' OBJ '+JSON.stringify(trackBlock));
 
       if (trackBlock !== undefined && trackBlock.service !== 'webradio') {
         if (this.currentConsume !== undefined && this.currentConsume == true) {
