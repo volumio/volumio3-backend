@@ -50,12 +50,13 @@ expressApp.use(function (err, req, res, next) {
 
 var commandRouter = new (require('./app/index.js'))(httpServer); // eslint-disable-line
 
-var volumioManifestUIFlagFile = '/data/volumio_manifest_ui';
+var volumioManifestUIFlagFile = '/data/manifestUI';
+var volumioManifestUIDisabledFile = '/data/disableManifestUI';
 
 expressApp.get('/?*', function (req, res) {
   var userAgent = req.get('user-agent');
-  if (fs.existsSync(volumioManifestUIFlagFile)) {
-    res.sendFile(path.join(__dirname, 'http', 'www4', 'index.html')); 
+  if (fs.existsSync(volumioManifestUIFlagFile) && !fs.existsSync(volumioManifestUIDisabledFile)) {
+    res.sendFile(path.join(__dirname, 'http', 'www4', 'index.html'));     
   } else {
     if ((userAgent && userAgent.includes('volumiokiosk')) || process.env.VOLUMIO_3_UI === 'false') {
       res.sendFile(path.join(__dirname, 'http', 'www', 'index.html'));         

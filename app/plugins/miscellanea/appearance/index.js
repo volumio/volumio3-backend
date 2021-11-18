@@ -144,7 +144,7 @@ volumioAppearance.prototype.getUIConfig = function () {
       if (process.env.VOLUMIO_3_UI === 'true') {
         uiValue = "CONTEMPORARY";
         uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CONTEMPORARY');
-      } else if (fs.existsSync("/data/volumio_manifest_ui")) {
+      } else if (fs.existsSync("/data/manifestUI")) {
         uiValue = "MANIFEST";
         uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_MANIFEST');
       } else if (fs.existsSync("/data/volumio2ui")) {
@@ -450,8 +450,11 @@ volumioAppearance.prototype.setVolumio3UI = function (data) {
 
   if (data && data.volumio3_ui.value === "CONTEMPORARY") {
     try {
+      if (fs.existsSync('/data/manifestUI')) {
+        execSync('/usr/bin/touch /data/disableManifestUI');
+      }
       execSync('/bin/rm -f /data/volumio2ui');
-      execSync('/bin/rm -f  /data/volumio_manifest_ui');
+      execSync('/bin/rm -f  /data/manifestUI');
     } catch (e) {
       self.logger.error(e);
     }
@@ -459,8 +462,9 @@ volumioAppearance.prototype.setVolumio3UI = function (data) {
     self.commandRouter.reloadUi();
   } else if (data && data.volumio3_ui.value === "MANIFEST") {
     try {      
-      execSync('/usr/bin/touch /data/volumio_manifest_ui');
+      execSync('/usr/bin/touch /data/manifestUI');
       execSync('/bin/rm -f  /data/volumio2ui');
+      execSync('/bin/rm -f  /data/disableManifestUI');
     } catch (e) {
       self.logger.error(e);
     }
@@ -468,7 +472,11 @@ volumioAppearance.prototype.setVolumio3UI = function (data) {
     self.commandRouter.reloadUi();
   } else if (data && data.volumio3_ui.value === "CLASSIC") {
     try {
-      execSync('/bin/rm -f  /data/volumio_manifest_ui');
+      if (fs.existsSync('/data/manifestUI')) {
+        execSync('/usr/bin/touch /data/disableManifestUI');
+      }
+
+      execSync('/bin/rm -f  /data/manifestUI');
       execSync('/usr/bin/touch /data/volumio2ui');
     } catch (e) {
       self.logger.error(e);
