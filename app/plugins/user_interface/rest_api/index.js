@@ -207,12 +207,16 @@ interfaceApi.prototype.executeRestEndpoint = function (data) {
       var message = 'No valid Plugin REST Endpoint: ' + data.endpoint;
       self.logger.info(message);
       defer.reject(message);
+    } else {
+      defer.reject('Metavolumio not available');
     }
   } else {
     if (data.endpoint !== 'metavolumio') {
         var message = 'No valid Plugin REST Endpoint';
         self.logger.info(message);
         defer.reject(message);
+    } else {
+      defer.reject('Metavolumio not available');
     }
   }
 
