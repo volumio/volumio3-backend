@@ -46,6 +46,7 @@
         "UPLOAD_FAILED": "Upload failed",
         "USER_INTERFACE_CLASSIC": "Classic",
         "USER_INTERFACE_CONTEMPORARY": "Contemporary",
+        "USER_INTERFACE_MANIFEST": "Manifest",
         "USER_INTERFACE_LAYOUT_DESIGN": "User Interface layout design",
         "USER_INTERFACE_LAYOUT_DESIGN_DOC": "Select the desired user interface layout design. Contemporary UI offers an experience based on the most popular music players UI. Classic has a 3 tab design, offering a more minimalistic approach ",
         "VOLUMIO3_EXPERIMENTAL_UI": "Enable Experimental User Interface",
