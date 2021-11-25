@@ -1159,7 +1159,7 @@ ControllerAlsa.prototype.getAplayInfo = function () {
       } catch (e) {
             		self.logger.error('Could not read volumio variant: ' + e);
       }
-      if (sysVariant === 'volumio' || sysVariant === 'primo') {
+      if (sysVariant === 'volumio' || sysVariant === 'volumiobuster' || sysVariant === 'primo') {
         if (self.commandRouter.sharedVars.get('device_vendor_model') !== 'Volumio Primo') {
           self.commandRouter.sharedVars.addConfigValue('device_vendor_model', 'string', 'Volumio Primo');
           self.commandRouter.sharedVars.set('device_vendor_model', 'Volumio Primo');
