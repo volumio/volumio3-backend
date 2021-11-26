@@ -1040,6 +1040,7 @@ function InterfaceWebUI (context) {
     connWebSocket.on('installPlugin', function (data) {
       var selfConnWebSocket = this;
       selfConnWebSocket.emit('closeModals', '');
+      selfConnWebSocket.emit('openInstallerModal', '');
       if (process.env.WARNING_ON_PLUGIN_INSTALL === 'true' && data.confirm !== true) {
         data.confirm = true;
         return selfConnWebSocket.emit('openModal', {'title': self.commandRouter.getI18nString('PLUGINS.CONFIRM_PLUGIN_INSTALL'), 'message': self.commandRouter.getI18nString('PLUGINS.CONFIRM_PLUGIN_INSTALL_WARNING_MESSAGE') + '?', 'buttons': [{'name': self.commandRouter.getI18nString('COMMON.CANCEL'), 'class': 'btn btn-info', 'emit': 'closeModals', 'payload': ''}, {'name': self.commandRouter.getI18nString('PLUGINS.INSTALL'), 'class': 'btn btn-warning', 'emit': 'installPlugin', 'payload': data}]});
@@ -1069,7 +1070,7 @@ function InterfaceWebUI (context) {
 
     connWebSocket.on('updatePlugin', function (data) {
       var selfConnWebSocket = this;
-
+      selfConnWebSocket.emit('openInstallerModal', '');
       var returnedData = self.commandRouter.updatePlugin(data);
 
       if (returnedData != undefined) {
