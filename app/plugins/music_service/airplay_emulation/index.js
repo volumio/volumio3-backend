@@ -115,8 +115,6 @@ AirPlayInterface.prototype.startShairportSync = function () {
   var self = this;
   // Loading Configured output device
   var outdev = this.commandRouter.sharedVars.get('alsa.outputdevice');
-  var outputdevicename = self.getAdditionalConf('audio_interface', 'alsa_controller', 'outputdevicename');
-  var hwDevice = self.getAdditionalConf('system_controller', 'system', 'device');
   
   if (process.env.MODULAR_ALSA_PIPELINE === 'true') {
     // No post-processing required
@@ -132,7 +130,6 @@ AirPlayInterface.prototype.startShairportSync = function () {
   }
 
   var buffer_size_line;
-  var period_size_line;
   var mixer = this.commandRouter.sharedVars.get('alsa.outputdevicemixer');
   var name = this.commandRouter.sharedVars.get('system.name');
   var isPrimo = self.detectPrimo();
@@ -140,11 +137,6 @@ AirPlayInterface.prototype.startShairportSync = function () {
   if (isPrimo && outdev === 'plughw:0,0') {
     buffer_size_line = 'buffer_size = 5536;';
   }
-  // This is a fix in order to make the alsa pipeline work on pi. Otherwise it will request a really low period size
-  if (process.env.MODULAR_ALSA_PIPELINE === 'true' && hwDevice === 'Raspberry PI' && (outputdevicename === 'Headphones' || outputdevicename === 'HDMI')) {
-    period_size_line = 'period_size = 500;';
-  }
-
 
   var fs = require('fs');
   fs.readFile(__dirname + '/shairport-sync.conf.tmpl', 'utf8', function (err, data) {
@@ -156,13 +148,8 @@ AirPlayInterface.prototype.startShairportSync = function () {
       conf = conf.replace('${device}', outdev);
       if (buffer_size_line && buffer_size_line.length) {
         conf = conf.replace('${buffer_size_line}', buffer_size_line);
-        conf = conf.replace('${period_size_line}', '');
-      } else if (period_size_line && period_size_line.length) {
-        conf = conf.replace('${period_size_line}', period_size_line);
-        conf = conf.replace('${buffer_size_line}', '');
       } else {
         conf = conf.replace('${buffer_size_line}', '');
-        conf = conf.replace('${period_size_line}', '');
       }
       conf = conf.replace('${mixer}', mixer);
       var onDemand_line = '';
