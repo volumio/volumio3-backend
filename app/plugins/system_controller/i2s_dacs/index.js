@@ -133,12 +133,10 @@ ControllerI2s.prototype.registerCallback = function (callback) {
 ControllerI2s.prototype.i2sDetect = function () {
   var self = this;
 
-  var eepromname = self.eepromDetect();
-  var i2caddr = self.i2cDetect();
   var eepromName = '';
   var i2cAddress = '';
 
-  var methods = [eepromname, i2caddr ];
+  var methods = [self.eepromDetect()];
 
   return libQ.all(methods)
     .then(function (content) {
