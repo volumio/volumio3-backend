@@ -428,7 +428,7 @@ ControllerVolumioDiscovery.prototype.getThisDevice = function () {
   var self = this;
 
   self.logger.info('Discovery: Getting this device information');
-
+  var artURL = '';
   var thisDevice = {};
   var thisState = self.commandRouter.volumioGetState();
   var ipAddresses = self.commandRouter.executeOnPlugin('system_controller', 'network', 'getCachedPAddresses', '');
@@ -443,13 +443,18 @@ ControllerVolumioDiscovery.prototype.getThisDevice = function () {
   thisDevice.name = self.commandRouter.sharedVars.get('system.name');
   thisDevice.type = config.get('device_type', 'device');
   thisDevice.serviceName = config.get('service');
+  
+  if(thisState.albumart !== undefined && thisState.albumart !== null) {
+	artURL = thisState.albumart.indexOf('http://') >= 0 ? thisState.albumart : thisDevice.host + thisState.albumart;
+  }
+  
   thisDevice.state = {
     status: thisState.status,
     volume: thisState.volume,
     mute: thisState.mute,
     artist: thisState.artist,
     track: thisState.title,
-    albumart: thisState.albumart.indexOf('http://') >= 0 ? thisState.albumart : thisDevice.host + thisState.albumart
+    albumart: artUrl
   };
 
   return thisDevice;
