@@ -2059,8 +2059,9 @@ PluginManager.prototype.checkConfigFileEmpty = function (destConfigurationFile) 
 PluginManager.prototype.detectVolumioHardware = function () {
     var self = this;
 
-    isVolumioHardware = self.coreCommand.executeOnPlugin('system_controller', 'my_volumio', 'detectVolumioHardware', '');
-    if (isVolumioHardware === true) {
-      variant = 'volumioproducts';
-    }
+    //TODO: Re-implement volumio products 
+    // isVolumioHardware = self.coreCommand.executeOnPlugin('system_controller', 'my_volumio', 'detectVolumioHardware', '');
+    // if (isVolumioHardware === true) {
+    //   variant = 'volumioproducts';
+    // }
 };
