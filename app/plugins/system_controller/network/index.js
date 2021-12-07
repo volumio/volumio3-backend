@@ -43,6 +43,8 @@ ControllerNetwork.prototype.onVolumioStart = function () {
     config.delete('wlanpass');
   }
 
+  self.getWirelessNetworks();
+
   return promise;
 };
 
@@ -277,7 +279,6 @@ ControllerNetwork.prototype.getWirelessNetworks = function (defer) {
                   var dbm = Number(dbmraw[0]);
                   var rel = 100 + dbm;
                   if (rel >= 45) { signal = 5; } else if (rel >= 40) { signal = 4; } else if (rel >= 30) { signal = 3; } else if (rel >= 20) { signal = 2; } else if (rel >= 1) { signal = 1; }
-
                   network.signal = signal;
 
                   break;
