@@ -137,8 +137,9 @@ AirPlayInterface.prototype.startShairportSync = function () {
   var name = this.commandRouter.sharedVars.get('system.name');
   var isPrimo = self.detectPrimo();
   // With Primo we need to set a lower buffer size
-  if (isPrimo && outdev === 'plughw:0,0') {
-    buffer_size_line = 'buffer_size = 5536;';
+  if (isPrimo && outputdevicename === 'Analog RCA Output') {
+    buffer_size_line = 'buffer_size = 2768;';
+    period_size_line = 'period_size = 1384;';
   }
   // This is a fix in order to make the alsa pipeline work on pi. Otherwise it will request a really low period size
   if (process.env.MODULAR_ALSA_PIPELINE === 'true' && hwDevice === 'Raspberry PI' && (outputdevicename === 'Headphones' || outputdevicename === 'HDMI')) {
