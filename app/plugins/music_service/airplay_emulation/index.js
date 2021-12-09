@@ -155,7 +155,10 @@ AirPlayInterface.prototype.startShairportSync = function () {
       var conf = data;
       conf = conf.replace('${name}', name);
       conf = conf.replace('${device}', outdev);
-      if (buffer_size_line && buffer_size_line.length) {
+      if (buffer_size_line && buffer_size_line.length && period_size_line && period_size_line.length){
+        conf = conf.replace('${buffer_size_line}', buffer_size_line);
+        conf = conf.replace('${period_size_line}', period_size_line);
+      } else if (buffer_size_line && buffer_size_line.length) {
         conf = conf.replace('${buffer_size_line}', buffer_size_line);
         conf = conf.replace('${period_size_line}', '');
       } else if (period_size_line && period_size_line.length) {
