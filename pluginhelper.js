@@ -466,7 +466,7 @@ function zip(){
  */
 function submit() {
     function exit() {
-        console.log("For help please go to: https://volumio.github.io/docs/Plugin_System/Writing_A_Plugin.html");
+        console.log("For help please go to: https://developers.volumio.com/plugins/writing-a-plugin");
         process.exit(); 
     }
 
