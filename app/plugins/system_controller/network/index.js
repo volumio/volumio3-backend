@@ -510,11 +510,6 @@ ControllerNetwork.prototype.saveWirelessNetworkSettings = function (data) {
   self.wirelessConnect({ssid: network_ssid, pass: network_pass});
 
   self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('NETWORK.WIRELESS_RESTART_TITLE'), self.commandRouter.getI18nString('NETWORK.WIRELESS_RESTART_SUCCESS'));
-  fs.writeFile('/data/configuration/netconfigured', ' ', function (err) {
-    if (err) {
-      self.logger.error('Cannot write netconfigured ' + error);
-    }
-  });
 };
 
 ControllerNetwork.prototype.saveHotspotSettings = function (data) {
@@ -633,9 +628,6 @@ ControllerNetwork.prototype.rebuildHotspotConfig = function (forceHotspotConfigu
 ControllerNetwork.prototype.wirelessConnect = function (data) {
   var self = this;
 
-  // cycling through configured network in config file
-  var index = 0;
-
   var netstring = 'ctrl_interface=/var/run/wpa_supplicant' + os.EOL;
 
   // searching network
@@ -657,49 +649,75 @@ ControllerNetwork.prototype.wirelessConnect = function (data) {
       self.logger.error('Not saving Password for network ' + data.ssid + ': shorter than 8 chars');
     }
   }
-  // TODO: Better parsing of additional network, as of now only first one is added
-  while (config.has('wirelessNetworksSSID[' + index + ']')) {
-    var configuredSSID = config.get('wirelessNetworksSSID[' + index + ']');
+  self.writeWpaSupplicantConf(netstring, data);
+};
 
-    if (data.ssid != configuredSSID && configuredSSID !== undefined && configuredSSID.length > 0) {
-      var configuredPASS = config.get('wirelessNetworksPASSWD[' + index + ']');
+ControllerNetwork.prototype.writeWpaSupplicantConf = function (netstring, data) {
 
-      if (configuredPASS === undefined) {
-        netstring += 'network={' + os.EOL + 'scan_ssid=1' + os.EOL + 'ssid="' + configuredSSID + '"' + os.EOL + 'key_mgmt=NONE' + os.EOL + 'priority=0' + os.EOL + '}' + os.EOL;
+
+  this.getAdditionalWpaSupplicantConf(netstring, data).then((wpaSupplicantConf)=> {
+    exec('/usr/bin/sudo /bin/chmod 777 /etc/wpa_supplicant/wpa_supplicant.conf', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+      if (error !== null) {
+        self.logger.error('Cannot set permissions for /etc/network/interfaces: ' + error);
       } else {
-        if (self.isWEPHEX(configuredPASS)) {
-          netstring += 'network={' + os.EOL + 'ssid="' + configuredSSID + '"' + os.EOL + 'key_mgmt=NONE' + os.EOL + 'wep_key0=' + configuredPASS + os.EOL + 'wep_tx_keyidx=0' + os.EOL + 'priority=0' + os.EOL + '}' + os.EOL;
-        }
-        if (self.isWEPASCII(configuredPASS)) {
-          netstring += 'network={' + os.EOL + 'ssid="' + configuredSSID + '"' + os.EOL + 'key_mgmt=NONE' + os.EOL + 'wep_key0="' + configuredPASS + '"' + os.EOL + 'wep_tx_keyidx=0' + os.EOL + 'priority=0' + os.EOL + '}' + os.EOL;
-        }
-        if (self.isWPA(configuredPASS)) {
-          netstring += 'network={' + os.EOL + 'scan_ssid=1' + os.EOL + 'ssid="' + configuredSSID + '"' + os.EOL + 'psk="' + configuredPASS + '"' + os.EOL + 'priority=0' + os.EOL + '}' + os.EOL;
-        }
-        if (self.isWPAHashed(data.pass)) {
-          netstring += 'network={' + os.EOL + 'scan_ssid=1' + os.EOL + 'ssid="' + data.ssid + '"' + os.EOL + 'psk=' + data.pass.replace('hash::', '') + os.EOL + 'priority=1' + os.EOL + '}' + os.EOL;
+        fs.writeFile('/etc/wpa_supplicant/wpa_supplicant.conf', wpaSupplicantConf, function (err) {
+          if (err) {
+            self.logger.error('Cannot write wpasupplicant.conf ' + err);
+          }
+          fs.writeFile('/data/configuration/netconfigured', ' ', function (err) {
+            if (err) {
+              self.logger.error('Cannot write netconfigured ' + error);
+            }
+          });
+          self.commandRouter.wirelessRestart();
+        });
+      }
+    });
+  });
+
+}
+
+ControllerNetwork.prototype.getAdditionalWpaSupplicantConf = function (netstring, data) {
+  var defer = libQ.defer();
+  var self = this;
+  var savedWirelessNetworks = config.data['wirelessNetworksSSID'].value;
+
+  if (savedWirelessNetworks && savedWirelessNetworks.length) {
+    for (var i in savedWirelessNetworks) {
+      var index = i;
+      var configuredSSID = config.get('wirelessNetworksSSID[' + index + ']');
+      if (data && data.ssid != configuredSSID && configuredSSID !== undefined && configuredSSID.length > 0) {
+        var configuredPASS = config.get('wirelessNetworksPASSWD[' + index + ']');
+
+        if (configuredPASS === undefined) {
+          netstring += 'network={' + os.EOL + 'scan_ssid=1' + os.EOL + 'ssid="' + configuredSSID + '"' + os.EOL + 'key_mgmt=NONE' + os.EOL + 'priority=0' + os.EOL + '}' + os.EOL;
         } else {
-          self.logger.error('Not saving Password for network ' + configuredSSID + ': shorter than 8 chars');
+          if (self.isWEPHEX(configuredPASS)) {
+            netstring += 'network={' + os.EOL + 'ssid="' + configuredSSID + '"' + os.EOL + 'key_mgmt=NONE' + os.EOL + 'wep_key0=' + configuredPASS + os.EOL + 'wep_tx_keyidx=0' + os.EOL + 'priority=0' + os.EOL + '}' + os.EOL;
+          }
+          if (self.isWEPASCII(configuredPASS)) {
+            netstring += 'network={' + os.EOL + 'ssid="' + configuredSSID + '"' + os.EOL + 'key_mgmt=NONE' + os.EOL + 'wep_key0="' + configuredPASS + '"' + os.EOL + 'wep_tx_keyidx=0' + os.EOL + 'priority=0' + os.EOL + '}' + os.EOL;
+          }
+          if (self.isWPA(configuredPASS)) {
+            netstring += 'network={' + os.EOL + 'scan_ssid=1' + os.EOL + 'ssid="' + configuredSSID + '"' + os.EOL + 'psk="' + configuredPASS + '"' + os.EOL + 'priority=0' + os.EOL + '}' + os.EOL;
+          }
+          if (self.isWPAHashed(data.pass)) {
+            netstring += 'network={' + os.EOL + 'scan_ssid=1' + os.EOL + 'ssid="' + data.ssid + '"' + os.EOL + 'psk=' + data.pass.replace('hash::', '') + os.EOL + 'priority=1' + os.EOL + '}' + os.EOL;
+          } else {
+            self.logger.error('Not saving Password for network ' + configuredSSID + ': shorter than 8 chars');
+          }
         }
       }
+      if (index === savedWirelessNetworks.length-1) {
+        defer.resolve(netstring);
+      }
     }
-
-    index++;
+  } else {
+    defer.resolve(netstring);
   }
 
-  exec('/usr/bin/sudo /bin/chmod 777 /etc/wpa_supplicant/wpa_supplicant.conf', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
-    if (error !== null) {
-      self.logger.error('Cannot set permissions for /etc/network/interfaces: ' + error);
-    } else {
-      fs.writeFile('/etc/wpa_supplicant/wpa_supplicant.conf', netstring, function (err) {
-        if (err) {
-          self.logger.error('Cannot write wpasupplicant.conf ' + err);
-        }
-        self.commandRouter.wirelessRestart();
-      });
-    }
-  });
-};
+  return defer.promise;
+}
 
 ControllerNetwork.prototype.rebuildNetworkConfig = function (networkInterfaceToRestart) {
   var self = this;
