@@ -374,7 +374,7 @@ ControllerVolumioDiscovery.prototype.getDevices = function () {
     for (var j in addresses) {
       var address = addresses[j];
       if (isSelf) {
-        var iPAddresses = self.commandRouter.getCachedPAddresses();
+        var iPAddresses = self.commandRouter.getCachedIPAddresses();
         if (iPAddresses && iPAddresses.eth0 && iPAddresses.eth0 != '') {
           address = iPAddresses.eth0;
         } else if (iPAddresses && iPAddresses.wlan0 && iPAddresses.wlan0 != '' && iPAddresses.wlan0 !== '192.168.211.1') {
@@ -430,7 +430,7 @@ ControllerVolumioDiscovery.prototype.getThisDevice = function () {
   self.logger.info('Discovery: Getting this device information');
   var thisDevice = {};
   var thisState = self.commandRouter.volumioGetState();
-  var ipAddresses = self.commandRouter.executeOnPlugin('system_controller', 'network', 'getCachedPAddresses', '');
+  var ipAddresses = self.commandRouter.executeOnPlugin('system_controller', 'network', 'getCachedIPAddresses', '');
   thisDevice.id = self.commandRouter.sharedVars.get('system.uuid');
   if (ipAddresses && ipAddresses.eth0 && ipAddresses.eth0 != '') {
     thisDevice.host = 'http://' + ipAddresses.eth0;

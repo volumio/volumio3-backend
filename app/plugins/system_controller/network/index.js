@@ -1160,7 +1160,7 @@ ControllerNetwork.prototype.getCurrentIPAddresses = function () {
   return defer.promise;
 };
 
-ControllerNetwork.prototype.getCachedPAddresses = function () {
+ControllerNetwork.prototype.getCachedIPAddresses = function () {
   var self = this;
   var defer = libQ.defer();
 
@@ -1196,13 +1196,13 @@ ControllerNetwork.prototype.restoreNetworkBackup = function () {
           var backupConfig = new (require('v-conf'))();
           backupConfig.loadFile(networkBackupPath);
           self.applyNetworkBackup(backupConfig.data);
-          fs.unlink(networkBackupPath', function (err) {
+          fs.unlink(networkBackupPath, function (err) {
             if (err) {
               self.logger.error('Could not delete Network Backup File ' + err);
             }
           });
         }
-      }
+      });
     }
   })
 };
