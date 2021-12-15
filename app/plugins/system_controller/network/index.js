@@ -656,7 +656,7 @@ ControllerNetwork.prototype.wirelessConnect = function (data) {
       self.logger.error('Not saving Password for network ' + data.ssid + ': shorter than 8 chars');
     }
   }
-
+  // TODO: Better parsing of additional network, as of now only first one is added
   while (config.has('wirelessNetworksSSID[' + index + ']')) {
     var configuredSSID = config.get('wirelessNetworksSSID[' + index + ']');
 
@@ -686,12 +686,17 @@ ControllerNetwork.prototype.wirelessConnect = function (data) {
     index++;
   }
 
-  fs.writeFile('/etc/wpa_supplicant/wpa_supplicant.conf', netstring, function (err) {
-    if (err) {
-      self.logger.error('Cannot write wpasupplicant.conf ' + err);
+  exec('/usr/bin/sudo /bin/chmod 777 /etc/wpa_supplicant/wpa_supplicant.conf', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+    if (error !== null) {
+      self.logger.error('Cannot set permissions for /etc/network/interfaces: ' + error);
+    } else {
+      fs.writeFile('/etc/wpa_supplicant/wpa_supplicant.conf', netstring, function (err) {
+        if (err) {
+          self.logger.error('Cannot write wpasupplicant.conf ' + err);
+        }
+        self.commandRouter.wirelessRestart();
+      });
     }
-
-    self.commandRouter.wirelessRestart();
   });
 };
 
