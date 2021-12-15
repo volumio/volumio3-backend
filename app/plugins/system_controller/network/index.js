@@ -44,6 +44,7 @@ ControllerNetwork.prototype.onVolumioStart = function () {
   }
 
   self.getWirelessNetworks();
+  self.restoreNetworkBackup();
 
   return promise;
 };
@@ -1178,4 +1179,63 @@ ControllerNetwork.prototype.refreshCachedPAddresses = function () {
   self.logger.info('Refreshing Cached IP Addresses');
 
   return libQ.all(self.getEthernetIPAddress(), self.getWirelessIPAddress());
+};
+
+ControllerNetwork.prototype.restoreNetworkBackup = function () {
+  var self = this;
+
+  var networkBackupPath = '/imgpart/networkconfig.json';
+
+  fs.access(networkBackupPath, fs.F_OK, (err) => {
+    if (err) {} else {
+      self.logger.info('Network Backup Found, restore started');
+      exec('/usr/bin/sudo /bin/chmod 777 ' + networkBackupPath, {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+        if (err) {
+          self.logger.error('Could not set ownership of network backup: ' + err);
+        } else {
+          var backupConfig = new (require('v-conf'))();
+          backupConfig.loadFile(networkBackupPath);
+          self.applyNetworkBackup(backupConfig.data);
+          fs.unlink(networkBackupPath', function (err) {
+            if (err) {
+              self.logger.error('Could not delete Network Backup File ' + err);
+            }
+          });
+        }
+      }
+    }
+  })
+};
+
+ControllerNetwork.prototype.applyNetworkBackup = function (data) {
+  var self = this;
+
+  self.logger.info('Restoring Network Settings Backup');
+
+  for (var key in data) {
+    if (key === 'wirelessNetworksSSID') {
+      // Wireless SSID
+      for (var e in data['wirelessNetworksSSID'].value) {
+        self.logger.info('Restoring Network ' + data['wirelessNetworksSSID'].value[e].value);
+        if (data['wirelessNetworksSSID'].value[e].value !== undefined && data['wirelessNetworksSSID'].value[e].value.length) {
+          config.addConfigValue('wirelessNetworksSSID', 'array', data['wirelessNetworksSSID'].value[e].value);
+        }
+      }
+    } else if (key === 'wirelessNetworksPASSWD') {
+      // Wireless Key
+      for (var k in data['wirelessNetworksPASSWD'].value) {
+        if (data['wirelessNetworksPASSWD'].value[k].value !== undefined && data['wirelessNetworksPASSWD'].value[k].value.length) {
+          config.addConfigValue('wirelessNetworksPASSWD', 'array', data['wirelessNetworksPASSWD'].value[k].value);
+        }
+      }
+    } else {
+      self.logger.info('Restoring Setting ' + key)
+      config.addConfigValue(key, data[key].type, data[key].value);
+    }
+  }
+
+  setTimeout(()=>{
+    self.rebuildNetworkConfig();
+    self.rebuildHotspotConfig();
+  }, 2000)
 };
