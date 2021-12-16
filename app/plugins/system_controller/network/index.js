@@ -305,8 +305,8 @@ ControllerNetwork.prototype.getWirelessNetworks = function (defer) {
               }
             }
           }
-
-          var networkresults = {'available': networksarray};
+          var wifiNetworks = exself.processWirelessNetworksArray(networksarray);
+          var networkresults = {'available': wifiNetworks};
 
           // exself.enrichNetworks(networksarray);
           wirelessNetworksScanCache = networkresults;
@@ -315,9 +315,8 @@ ControllerNetwork.prototype.getWirelessNetworks = function (defer) {
           exself.logger.error('Cannot use fallback scanning method: ' + e);
         }
       } else {
-        var networksarray = networks;
+        var networksarray = exself.processWirelessNetworksArray(networks);
         var networkresults = {'available': networksarray};
-
         // exself.enrichNetworks(networksarray);
         wirelessNetworksScanCache = networkresults;
         defer.resolve(networkresults);
@@ -339,6 +338,36 @@ ControllerNetwork.prototype.enrichNetworks = function (networks) {
       }
     }
   }
+};
+
+ControllerNetwork.prototype.processWirelessNetworksArray = function (networks) {
+  var self = this;
+  var wirelessNetworksArray = [];
+
+  if (networks != undefined) {
+    for (var i in networks) {
+      var ssid = networks[i].ssid;
+      var signal = networks[i].signal;
+      var addTowirelessNetworksArray = true;
+      if (ssid.includes('\\x00')) {
+        addTowirelessNetworksArray = false;
+      }
+      for (var k in wirelessNetworksArray) {
+        if (wirelessNetworksArray[k].ssid === ssid ) {
+          if (wirelessNetworksArray[k].signal <= signal) {
+            wirelessNetworksArray[k].signal = signal;
+          }
+
+          addTowirelessNetworksArray = false;
+        }
+      }
+      if (addTowirelessNetworksArray) {
+        wirelessNetworksArray.push(networks[i]);
+      }
+    }
+  }
+
+  return wirelessNetworksArray;
 };
 
 ControllerNetwork.prototype.searchNetworkInConfig = function (ssid) {
