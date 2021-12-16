@@ -34,6 +34,7 @@
     {"name": "H3 Audio Codec", "multidevice": false, "prettyname": "Onboard Audio", "defaultmixer": "DAC","type":"integrated"},
     {"name": "HDA Intel PCH", "multidevice": true, "devices":[{"number":0, "prettyname": "Analog Out", "defaultmixer": ""},{"number":1, "prettyname": "SPDIF", "defaultmixer": ""},{"number":3, "prettyname": "HDMI", "defaultmixer": ""}]},
     {"name": "HDA Intel", "multidevice": true, "devices":[{"number":0, "prettyname": "Analog Out", "defaultmixer": ""},{"number":1, "prettyname": "SPDIF", "defaultmixer": ""},{"number":3, "prettyname": "HDMI", "defaultmixer": ""}]},
+    {"name": "HDA C-Media", "multidevice": true, "devices":[{"number":0, "prettyname": "C-Media Analog Out", "defaultmixer": ""},{"number":1, "prettyname": "C-Media SPDIF/Toslink", "defaultmixer": ""}]},
     {"name": "HD-Audio Generic", "multidevice": true, "devices":[{"number":0, "prettyname": "Analog Out", "defaultmixer": ""},{"number":1, "prettyname": "SPDIF", "defaultmixer": ""},{"number":3, "prettyname": "HDMI", "defaultmixer": ""}]},
     {"name": "HDA ATI SB", "multidevice": true, "devices":[{"number":0, "prettyname": "Analog Out", "defaultmixer": ""},{"number":1, "prettyname": "SPDIF", "defaultmixer": ""}]},
     {"name": "Intel ICH6", "multidevice": true, "devices":[{"number":0, "prettyname": "HDMI", "defaultmixer": ""},{"number":4, "prettyname": "SPDIF", "defaultmixer": ""}]},
