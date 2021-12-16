@@ -669,12 +669,13 @@ ControllerNetwork.prototype.getAdditionalWpaSupplicantConf = function (netstring
   var self = this;
   var savedWirelessNetworks = config.data['wirelessNetworksSSID'].value;
   var augmentedNetstring = netstring;
+  var alreadyConfiguredWifi = data && data.ssid || 'n';
 
   if (savedWirelessNetworks && savedWirelessNetworks.length) {
     for (var i in savedWirelessNetworks) {
       var index = i;
       var configuredSSID = config.get('wirelessNetworksSSID[' + index + ']');
-      if (data && data.ssid != configuredSSID && configuredSSID !== undefined && configuredSSID.length > 0) {
+      if (alreadyConfiguredWifi != configuredSSID && configuredSSID !== undefined && configuredSSID.length > 0) {
         var configuredPASS = config.get('wirelessNetworksPASSWD[' + index + ']');
         augmentedNetstring += self.getNetworkWpaSupplicantEntry(configuredSSID, configuredPASS, 0);
       }
@@ -1249,7 +1250,8 @@ ControllerNetwork.prototype.applyNetworkBackup = function (data) {
   }
 
   setTimeout(()=>{
-    self.rebuildNetworkConfig();
+    //self.rebuildNetworkConfig();
+    self.wirelessConnect();
     self.rebuildHotspotConfig();
   }, 2000)
 };
