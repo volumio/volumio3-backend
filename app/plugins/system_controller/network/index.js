@@ -44,6 +44,7 @@ ControllerNetwork.prototype.onVolumioStart = function () {
   }
 
   self.getWirelessNetworks();
+  self.restoreNetworkBackup();
 
   return promise;
 };
@@ -304,8 +305,8 @@ ControllerNetwork.prototype.getWirelessNetworks = function (defer) {
               }
             }
           }
-
-          var networkresults = {'available': networksarray};
+          var wifiNetworks = exself.processWirelessNetworksArray(networksarray);
+          var networkresults = {'available': wifiNetworks};
 
           // exself.enrichNetworks(networksarray);
           wirelessNetworksScanCache = networkresults;
@@ -314,9 +315,8 @@ ControllerNetwork.prototype.getWirelessNetworks = function (defer) {
           exself.logger.error('Cannot use fallback scanning method: ' + e);
         }
       } else {
-        var networksarray = networks;
+        var networksarray = exself.processWirelessNetworksArray(networks);
         var networkresults = {'available': networksarray};
-
         // exself.enrichNetworks(networksarray);
         wirelessNetworksScanCache = networkresults;
         defer.resolve(networkresults);
@@ -338,6 +338,36 @@ ControllerNetwork.prototype.enrichNetworks = function (networks) {
       }
     }
   }
+};
+
+ControllerNetwork.prototype.processWirelessNetworksArray = function (networks) {
+  var self = this;
+  var wirelessNetworksArray = [];
+
+  if (networks != undefined) {
+    for (var i in networks) {
+      var ssid = networks[i].ssid;
+      var signal = networks[i].signal;
+      var addTowirelessNetworksArray = true;
+      if (ssid.includes('\\x00')) {
+        addTowirelessNetworksArray = false;
+      }
+      for (var k in wirelessNetworksArray) {
+        if (wirelessNetworksArray[k].ssid === ssid ) {
+          if (wirelessNetworksArray[k].signal <= signal) {
+            wirelessNetworksArray[k].signal = signal;
+          }
+
+          addTowirelessNetworksArray = false;
+        }
+      }
+      if (addTowirelessNetworksArray) {
+        wirelessNetworksArray.push(networks[i]);
+      }
+    }
+  }
+
+  return wirelessNetworksArray;
 };
 
 ControllerNetwork.prototype.searchNetworkInConfig = function (ssid) {
@@ -509,11 +539,6 @@ ControllerNetwork.prototype.saveWirelessNetworkSettings = function (data) {
   self.wirelessConnect({ssid: network_ssid, pass: network_pass});
 
   self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('NETWORK.WIRELESS_RESTART_TITLE'), self.commandRouter.getI18nString('NETWORK.WIRELESS_RESTART_SUCCESS'));
-  fs.writeFile('/data/configuration/netconfigured', ' ', function (err) {
-    if (err) {
-      self.logger.error('Cannot write netconfigured ' + error);
-    }
-  });
 };
 
 ControllerNetwork.prototype.saveHotspotSettings = function (data) {
@@ -632,68 +657,93 @@ ControllerNetwork.prototype.rebuildHotspotConfig = function (forceHotspotConfigu
 ControllerNetwork.prototype.wirelessConnect = function (data) {
   var self = this;
 
-  // cycling through configured network in config file
-  var index = 0;
-
   var netstring = 'ctrl_interface=/var/run/wpa_supplicant' + os.EOL;
 
-  // searching network
-  if (data.pass === undefined) {
-    netstring += 'network={' + os.EOL + 'scan_ssid=1' + os.EOL + 'ssid="' + data.ssid + '"' + os.EOL + 'key_mgmt=NONE' + os.EOL + 'priority=1' + os.EOL + '}' + os.EOL;
-  } else {
-    if (self.isWEPHEX(data.pass)) {
-      netstring += 'network={' + os.EOL + 'ssid="' + data.ssid + '"' + os.EOL + 'key_mgmt=NONE' + os.EOL + 'wep_key0=' + data.pass + os.EOL + 'wep_tx_keyidx=0' + os.EOL + 'priority=1' + os.EOL + '}' + os.EOL;
-    }
-    if (self.isWEPASCII(data.pass)) {
-      netstring += 'network={' + os.EOL + 'ssid="' + data.ssid + '"' + os.EOL + 'key_mgmt=NONE' + os.EOL + 'wep_key0="' + data.pass + '"' + os.EOL + 'wep_tx_keyidx=0' + os.EOL + 'priority=1' + os.EOL + '}' + os.EOL;
-    }
-    if (self.isWPA(data.pass)) {
-      netstring += 'network={' + os.EOL + 'scan_ssid=1' + os.EOL + 'ssid="' + data.ssid + '"' + os.EOL + 'psk="' + data.pass + '"' + os.EOL + 'priority=1' + os.EOL + '}' + os.EOL;
-    }
-    if (self.isWPAHashed(data.pass)) {
-      netstring += 'network={' + os.EOL + 'scan_ssid=1' + os.EOL + 'ssid="' + data.ssid + '"' + os.EOL + 'psk=' + data.pass.replace('hash::', '') + os.EOL + 'priority=1' + os.EOL + '}' + os.EOL;
-    } else {
-      self.logger.error('Not saving Password for network ' + data.ssid + ': shorter than 8 chars');
-    }
+  if (data && data.ssid !== undefined) {
+    netstring += self.getNetworkWpaSupplicantEntry(data.ssid, data.pass, 2);
   }
 
-  while (config.has('wirelessNetworksSSID[' + index + ']')) {
-    var configuredSSID = config.get('wirelessNetworksSSID[' + index + ']');
+  self.writeWpaSupplicantConf(netstring, data);
+};
 
-    if (data.ssid != configuredSSID && configuredSSID !== undefined && configuredSSID.length > 0) {
-      var configuredPASS = config.get('wirelessNetworksPASSWD[' + index + ']');
+ControllerNetwork.prototype.writeWpaSupplicantConf = function (netstring, data) {
+  var self = this;
 
-      if (configuredPASS === undefined) {
-        netstring += 'network={' + os.EOL + 'scan_ssid=1' + os.EOL + 'ssid="' + configuredSSID + '"' + os.EOL + 'key_mgmt=NONE' + os.EOL + 'priority=0' + os.EOL + '}' + os.EOL;
+  this.getAdditionalWpaSupplicantConf(netstring, data).then((wpaSupplicantConf)=> {
+    exec('/usr/bin/sudo /bin/chmod 777 /etc/wpa_supplicant/wpa_supplicant.conf', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+      if (error !== null) {
+        self.logger.error('Cannot set permissions for /etc/network/interfaces: ' + error);
       } else {
-        if (self.isWEPHEX(configuredPASS)) {
-          netstring += 'network={' + os.EOL + 'ssid="' + configuredSSID + '"' + os.EOL + 'key_mgmt=NONE' + os.EOL + 'wep_key0=' + configuredPASS + os.EOL + 'wep_tx_keyidx=0' + os.EOL + 'priority=0' + os.EOL + '}' + os.EOL;
-        }
-        if (self.isWEPASCII(configuredPASS)) {
-          netstring += 'network={' + os.EOL + 'ssid="' + configuredSSID + '"' + os.EOL + 'key_mgmt=NONE' + os.EOL + 'wep_key0="' + configuredPASS + '"' + os.EOL + 'wep_tx_keyidx=0' + os.EOL + 'priority=0' + os.EOL + '}' + os.EOL;
-        }
-        if (self.isWPA(configuredPASS)) {
-          netstring += 'network={' + os.EOL + 'scan_ssid=1' + os.EOL + 'ssid="' + configuredSSID + '"' + os.EOL + 'psk="' + configuredPASS + '"' + os.EOL + 'priority=0' + os.EOL + '}' + os.EOL;
-        }
-        if (self.isWPAHashed(data.pass)) {
-          netstring += 'network={' + os.EOL + 'scan_ssid=1' + os.EOL + 'ssid="' + data.ssid + '"' + os.EOL + 'psk=' + data.pass.replace('hash::', '') + os.EOL + 'priority=1' + os.EOL + '}' + os.EOL;
-        } else {
-          self.logger.error('Not saving Password for network ' + configuredSSID + ': shorter than 8 chars');
-        }
+        fs.writeFile('/etc/wpa_supplicant/wpa_supplicant.conf', wpaSupplicantConf, function (err) {
+          if (err) {
+            self.logger.error('Cannot write wpasupplicant.conf ' + err);
+          }
+          fs.writeFile('/data/configuration/netconfigured', ' ', function (err) {
+            if (err) {
+              self.logger.error('Cannot write netconfigured ' + error);
+            }
+          });
+          self.commandRouter.wirelessRestart();
+        });
+      }
+    });
+  }).fail(function (err) {
+    self.logger.error('Cannot get additional WPA Supplicant Networks: ' + err);
+  });
+
+}
+
+ControllerNetwork.prototype.getAdditionalWpaSupplicantConf = function (netstring, data) {
+  var defer = libQ.defer();
+  var self = this;
+  var savedWirelessNetworks = config.data['wirelessNetworksSSID'].value;
+  var augmentedNetstring = netstring;
+  var alreadyConfiguredWifi = data && data.ssid || 'n';
+
+  if (savedWirelessNetworks && savedWirelessNetworks.length) {
+    for (var i in savedWirelessNetworks) {
+      var index = i;
+      var configuredSSID = config.get('wirelessNetworksSSID[' + index + ']');
+      if (alreadyConfiguredWifi != configuredSSID && configuredSSID !== undefined && configuredSSID.length > 0) {
+        var configuredPASS = config.get('wirelessNetworksPASSWD[' + index + ']');
+        augmentedNetstring += self.getNetworkWpaSupplicantEntry(configuredSSID, configuredPASS, 0);
+      }
+      if (index == savedWirelessNetworks.length-1) {
+        defer.resolve(augmentedNetstring);
       }
     }
-
-    index++;
+  } else {
+    defer.resolve(netstring);
   }
 
-  fs.writeFile('/etc/wpa_supplicant/wpa_supplicant.conf', netstring, function (err) {
-    if (err) {
-      self.logger.error('Cannot write wpasupplicant.conf ' + err);
-    }
+  return defer.promise;
+}
 
-    self.commandRouter.wirelessRestart();
-  });
-};
+ControllerNetwork.prototype.getNetworkWpaSupplicantEntry = function (ssid, pass, priority) {
+  var self = this;
+
+  var netEntry = '';
+
+  if (pass === undefined) {
+    netEntry = 'network={' + os.EOL + 'scan_ssid=1' + os.EOL + 'ssid="' + ssid + '"' + os.EOL + 'key_mgmt=NONE' + os.EOL + 'priority=' + priority + os.EOL + '}' + os.EOL;
+  } else {
+    if (self.isWEPHEX(pass)) {
+      netEntry = 'network={' + os.EOL + 'ssid="' + ssid + '"' + os.EOL + 'key_mgmt=NONE' + os.EOL + 'wep_key0=' + pass + os.EOL + 'wep_tx_keyidx=0' + os.EOL + 'priority=' + priority + os.EOL + '}' + os.EOL;
+    }
+    if (self.isWEPASCII(pass)) {
+      netEntry = 'network={' + os.EOL + 'ssid="' + ssid + '"' + os.EOL + 'key_mgmt=NONE' + os.EOL + 'wep_key0="' + pass + '"' + os.EOL + 'wep_tx_keyidx=0' + os.EOL + 'priority=' + priority + os.EOL + '}' + os.EOL;
+    }
+    if (self.isWPA(pass)) {
+      netEntry = 'network={' + os.EOL + 'scan_ssid=1' + os.EOL + 'ssid="' + ssid + '"' + os.EOL + 'psk="' + pass + '"' + os.EOL + 'priority=' + priority + os.EOL + '}' + os.EOL;
+    }
+    if (self.isWPAHashed(pass)) {
+      netEntry = 'network={' + os.EOL + 'scan_ssid=1' + os.EOL + 'ssid="' + ssid + '"' + os.EOL + 'psk=' + pass.replace('hash::', '') + os.EOL + 'priority=' + priority + os.EOL + '}' + os.EOL;
+    } else {
+      self.logger.error('Not saving Password for network ' + ssid + ': shorter than 8 chars');
+    }
+  }
+    return netEntry;
+}
 
 ControllerNetwork.prototype.rebuildNetworkConfig = function (networkInterfaceToRestart) {
   var self = this;
@@ -1154,7 +1204,7 @@ ControllerNetwork.prototype.getCurrentIPAddresses = function () {
   return defer.promise;
 };
 
-ControllerNetwork.prototype.getCachedPAddresses = function () {
+ControllerNetwork.prototype.getCachedIPAddresses = function () {
   var self = this;
   var defer = libQ.defer();
 
@@ -1173,4 +1223,64 @@ ControllerNetwork.prototype.refreshCachedPAddresses = function () {
   self.logger.info('Refreshing Cached IP Addresses');
 
   return libQ.all(self.getEthernetIPAddress(), self.getWirelessIPAddress());
+};
+
+ControllerNetwork.prototype.restoreNetworkBackup = function () {
+  var self = this;
+
+  var networkBackupPath = '/imgpart/networkconfig.json';
+
+  fs.access(networkBackupPath, fs.F_OK, (err) => {
+    if (err) {} else {
+      self.logger.info('Network Backup Found, restore started');
+      exec('/usr/bin/sudo /bin/chmod 777 ' + networkBackupPath, {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+        if (err) {
+          self.logger.error('Could not set ownership of network backup: ' + err);
+        } else {
+          var backupConfig = new (require('v-conf'))();
+          backupConfig.loadFile(networkBackupPath);
+          self.applyNetworkBackup(backupConfig.data);
+          fs.unlink(networkBackupPath, function (err) {
+            if (err) {
+              self.logger.error('Could not delete Network Backup File ' + err);
+            }
+          });
+        }
+      });
+    }
+  })
+};
+
+ControllerNetwork.prototype.applyNetworkBackup = function (data) {
+  var self = this;
+
+  self.logger.info('Restoring Network Settings Backup');
+
+  for (var key in data) {
+    if (key === 'wirelessNetworksSSID') {
+      // Wireless SSID
+      for (var e in data['wirelessNetworksSSID'].value) {
+        self.logger.info('Restoring Network ' + data['wirelessNetworksSSID'].value[e].value);
+        if (data['wirelessNetworksSSID'].value[e].value !== undefined && data['wirelessNetworksSSID'].value[e].value.length) {
+          config.addConfigValue('wirelessNetworksSSID', 'array', data['wirelessNetworksSSID'].value[e].value);
+        }
+      }
+    } else if (key === 'wirelessNetworksPASSWD') {
+      // Wireless Key
+      for (var k in data['wirelessNetworksPASSWD'].value) {
+        if (data['wirelessNetworksPASSWD'].value[k].value !== undefined && data['wirelessNetworksPASSWD'].value[k].value.length) {
+          config.addConfigValue('wirelessNetworksPASSWD', 'array', data['wirelessNetworksPASSWD'].value[k].value);
+        }
+      }
+    } else {
+      self.logger.info('Restoring Setting ' + key)
+      config.addConfigValue(key, data[key].type, data[key].value);
+    }
+  }
+
+  setTimeout(()=>{
+    //self.rebuildNetworkConfig();
+    self.wirelessConnect();
+    self.rebuildHotspotConfig();
+  }, 2000)
 };

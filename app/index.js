@@ -2232,11 +2232,11 @@ CoreCommandRouter.prototype.getCurrentIPAddresses = function () {
   return networkPlugin.getCurrentIPAddresses();
 };
 
-CoreCommandRouter.prototype.getCachedPAddresses = function () {
+CoreCommandRouter.prototype.getCachedIPAddresses = function () {
   var self = this;
 
   var networkPlugin = this.pluginManager.getPlugin('system_controller', 'network');
-  return networkPlugin.getCachedPAddresses();
+  return networkPlugin.getCachedIPAddresses();
 };
 
 CoreCommandRouter.prototype.refreshCachedPAddresses = function () {
