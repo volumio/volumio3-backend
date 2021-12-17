@@ -40,7 +40,7 @@ PlaylistManager.prototype.createPlaylist = function (name) {
     }
   });
 
-  return self.listPlaylist();
+  return defer.promise
 };
 
 PlaylistManager.prototype.deletePlaylist = function (name) {
