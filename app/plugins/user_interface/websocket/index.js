@@ -491,11 +491,15 @@ function InterfaceWebUI (context) {
 
     connWebSocket.on('createPlaylist', function (data) {
       var selfConnWebSocket = this;
-
+	  
       var returnedData = self.commandRouter.playListManager.createPlaylist(data.name);
       returnedData.then(function (data) {
-        selfConnWebSocket.emit('pushListPlaylist', data);
         selfConnWebSocket.emit('pushCreatePlaylist', data);
+        /* Check if creation was succesful and push new content, on failure data would be same */
+        if(data.success === true) {
+          self.commandRouter.playListManager.listPlaylist().then(data =>
+              selfConnWebSocket.emit('pushListPlaylist', data));
+        }
       });
     });
 
