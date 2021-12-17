@@ -368,17 +368,19 @@ PluginManager.prototype.setManuallyInstalledPlugin = function (folder) {
 PluginManager.prototype.isEnabled = function (category, pluginName) {
   var self = this;
 
-  // MyVolumio plugins aren't very good at updating the enabled flag - just check that 
-  // the plugin is valid
-  if(self.myVolumioPluginManager !== undefined && self.myVolumioPluginManager.checkIfPluginIsInCurrentPlan(category, pluginName)) {
-    if (self.myVolumioPluginManager.checkIfDeviceIsEnabled()) {
-      return self.config.get(category + '.' + pluginName + '.enabled');
+  var isEnabled = self.config.get(category + '.' + pluginName + '.enabled');
+  if (isEnabled === undefined) {
+    if (self.myVolumioPluginManager !== undefined && self.myVolumioPluginManager.checkIfPluginIsInCurrentPlan(category, pluginName)) {
+      isEnabled = this.myVolumioPluginManager.config.get(category + '.' + pluginName + '.enabled');
+      if (isEnabled === undefined) {
+        isEnabled = this.myVolumioPluginManager.config.get(category + '.' + pluginName + '.status') === 'STARTED';
+      }
     } else {
-      return false;
+      isEnabled = false;
     }
   }
 
-  return self.config.get(category + '.' + pluginName + '.enabled');
+  return isEnabled;
 };
 
 PluginManager.prototype.startCorePlugin = function (category, name) {
