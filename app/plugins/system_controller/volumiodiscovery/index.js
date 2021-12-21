@@ -600,3 +600,31 @@ ControllerVolumioDiscovery.prototype.handleUngracefulDeviceDisappear = function 
     }
   }
 };
+
+
+ControllerVolumioDiscovery.prototype.browseForService = function (serviceType) {
+  var self = this;
+  var defer = libQ.defer();
+  var devicesArray = [];
+
+  if (serviceType !== undefined) {
+    var sequence = [
+      mdns.rst.DNSServiceResolve(),
+      mdns.rst.getaddrinfo({families: [4] })
+    ];
+    self.serviceBrowser = mdns.createBrowser(mdns.tcp(serviceType), {resolverSequence: sequence});
+    self.serviceBrowser.on('serviceUp', function (service) {
+      devicesArray.push(service);
+    });
+    self.serviceBrowser.start();
+
+    setTimeout(()=>{
+      self.serviceBrowser.stop();
+      defer.resolve(devicesArray);
+    }, 1500);
+  } else {
+    defer.resolve(devicesArray);
+  }
+
+  return defer.promise;
+};

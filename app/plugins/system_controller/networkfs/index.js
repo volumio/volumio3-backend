@@ -760,88 +760,63 @@ ControllerNetworkfs.prototype.editShare = function (data) {
 
 ControllerNetworkfs.prototype.discoverShares = function () {
   var self = this;
-
   var defer = libQ.defer();
   var sharesjson = {'nas': []};
+  var scannedNasArray = [];
   var systemShare = self.commandRouter.sharedVars.get('system.name').toUpperCase();
 
-  try {
-    var shares = execSync('/usr/bin/sudo /usr/bin/smbtree -N -b', { uid: 1000, gid: 1000, encoding: 'utf8', timeout: 10000 });
-  } catch (err) {
-    var shares = err.stdout;
-  }
-  // console.log(shares);
-  var lines = shares.split('\n');
-
-  /*
-	 smbtree returns a tab-separated 'tree' diagram;
-
-	 <domain>
-	 \t\\<nas1>   \t\t<description>
-	 \t\t\\<nas1>\<share1> \t<description1>
-	 \t\t\\<nas1>\<share2> \t<description2>
-	 \t\\<nas2>    \t\t<description>
-	 \t\t\\<nas2>\IPC$	  \t<description>
-
-	 Field names shorter than 16 characters are padded with trailing
-	 spaces, to 16 characters. Longer names are not padded.
-	 */
-  try {
-    var i, j, n, fields, nas, nasname, share, key;
-    var backslash = /^\\/;
-    var nas_slashes = /^\\\\/;
-
-    // collate nas names as keys in an object (for easier referencing)
-    var nasobj = { };
-    for (i = 0; i < lines.length; i++) {
-      fields = lines[i].split('\t');
-
-      if (fields.length < 2) continue;
-
-      // parse nas name line
-      if (nas_slashes.test(fields[1]) > 0) {
-        // strip trailing spaces - not allowed in nas names
-        nas = fields[1].replace(/\s*$/, '');
-        // remove leading backslashes
-        nasname = nas.replace(nas_slashes, '');
-        if (nasname === systemShare) continue;
-        nasobj[nasname] = {'shares': []};
-        continue;
-      }
-
-      // parse share name line
-      if (nas_slashes.test(fields[2]) > 0) {
-        // remove the \\nasname\ prefix
-        share = fields[2].replace(nas, '');
-        share = share.replace(backslash, '');
-        share = share.replace(/\s*$/, '');
-        // ignore hidden shares
-        if (share.indexOf('$') >= 0) continue;
-        if (nasobj[nasname]) {
-          nasobj[nasname].shares.push(share);
-        }
+  var mdnsNas = self.commandRouter.executeOnPlugin('system_controller', 'volumiodiscovery', 'browseForService', 'smb');
+  mdnsNas.then((devicesArray)=>{
+    var scanPromises = [];
+    for (var i in devicesArray) {
+      var device = devicesArray[i];
+      if (device && device.name !== systemShare && !scannedNasArray.includes(device.name)) {
+        scannedNasArray.push(device.name);
+        scanPromises.push(self.getSharesPerDevice(device));
       }
     }
-
-    // create return object
-    var sharesjson = { 'nas': [] };
-    for (nas in nasobj) {
-      n = nasobj[nas].shares.length;
-      sharesjson.nas.push({ 'name': nas, 'shares': [] });
-      i = sharesjson.nas.length - 1;
-      for (j = 0; j < n; j++) {
-        share = nasobj[nas].shares[j];
-        sharesjson.nas[i].shares.push({ 'sharename': share, 'path': share });
-      }
-    }
-
-    defer.resolve(sharesjson);
-  } catch (e) {
-    sharesjson = {'nas': []};
-    defer.resolve(sharesjson);
-  }
+    libQ.all(scanPromises).then(function (nasResults) {
+      var nasResponse = { 'nas': nasResults };
+      defer.resolve(nasResponse);
+    }).fail(function (e) {
+      self.logger.error('Failed getting NAS Scan results: ' + e);
+      var nasResponse = { 'nas': [] };
+      defer.resolve(nasResponse);
+    });
+  });
 
   return defer.promise;
+};
+
+ControllerNetworkfs.prototype.getSharesPerDevice = function (device) {
+  var self = this;
+  var defer = libQ.defer();
+
+  exec('echo volumio | smbclient -L ' + device.host, {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+    if (error != null) {
+      self.logger.info('Error browsing device  ' + device.name + ' for shares : ' + error);
+    } else {
+      var shares = self.parseSmbClientResult(stdout);
+      var nasObj = { 'name': device.name, 'shares': shares };
+      defer.resolve(nasObj);
+    }
+  });
+  return defer.promise;
+};
+
+ControllerNetworkfs.prototype.parseSmbClientResult = function (data) {
+  var self = this;
+  var resultsArray = [];
+
+  var lines = data.split('\n');
+  for (var i in lines) {
+    if (lines[i].includes('Disk')) {
+      var nameWithSpaces = lines[i].split('Disk')[0];
+      var shareName = nameWithSpaces.replace(/^\s+|\s+$/gm,'');
+      resultsArray.push({ 'sharename': shareName, 'path': shareName });
+    }
+  }
+  return resultsArray;
 };
 
 ControllerNetworkfs.prototype.getAdditionalConf = function (type, controller, data, def) {
