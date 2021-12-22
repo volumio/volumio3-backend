@@ -1365,7 +1365,11 @@ CoreCommandRouter.prototype.volumioToggle = function () {
 
   if (state.status != undefined) {
     if (state.status === 'stop' || state.status === 'pause') {
-      return this.stateMachine.play();
+      if (state.volatile === true) {
+        return this.volumioVolatilePlay();
+      } else {
+        return this.stateMachine.play();
+      }
     } else {
       if (state.trackType == 'webradio') {
         return this.stateMachine.stop();
