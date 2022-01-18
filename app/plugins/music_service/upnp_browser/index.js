@@ -604,7 +604,8 @@ ControllerUPNPBrowser.prototype.getAlbumArt = function (data, path, icon) {
 };
 
 function xmlToJson (url, callback) {
-  unirest.get(url)
+  try {
+    unirest.get(url)
     .timeout(3000)
     .end(function (response) {
         	if (response.status === 200) {
@@ -616,6 +617,9 @@ function xmlToJson (url, callback) {
         callback('error', null);
       }
     });
+  } catch (e) {
+    callback('error', null);    
+  }  
 }
 
 ControllerUPNPBrowser.prototype.log = function (message) {
