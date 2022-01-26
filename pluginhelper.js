@@ -627,8 +627,10 @@ function submit() {
                 }
             ];        
             inquirer.prompt(questions).then(function (answer) {
-                package.version = answer.version;
-                fs.writeJsonSync("package.json", package, {spaces:'\t'});
+				if (package.version != answer.version) {
+					package.version = answer.version;
+					fs.writeJsonSync("package.json", package, {spaces:'\t'});
+				}
                 if (!package.volumio_info.architectures){                
                     var architectures = new Array("amd64", "armhf", "i386");            
                     var questions = [
