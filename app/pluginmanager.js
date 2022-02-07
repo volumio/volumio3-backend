@@ -1749,9 +1749,13 @@ PluginManager.prototype.getAvailablePlugins = function () {
             thisPlugin.installed = true;
             thisPlugin.category = myplugins[c].category;
             thisPlugin.version = myplugins[c].version;
-            var v = compareVersions(availableVersion, myplugins[c].version);
-            if (v === 1) {
-              thisPlugin.updateAvailable = true;
+            try {
+                var v = compareVersions(availableVersion, myplugins[c].version);
+                if (v === 1) {
+                    thisPlugin.updateAvailable = true;
+                }
+            } catch(e) {
+              self.logger.error('Failed to check for new versions for plugin ' + myplugins[c].prettyName + ': ' + e);
             }
           }
         }
