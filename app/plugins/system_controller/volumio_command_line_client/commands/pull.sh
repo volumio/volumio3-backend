@@ -3,9 +3,9 @@ set -eo pipefail
 
 # Define defaults
 REPO='https://github.com/volumio/volumio3-backend.git'
-BRANCH=''
+BRANCH='master'
 # Workaround for old behaviour 
-[[ $# = 3 ]] && echo "[pull] Unknown number of arguments, if <$3> is a repo, please use the -r flag!" && exit 1
+[[ $# = 4 ]] && echo "[pull] Unknown number of arguments, if <$3> is a repo, please use the -r flag!" && exit 1
 
 while getopts ":b:r:" ARG; do
   case ${ARG} in
