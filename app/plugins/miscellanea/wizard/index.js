@@ -126,6 +126,7 @@ volumioWizard.prototype.getWizardSteps = function () {
 
   var stepsFolder = __dirname + '/wizard_steps';
   var steps = fs.readdirSync(stepsFolder).sort(function (a, b) { return a - b; });
+  var ipAddresses = self.commandRouter.getCachedIPAddresses();
   var stepsArray = [];
   netJson = {};
 
@@ -143,6 +144,11 @@ volumioWizard.prototype.getWizardSteps = function () {
         }
       }
       if (step.name === 'advancedsettings' && (process.env.SHOW_ADVANCED_SETTINGS_MODE_SELECTOR === 'true')) {
+        step.show = true;
+        stepsArray.push(step);
+      }
+      // Show the Network step only if in hotspot mode
+      if (step.name === 'network' && ipAddresses && ipAddresses.wlan0 && ipAddresses.wlan0 === '192.168.211.1') {
         step.show = true;
         stepsArray.push(step);
       }
