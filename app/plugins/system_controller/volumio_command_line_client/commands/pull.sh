@@ -47,6 +47,10 @@ if [[ -d "/volumio-current/http/www3" ]]; then
   echo "Copying Volumio Contemporary UI"
   cp -rp /volumio-current/http/www3 /volumio/http/www3
 fi
+if [[ -d "/volumio-current/http/www4" ]]; then
+  echo "Copying Volumio Manifest UI"
+  cp -rp /volumio-current/http/www4 /volumio/http/www4
+fi
 
 echo "Getting Network Manager from Build scripts"
 wget https://raw.githubusercontent.com/volumio/Build/master/volumio/bin/wireless.js -O /volumio/app/plugins/system_controller/network/wireless.js
