@@ -157,7 +157,7 @@ CoreStateMachine.prototype.getState = function () {
     }
   } else {
     var trackBlock = this.getTrack(this.currentPosition);
-    if (trackBlock === undefined) {
+    if (trackBlock === undefined || trackBlock === null) {
       return this.getEmptyState();
     } else {
       if (trackBlock.service === 'webradio') {
@@ -1398,7 +1398,7 @@ CoreStateMachine.prototype.setRepeat = function (value, repeatSingle) {
   } else {
     this.currentRepeat = value;
 	if(this.currentRepeat && repeatSingle != undefined) {
-		this.currentRepeatSingleSong = repeatSingle;	
+		this.currentRepeatSingleSong = repeatSingle;
 	} else {
 		this.currentRepeatSingleSong = false;
 	}
