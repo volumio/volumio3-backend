@@ -798,6 +798,9 @@ ControllerNetworkfs.prototype.getSharesPerDevice = function (device) {
     } else {
       var shares = self.parseSmbClientResult(stdout);
       var nasObj = { 'name': device.name, 'shares': shares };
+      if (device.addresses && device.addresses[0] && device.addresses[0].length) {
+          nasObj.ip = device.addresses[0];
+      }
       defer.resolve(nasObj);
     }
   });
