@@ -1084,13 +1084,16 @@ ControllerAlsa.prototype.getAlsaCards = function () {
             if (carddata.cards[n].multidevice) {
               var card = carddata.cards[n];
               for (var j = 0; j < card.devices.length; j++) {
-                            	var currentCard = carddata.cards[n].devices[j];
+                var currentCard = carddata.cards[n].devices[j];
                 var subdevice = Number(currentCard.number);
                 name = currentCard.prettyname;
                 if (volumioDeviceName === 'primo') {
                   if (name === 'Audio Jack Out' || name === 'HDMI') {
                     currentCard.ignore = true;
                   }
+                }
+                if (ignoredCards.includes(currentCard.prettyname)) {
+                    currentCard.ignore = true;
                 }
                 var deviceProc = '/proc/asound/card' + id + '/pcm' + (subdevice).toString() + 'p';
                 if (fs.existsSync(deviceProc)) {
