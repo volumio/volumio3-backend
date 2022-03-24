@@ -787,6 +787,15 @@ function InterfaceWebUI (context) {
       } else console.log('Error on returning wireless networks');
     });
 
+    connWebSocket.on('getWirelessNetworksCache', function () {
+      var selfConnWebSocket = this;
+
+      var wirelessNetworksCache = self.commandRouter.executeOnPlugin('system_controller', 'network', 'getWirelessNetworksScanCache', '');
+      if (wirelessNetworksCache) {
+        selfConnWebSocket.emit('pushWirelessNetworksCache', wirelessNetworksCache);
+      }      
+    });
+
     connWebSocket.on('saveWirelessNetworkSettings', function (data) {
       var returnedData = self.commandRouter.executeOnPlugin('system_controller', 'network', 'saveWirelessNetworkSettings', data);
 
