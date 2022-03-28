@@ -1033,6 +1033,7 @@ ControllerNetworkfs.prototype.initUdevWatcher = function () {
     switch (device.DEVTYPE) {
       case 'partition':
         if (!ignoreDeviceAction) {
+          self.logger.info('Partition removed: ' + JSON.stringify(device));
           self.umountDevice(device);
         }
         break;
@@ -1173,11 +1174,16 @@ ControllerNetworkfs.prototype.createMountFolder = function (mountFolder) {
 ControllerNetworkfs.prototype.deleteMountFolder = function (mountFolder) {
   var self = this;
 
+  self.logger.info('TEST: Here we shall have deleted mounted folder: ' + mountFolder);
+
+  // This is commented, to validate the assumption that this might unintentionally delete music files on USB
+  /*
   try {
     execSync('/bin/rm -rf "' + mountFolder + '"', {uid: 1000, gid: 1000});
   } catch (e) {
     self.logger.error('Failed to delete Folder ' + e);
   }
+  */
 };
 
 ControllerNetworkfs.prototype.switchInternalMemoryPosition = function () {
