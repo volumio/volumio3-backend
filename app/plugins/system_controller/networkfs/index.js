@@ -1060,7 +1060,6 @@ ControllerNetworkfs.prototype.mountDevice = function (device) {
     	  self.logger.info('Mounting Device ' + fsLabel);
     	  if (self.checkLabelForInternalDiskToBeMounted(fsLabel)) {
     	    var mountFolder = removableMountPoint + 'INTERNAL/';
-    	    self.switchInternalMemoryPosition();
     	  } else {
     	    var mountFolder = removableMountPoint + 'USB/' + fsLabel;
     	  }
@@ -1129,9 +1128,14 @@ ControllerNetworkfs.prototype.isUsbDevice = function (device) {
 
 ControllerNetworkfs.prototype.checkLabelForInternalDiskToBeMounted = function (label) {
   var self = this;
-
   // Those labels if set to an hard drive, will result in it mounting as internal drive
-  if (label === 'issd' || label === 'ihdd' || label === 'Internal SSD' || label === 'Internal HDD') {
+  var internalMemoryAllowedLabelsArray = ['issd', 'ihdd', 'Internal SSD', 'Internal HDD'];
+
+  var internalLabelIndex = internalMemoryAllowedLabelsArray.findIndex(element => {
+    return element.toLowerCase() === label.toLowerCase();
+  });
+
+  if (internalLabelIndex > -1) {
     return true;
   } else {
     return false;
@@ -1182,25 +1186,6 @@ ControllerNetworkfs.prototype.deleteMountFolder = function (mountFolder) {
     execSync('/bin/rm -rf "' + mountFolder + '"', {uid: 1000, gid: 1000});
   } catch (e) {
     self.logger.error('Failed to delete Folder ' + e);
-  }
-  */
-};
-
-ControllerNetworkfs.prototype.switchInternalMemoryPosition = function () {
-  var self = this;
-
-  self.logger.info('TEST: Here we would switch internal memory position');
-  /*
-  if (fs.existsSync('/mnt/INTERNAL')) {
-    try {
-      var internalPosition = execSync('/bin/readlink -f /mnt/INTERNAL', {uid: 1000, gid: 1000}).toString().replace('\n', '');
-      if (internalPosition === '/data/INTERNAL') {
-        self.logger.info('Removing Internal Memory Position');
-        execSync('/bin/rm -rf /mnt/INTERNAL', {uid: 1000, gid: 1000});
-      }
-    } catch (e) {
-      self.logger.error('Failed to switch to internal Position ' + e);
-    }
   }
   */
 };
