@@ -1189,6 +1189,8 @@ ControllerNetworkfs.prototype.deleteMountFolder = function (mountFolder) {
 ControllerNetworkfs.prototype.switchInternalMemoryPosition = function () {
   var self = this;
 
+  self.logger.info('TEST: Here we would switch internal memory position');
+  /*
   if (fs.existsSync('/mnt/INTERNAL')) {
     try {
       var internalPosition = execSync('/bin/readlink -f /mnt/INTERNAL', {uid: 1000, gid: 1000}).toString().replace('\n', '');
@@ -1200,6 +1202,7 @@ ControllerNetworkfs.prototype.switchInternalMemoryPosition = function () {
       self.logger.error('Failed to switch to internal Position ' + e);
     }
   }
+  */
 };
 
 ControllerNetworkfs.prototype.bindInternalMemoryPosition = function () {
