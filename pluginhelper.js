@@ -766,7 +766,7 @@ function install(){
         }
         execSync("/bin/mv *.zip /tmp/plugins/" + package.name + ".zip");
         socket.emit('installPlugin', {url: 'http://127.0.0.1:3000/plugin-serve/'
-            + package.name + ".zip"})
+            + package.name + ".zip", confirm: true})
         socket.on('installPluginStatus', function (data) {
             console.log("Progress: " + data.progress + "\nStatus :" + data.message);
             var lastMessage = data.advancedLog.substring(data.advancedLog.lastIndexOf('<br>') + 4);
