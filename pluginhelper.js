@@ -757,35 +757,49 @@ function submit() {
 // =============================== INSTALL ====================================
 
 function install(){
-    if(fs.existsSync("package.json")){
-        let socket = websocket.connect('http://127.0.0.1:3000', {reconnect: true});
-        var package = fs.readJsonSync("package.json");
-        zip();
-        if(!fs.existsSync("/tmp/plugins")) {
-            execSync("/bin/mkdir /tmp/plugins/")
+    showManualInstallWarning();
+    var question = [
+        {
+            type: 'confirm',
+            name: 'confirmManualInstall',
+            message: 'Do you want to install this plugin anyway?',
+            default: false,
         }
-        execSync("/bin/mv *.zip /tmp/plugins/" + package.name + ".zip");
-        socket.emit('installPlugin', {url: 'http://127.0.0.1:3000/plugin-serve/'
-            + package.name + ".zip", confirm: true})
-        socket.on('installPluginStatus', function (data) {
-            console.log("Progress: " + data.progress + "\nStatus :" + data.message);
-            var lastMessage = data.advancedLog.substring(data.advancedLog.lastIndexOf('<br>') + 4);
-            console.log(lastMessage);
-            if(data.progress === 100){
-                console.log("Done! Plugin Successfully Installed");
-                socket.close();
-                process.exit(0);
-            } else if (data.progress === 0) {
-                console.error('Failed to Install Plugin');
-                socket.close();
-                process.exit(1);
+    ];
+    inquirer.prompt(question).then(function (answer) {
+        if (answer && answer.confirmManualInstall) {
+            if(fs.existsSync("package.json")){
+                let socket = websocket.connect('http://127.0.0.1:3000', {reconnect: true});
+                var package = fs.readJsonSync("package.json");
+                zip();
+                if(!fs.existsSync("/tmp/plugins")) {
+                    execSync("/bin/mkdir /tmp/plugins/")
+                }
+                execSync("/bin/mv *.zip /tmp/plugins/" + package.name + ".zip");
+                socket.emit('installPlugin', {url: 'http://127.0.0.1:3000/plugin-serve/' + package.name + ".zip", confirm: true});
+                socket.on('installPluginStatus', function (data) {
+                    console.log("Progress: " + data.progress + "\nStatus :" + data.message);
+                    var lastMessage = data.advancedLog.substring(data.advancedLog.lastIndexOf('<br>') + 4);
+                    console.log(lastMessage);
+                    if(data.progress === 100){
+                        console.log("Done! Plugin Successfully Installed");
+                        socket.close();
+                        process.exit(0);
+                    } else if (data.progress === 0) {
+                        console.error('Failed to Install Plugin');
+                        socket.close();
+                        process.exit(1);
+                    }
+                })
+            } else {
+                console.log("No package found")
+                process.exitCode = 1;
             }
-        })
-    }
-    else {
-        console.log("No package found")
-        process.exitCode = 1;
-    }
+        } else {
+        console.log('This plugin will not be installed. Exiting.');
+        process.exit(0);
+        }
+    });
 }
 
 // ================================ UPDATE ====================================
@@ -840,6 +854,17 @@ function help() {
         console.log(stdout);
         process.exitCode = 0;
     });
+}
+
+// ================================ WARNINGS ====================================
+
+function showManualInstallWarning() {
+    console.log('\x1b[31m', '================================ WARNING ====================================');
+    console.log(' ');
+    console.log('This plugin is not verified by Volumio. Installing it is UNSAFE and can make your system UNSTABLE!');
+    console.log('You are STRONGLY advised not to install plugins manually, better wait they are officially available.');
+    console.log(' ');
+    console.log('\x1b[31m', '=============================================================================');
 }
 
 // ================================ START =====================================
