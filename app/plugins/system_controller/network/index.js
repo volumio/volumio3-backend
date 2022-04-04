@@ -936,7 +936,7 @@ ControllerNetwork.prototype.getWirelessInfo = function () {
 
   ifconfig.status('wlan0', function (err, status) {
     if (status != undefined) {
-      if (status.ipv4_address != undefined) {
+      if (status.ipv4_address != undefined && self.checkIfValidIPAddress(status.ipv4_address)) {
         cachedWlan0IPAddress = status.ipv4_address;
         if (status.ipv4_address != '192.168.211.1') {
           response.connected = true;
@@ -963,7 +963,7 @@ ControllerNetwork.prototype.getWiredInfo = function () {
 
   ifconfig.status('eth0', function (err, status) {
     if (status != undefined) {
-      if (status.ipv4_address != undefined) {
+      if (status.ipv4_address != undefined && self.checkIfValidIPAddress(status.ipv4_address)) {
         cachedEth0IPAddress = status.ipv4_address;
         response.connected = true;
         response.ip = status.ipv4_address;
@@ -1106,7 +1106,7 @@ ControllerNetwork.prototype.getEthernetIPAddress = function () {
   var defer = libQ.defer();
 
   ifconfig.status('eth0', function (err, status) {
-    if (!err && status != undefined && status.ipv4_address != undefined) {
+    if (!err && status != undefined && status.ipv4_address != undefined && self.checkIfValidIPAddress(status.ipv4_address)) {
       cachedEth0IPAddress = status.ipv4_address;
         	defer.resolve(status.ipv4_address);
     } else {
@@ -1121,7 +1121,7 @@ ControllerNetwork.prototype.getWirelessIPAddress = function () {
   var defer = libQ.defer();
 
   ifconfig.status('wlan0', function (err, status) {
-    if (!err && status != undefined && status.ipv4_address != undefined) {
+    if (!err && status != undefined && status.ipv4_address != undefined && self.checkIfValidIPAddress(status.ipv4_address)) {
       cachedWlan0IPAddress = status.ipv4_address;
       defer.resolve(status.ipv4_address);
     } else {
@@ -1283,4 +1283,17 @@ ControllerNetwork.prototype.applyNetworkBackup = function (data) {
     self.wirelessConnect();
     self.rebuildHotspotConfig();
   }, 2000)
+};
+
+ControllerNetwork.prototype.checkIfValidIPAddress = function (ipAddress) {
+  var self = this;
+  var nonDHCPIPIP = '169.254';
+
+  // If no DHCP lease can be obtained, DHCP provides IP like 169.254.83.162 or 169.254.118.153.
+  // If that's the case, the IP cannot be considered valid
+  if (ipAddress && ipAddress.indexOf(nonDHCPIPIP) !== 0) {
+    return true;
+  } else {
+    return false;
+  }
 };

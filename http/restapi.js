@@ -45,7 +45,7 @@ api.get('/host', function (req, res) {
     for (var i in interfacesarray) {
       ifconfig.status(interfacesarray[i], function (err, status) {
         if (err) {}
-        if (status !== undefined && status.ipv4_address !== undefined) {
+        if (status !== undefined && status.ipv4_address !== undefined && status.ipv4_address.indexOf('169.254') !== 0) {
           hostsarray.push('http://' + status.ipv4_address);
         }
 
