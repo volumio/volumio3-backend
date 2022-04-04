@@ -379,6 +379,14 @@ ControllerAlsa.prototype.getUIConfig = function () {
           uiconf.sections[3].content[1].visibleIf = true;
       }
 
+      if (process.env.EXTERNAL_VOLUME_CONTROL === 'true') {
+          uiconf.sections[3].content[0].hidden = true;
+          uiconf.sections[3].content[1].hidden = true;
+          uiconf.sections[3].content[5].hidden = true;
+          uiconf.sections[3].content[6].hidden = true;
+      }
+
+
       value = self.getAdditionalConf('music_service', 'mpd', 'dop', false);
       if (volumioDeviceName === 'primo' && outdevicename === 'Analog RCA Output') {
         value = true;
@@ -2290,4 +2298,22 @@ ControllerAlsa.prototype.setExternalVolume = function (data) {
     var self = this;
 
     externalVolume = data;
+};
+
+ControllerAlsa.prototype.enableExternalVolumeControl = function () {
+    var self = this;
+
+    self.logger.info('Enabling external Volume Control');
+    self.setExternalVolume(true);
+    process.env.EXTERNAL_VOLUME_CONTROL = 'true';
+
+    externalVolume = data;
+};
+
+ControllerAlsa.prototype.disableExternalVolumeControl = function () {
+    var self = this;
+
+    self.logger.info('Disabling external Volume Control');
+    self.setExternalVolume(false);
+    process.env.EXTERNAL_VOLUME_CONTROL = 'false';
 };
