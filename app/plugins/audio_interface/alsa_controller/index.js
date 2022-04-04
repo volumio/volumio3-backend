@@ -2297,23 +2297,13 @@ ControllerAlsa.prototype.searchFolderForPluginALSAContributions = function (plug
 ControllerAlsa.prototype.setExternalVolume = function (data) {
     var self = this;
 
-    externalVolume = data;
-};
-
-ControllerAlsa.prototype.enableExternalVolumeControl = function () {
-    var self = this;
-
-    self.logger.info('Enabling external Volume Control');
-    self.setExternalVolume(true);
-    process.env.EXTERNAL_VOLUME_CONTROL = 'true';
-
-    externalVolume = data;
-};
-
-ControllerAlsa.prototype.disableExternalVolumeControl = function () {
-    var self = this;
-
-    self.logger.info('Disabling external Volume Control');
-    self.setExternalVolume(false);
-    process.env.EXTERNAL_VOLUME_CONTROL = 'false';
+    if (data && data === true) {
+        self.logger.info('Enabling external Volume Control');
+        process.env.EXTERNAL_VOLUME_CONTROL = 'true';
+        externalVolume = true;
+    } else {
+        self.logger.info('Disabling external Volume Control');
+        process.env.EXTERNAL_VOLUME_CONTROL = 'false';
+        externalVolume = false;
+    }
 };
