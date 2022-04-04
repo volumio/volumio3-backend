@@ -152,6 +152,11 @@ volumioWizard.prototype.getWizardSteps = function () {
         step.show = true;
         stepsArray.push(step);
       }
+      // Do not show Audio Step if env show audio selector is false
+      if (step.name === 'output' && (process.env.AUDIO_OUTPUT_SELECTION !== 'false')) {
+        step.show = true;
+        stepsArray.push(step);
+      }
     }
   }
   return stepsArray;

@@ -259,6 +259,10 @@ ControllerAlsa.prototype.getUIConfig = function () {
         uiconf.sections[0].content[1].hidden = true;
       }
 
+      if (process.env.AUDIO_OUTPUT_SELECTION === 'false') {
+          uiconf.sections[0].hidden = true;
+      }
+
       var mixers = self.getMixerControls(value);
       var activemixer = self.config.get('mixer');
       var activemixer_type = self.config.get('mixer_type');
