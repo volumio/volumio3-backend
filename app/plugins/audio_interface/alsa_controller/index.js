@@ -132,7 +132,7 @@ ControllerAlsa.prototype.onVolumioStart = function () {
   }
 
   if (this.config.has('volumesteps') == false) {
-    this.config.addConfigValue('volumesteps', 'string', '10');
+    this.config.addConfigValue('volumesteps', 'string', '1');
     this.updateVolumeSettings();
   }
 
