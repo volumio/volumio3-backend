@@ -1207,7 +1207,7 @@ ControllerNetworkfs.prototype.mountPartition = function (partitionData) {
   if (partitionData.fsType === 'vfat' || partitionData.fsType === 'ntfs') {
     var options = 'noatime,dmask=0000,fmask=0000,iocharset=utf8';
   } else {
-    var options = 'noatime,iocharset=utf8';
+    var options = 'noatime';
   }
   var mountCMD = '/usr/bin/sudo /bin/mount "' + partitionData.devName + '" "' + partitionData.mountFolder + '" -o ' + options;
   try {
