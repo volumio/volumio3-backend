@@ -1273,8 +1273,10 @@ ControllerNetwork.prototype.applyNetworkBackup = function (data) {
         }
       }
     } else {
-      self.logger.info('Restoring Setting ' + key)
-      config.addConfigValue(key, data[key].type, data[key].value);
+      if (data[key] && data[key].type !== undefined && data[key].value !== undefined) {
+        self.logger.info('Restoring Setting ' + key)
+        config.addConfigValue(key, data[key].type, data[key].value);
+      }
     }
   }
 
