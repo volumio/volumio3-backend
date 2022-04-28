@@ -18,6 +18,7 @@ var plugindir = '/tmp/plugins';
 var backgrounddir = '/data/backgrounds';
 var volumio2UIFlagFile = '/data/volumio2ui';
 var volumioManifestUIFlagFile = '/data/manifestUI';
+var volumioWizardFlagFile = '/data/wizard';
 var volumioManifestUIDisabledFile = '/data/disableManifestUI';
 var volumio3UIFolderPath = '/volumio/http/www3';
 
@@ -57,18 +58,23 @@ if (fs.existsSync(volumio2UIFlagFile) || (fs.existsSync(volumioManifestUIFlagFil
 var staticMiddlewareUI2 = express.static(path.join(__dirname, 'www'));
 var staticMiddlewareUI3 = express.static(path.join(__dirname, 'www3'));
 var staticMiddlewareManifestUI = express.static(path.join(__dirname, 'www4'));
+var staticMiddlewareWizard = express.static(path.join(__dirname, 'wizard'));
 
 app.use(function (req, res, next) {
   var userAgent = req.get('user-agent');
-  if (fs.existsSync(volumioManifestUIFlagFile) && !fs.existsSync(volumioManifestUIDisabledFile)){
-    staticMiddlewareManifestUI(req, res, next);
+  if (fs.existsSync(volumioWizardFlagFile)){
+    staticMiddlewareWizard(req, res, next);
   } else {
-    if ((userAgent && userAgent.includes('volumiokiosk')) || process.env.VOLUMIO_3_UI === 'false') {
-      staticMiddlewareUI2(req, res, next);
+    if (fs.existsSync(volumioManifestUIFlagFile) && !fs.existsSync(volumioManifestUIDisabledFile)){
+      staticMiddlewareManifestUI(req, res, next);
     } else {
-      staticMiddlewareUI3(req, res, next);
+      if ((userAgent && userAgent.includes('volumiokiosk')) || process.env.VOLUMIO_3_UI === 'false') {
+        staticMiddlewareUI2(req, res, next);
+      } else {
+        staticMiddlewareUI3(req, res, next);
+      }
     }
-  }
+  }  
 });
 
 app.use(busboy({ immediate: true }));

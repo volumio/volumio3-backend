@@ -1251,6 +1251,8 @@ ControllerSystem.prototype.initializeFirstStart = function () {
   // We set default value to false if config not found, so this setting won't affect devices updating from previous versions
   var isFirstStart = self.config.get('first_start', false);
   if (isFirstStart) {
+    execSync('/usr/bin/touch /data/wizard');
+    self.commandRouter.reloadUi();
     var playerName = self.config.get('playerName');
     var sysShortID = self.getHwuuid().toUpperCase().substring(0,5);
     var newPlayerName = playerName + '-' + sysShortID;

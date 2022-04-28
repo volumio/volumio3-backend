@@ -8,6 +8,7 @@ var wifiConnectPayload = {};
 var wifiConnectPayloadExec = false;
 var I2Sreboot = false;
 var I2SName = '';
+var execSync = require('child_process').execSync;
 
 var backgroundPath = '/data/backgrounds';
 
@@ -266,10 +267,18 @@ volumioWizard.prototype.setWizardAction = function (data) {
   }
 };
 
+volumioWizard.prototype.openWizard = function () {
+  var self = this;
+  execSync('/usr/bin/touch /data/wizard');
+  self.commandRouter.reloadUi();
+};
+
 volumioWizard.prototype.setSkip = function () {
   var self = this;
 
   self.logger.info('Wizard skipped');
+  execSync('/bin/rm -f /data/wizard');
+  self.commandRouter.reloadUi();
   self.commandRouter.executeOnPlugin('system_controller', 'system', 'setShowWizard', false);
   self.commandRouter.broadcastMessage('closeWizard', '');
 };
@@ -286,6 +295,8 @@ volumioWizard.prototype.setReboot = function (data) {
 volumioWizard.prototype.setCloseWizard = function () {
   var self = this;
 
+  execSync('/bin/rm -f /data/wizard');
+  self.commandRouter.reloadUi();
   self.commandRouter.executeOnPlugin('system_controller', 'system', 'setShowWizard', false);
   self.logger.info('Wizard terminated Successfully');
   self.commandRouter.broadcastMessage('closeWizard', '');
