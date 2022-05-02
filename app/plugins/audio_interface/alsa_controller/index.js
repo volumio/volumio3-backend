@@ -58,6 +58,10 @@ ControllerAlsa.prototype.onVolumioStart = function () {
 	if(outputdevicecardname === null) {
 	  self.logger.warn('The ALSA output card is not set, defaulting to card ' + output);
 	  outputdevicecard = self.getCardByAlsaCardNumber(alsacards, output);
+	  var outputdevicecardMulti = self.getCardByAlsaCardNumber(alsacards, output + ',0');
+	  if (outputdevicecard === null && outputdevicecardMulti !== null) {
+          outputdevicecard = outputdevicecardMulti;
+      }
 	} else {
 	  outputdevicecard = self.getCardByAlsaCardNameAndDevice(alsacards, outputdevicecardname, outputdevicealsadevice);
 	}
