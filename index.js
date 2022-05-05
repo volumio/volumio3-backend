@@ -54,12 +54,15 @@ var volumioManifestUIFlagFile = '/data/manifestUI';
 var volumioManifestUIDisabledFile = '/data/disableManifestUI';
 var volumioWizardFlagFile = '/data/wizard';
 
+var volumioManifestUIDir = '/volumio/http/www4';
+var volumioWizardDir = '/volumio/http/wizard';
+
 expressApp.get('/?*', function (req, res) {
   var userAgent = req.get('user-agent');
-  if (fs.existsSync(volumioWizardFlagFile)){
+  if (fs.existsSync(volumioWizardDir) && fs.existsSync(volumioWizardFlagFile)){
     res.sendFile(path.join(__dirname, 'http', 'wizard', 'index.html'));   
   } else {
-    if (fs.existsSync(volumioManifestUIFlagFile) && !fs.existsSync(volumioManifestUIDisabledFile)) {
+    if (fs.existsSync(volumioManifestUIDir) && fs.existsSync(volumioManifestUIFlagFile) && !fs.existsSync(volumioManifestUIDisabledFile)) {
       res.sendFile(path.join(__dirname, 'http', 'www4', 'index.html'));     
     } else {
       if ((userAgent && userAgent.includes('volumiokiosk')) || process.env.VOLUMIO_3_UI === 'false') {
