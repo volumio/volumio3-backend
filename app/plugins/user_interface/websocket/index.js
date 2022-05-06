@@ -1443,7 +1443,7 @@ function InterfaceWebUI (context) {
 
     connWebSocket.on('runFirstConfigWizard', function () {
       self.commandRouter.executeOnPlugin('miscellanea', 'wizard', 'openWizard', '');
-      //selfConnWebSocket.emit('pushWizard', {'openWizard': true});
+      selfConnWebSocket.emit('pushWizard', {'openWizard': true});
     });
 
     connWebSocket.on('getWizardSteps', function () {
