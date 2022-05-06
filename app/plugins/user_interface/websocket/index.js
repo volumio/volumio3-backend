@@ -1442,6 +1442,7 @@ function InterfaceWebUI (context) {
     });
 
     connWebSocket.on('runFirstConfigWizard', function () {
+      var selfConnWebSocket = this;
       self.commandRouter.executeOnPlugin('miscellanea', 'wizard', 'openWizard', '');
       selfConnWebSocket.emit('pushWizard', {'openWizard': true});
     });
