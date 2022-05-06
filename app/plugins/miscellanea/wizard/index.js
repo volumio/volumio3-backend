@@ -269,8 +269,10 @@ volumioWizard.prototype.setWizardAction = function (data) {
 
 volumioWizard.prototype.openWizard = function () {
   var self = this;
-  execSync('/usr/bin/touch /data/wizard');
-  self.commandRouter.reloadUi();
+  if (fs.existsSync('/volumio/http/wizard')) {
+    execSync('/usr/bin/touch /data/wizard');
+    self.commandRouter.reloadUi();
+  }
 };
 
 volumioWizard.prototype.setSkip = function () {
