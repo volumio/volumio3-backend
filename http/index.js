@@ -58,10 +58,10 @@ if (fs.existsSync(volumio2UIFlagFile) || (fs.existsSync(volumioManifestUIFlagFil
   process.env.VOLUMIO_3_UI = 'true';
 }
 
-var staticMiddlewareUI2 = express.static(path.join(__dirname, 'www'), {etag: false});
-var staticMiddlewareUI3 = express.static(path.join(__dirname, 'www3'), {etag: false});
-var staticMiddlewareManifestUI = express.static(path.join(__dirname, 'www4'), {etag: false});
-var staticMiddlewareWizard = express.static(path.join(__dirname, 'wizard'), {etag: false});
+var staticMiddlewareUI2 = express.static(path.join(__dirname, 'www'));
+var staticMiddlewareUI3 = express.static(path.join(__dirname, 'www3'));
+var staticMiddlewareManifestUI = express.static(path.join(__dirname, 'www4'));
+var staticMiddlewareWizard = express.static(path.join(__dirname, 'wizard'));
 
 app.use(function (req, res, next) {
   var userAgent = req.get('user-agent');
