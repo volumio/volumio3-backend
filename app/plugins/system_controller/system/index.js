@@ -257,7 +257,7 @@ ControllerSystem.prototype.saveGeneralSettings = function (data) {
 
   var oldPlayerName = self.config.get('playerName');
   var player_name = data['player_name'];
-  if (player_name !== oldPlayerName) {
+  if (player_name && player_name !== oldPlayerName) {
     var hostname = data['player_name'].split(' ').join('-');
     self.config.set('playerName', player_name);
     self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('SYSTEM.SYSTEM_CONFIGURATION_UPDATE'), self.commandRouter.getI18nString('SYSTEM.SYSTEM_CONFIGURATION_UPDATE_SUCCESS'));
