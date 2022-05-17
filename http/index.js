@@ -61,9 +61,7 @@ if (fs.existsSync(volumio2UIFlagFile) || (fs.existsSync(volumioManifestUIFlagFil
 var staticMiddlewareUI2 = express.static(path.join(__dirname, 'www'));
 var staticMiddlewareUI3 = express.static(path.join(__dirname, 'www3'));
 var staticMiddlewareManifestUI = express.static(path.join(__dirname, 'www4'));
-var staticMiddlewareWizard = express.static(path.join(__dirname, 'wizard'), {
-  maxage: -1
-});
+var staticMiddlewareWizard = express.static(path.join(__dirname, 'wizard'));
 
 app.use(function (req, res, next) {
   var userAgent = req.get('user-agent');
