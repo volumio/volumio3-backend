@@ -158,6 +158,10 @@ volumioWizard.prototype.getWizardSteps = function () {
         step.show = true;
         stepsArray.push(step);
       }
+      if ((step.name === 'login' || step.name === 'streamingservices') && fs.existsSync('/volumio/http/wizard')) {
+        step.show = true;
+        stepsArray.push(step);
+      } 
     }
   }
   return stepsArray;
