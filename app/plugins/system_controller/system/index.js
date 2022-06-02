@@ -11,6 +11,7 @@ var crypto = require('crypto');
 var calltrials = 0;
 var additionalSVInfo;
 const { v4: uuidv4 } = require('uuid');
+const e = require('express');
 var hwUuid;
 
 // Define the ControllerSystem class
@@ -46,6 +47,11 @@ ControllerSystem.prototype.onVolumioStart = function () {
   this.commandRouter.sharedVars.addConfigValue('system.name', 'string', self.config.get('playerName'));
 
   process.env.ADVANCED_SETTINGS_MODE = this.config.get('advanced_settings_mode', true);
+  if (fs.existsSync('/volumio/http/wizard')) {
+    process.env.NEW_WIZARD = 'true';
+  } else {
+    process.env.NEW_WIZARD = 'false';
+  }
 
   return libQ.all(self.deviceDetect());
 };
