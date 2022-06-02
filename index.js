@@ -58,7 +58,7 @@ var volumioManifestUIDir = '/volumio/http/www4';
 
 expressApp.get('/?*', function (req, res) {
   var userAgent = req.get('user-agent');
-  if (process.env.NEW_WIZARD && fs.existsSync(volumioWizardFlagFile)){
+  if (process.env.NEW_WIZARD === 'true' && fs.existsSync(volumioWizardFlagFile)){
     res.sendFile(path.join(__dirname, 'http', 'wizard', 'index.html'));   
   } else {
     if (fs.existsSync(volumioManifestUIDir) && fs.existsSync(volumioManifestUIFlagFile) && !fs.existsSync(volumioManifestUIDisabledFile)) {

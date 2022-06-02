@@ -158,7 +158,7 @@ volumioWizard.prototype.getWizardSteps = function () {
         step.show = true;
         stepsArray.push(step);
       }
-      if ((step.name === 'login' || step.name === 'streamingservices') && process.env.NEW_WIZARD) {
+      if ((step.name === 'login' || step.name === 'streamingservices') && process.env.NEW_WIZARD === 'true') {
         step.show = true;
         stepsArray.push(step);
       } 
@@ -273,7 +273,7 @@ volumioWizard.prototype.setWizardAction = function (data) {
 
 volumioWizard.prototype.openWizard = function () {
   var self = this;
-  if (process.env.NEW_WIZARD) {
+  if (process.env.NEW_WIZARD === 'true') {
     execSync('/usr/bin/touch /data/wizard');
     self.commandRouter.reloadUi();
   }

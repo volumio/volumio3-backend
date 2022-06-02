@@ -64,7 +64,7 @@ var staticMiddlewareWizard = express.static(path.join(__dirname, 'wizard'));
 
 app.use(function (req, res, next) {
   var userAgent = req.get('user-agent');
-  if (process.env.NEW_WIZARD && fs.existsSync(volumioWizardFlagFile)){
+  if (process.env.NEW_WIZARD === 'true' && fs.existsSync(volumioWizardFlagFile)){
     staticMiddlewareWizard(req, res, next);
   } else {
     if (fs.existsSync(volumioManifestUIDir) && fs.existsSync(volumioManifestUIFlagFile) && !fs.existsSync(volumioManifestUIDisabledFile)){
