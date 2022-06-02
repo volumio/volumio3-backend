@@ -46,6 +46,7 @@ ControllerSystem.prototype.onVolumioStart = function () {
   this.commandRouter.sharedVars.addConfigValue('system.name', 'string', self.config.get('playerName'));
 
   process.env.ADVANCED_SETTINGS_MODE = this.config.get('advanced_settings_mode', true);
+  process.env.NEW_WIZARD = fs.existsSync('/volumio/http/wizard');
 
   return libQ.all(self.deviceDetect());
 };

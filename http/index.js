@@ -23,7 +23,6 @@ var volumioManifestUIDisabledFile = '/data/disableManifestUI';
 var volumio3UIFolderPath = '/volumio/http/www3';
 
 var volumioManifestUIDir = '/volumio/http/www4';
-var volumioWizardDir = '/volumio/http/wizard';
 
 var allowCrossDomain = function (req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
@@ -65,7 +64,7 @@ var staticMiddlewareWizard = express.static(path.join(__dirname, 'wizard'));
 
 app.use(function (req, res, next) {
   var userAgent = req.get('user-agent');
-  if (fs.existsSync(volumioWizardDir) && fs.existsSync(volumioWizardFlagFile)){
+  if (process.env.NEW_WIZARD && fs.existsSync(volumioWizardFlagFile)){
     staticMiddlewareWizard(req, res, next);
   } else {
     if (fs.existsSync(volumioManifestUIDir) && fs.existsSync(volumioManifestUIFlagFile) && !fs.existsSync(volumioManifestUIDisabledFile)){
