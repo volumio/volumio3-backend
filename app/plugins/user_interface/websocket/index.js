@@ -860,7 +860,7 @@ function InterfaceWebUI (context) {
 
     connWebSocket.on('update', function (data) {
       var selfConnWebSocket = this;
-      self.logger.info('Update: ' + data);
+      self.logger.info('Update: ' + JSON.stringify(data));
       var checking = { 'downloadSpeed': '', 'eta': '5m', 'progress': 1, 'status': self.commandRouter.getI18nString('SYSTEM.CHECKING_SYSTEM_INTEGRITY')};
       selfConnWebSocket.emit('updateProgress', checking);
       var integrityCheck = self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'checkSystemIntegrity');
