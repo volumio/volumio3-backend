@@ -223,7 +223,7 @@ updater_comm.prototype.checkSystemIntegrity = function () {
     } else {
       exec('/usr/bin/md5deep -r -l -s -q /volumio | sort | md5sum | tr -d "-" | tr -d " \t\n\r"', function (error, stdout, stderr) {
         if (error !== null) {
-          self.logger.error('Cannot read os relase file: ' + error);
+          self.logger.error('Could not create hash for /volumio, error: ' + error);
           defer.resolve({'isSystemOk': false});
         } else {
           var currentHash = stdout;
