@@ -10,6 +10,7 @@ var spawn = require('child_process').spawn;
 var crypto = require('crypto');
 var calltrials = 0;
 var additionalSVInfo;
+var additionalDeviceVolumioProperties;
 const { v4: uuidv4 } = require('uuid');
 const e = require('express');
 var hwUuid;
@@ -435,11 +436,15 @@ ControllerSystem.prototype.getSystemInfo = function () {
   var defer = libQ.defer();
 
   var thisDeviceStatus = self.commandRouter.executeOnPlugin('system_controller', 'volumiodiscovery', 'getThisDevice', '');
+  var hwUuid = self.getHwuuid();
+  var thisDeviceVolumioProperties = self.getThisDeviceVolumioProperties();
   var systemVersion = self.getSystemVersion()
   systemVersion.then((systemInfoObj)=>{
     var systemInfoObj = {
       ...thisDeviceStatus,
-      ...systemInfoObj
+      ...systemInfoObj,
+      ...thisDeviceVolumioProperties,
+      hwUuid
     };
     defer.resolve(systemInfoObj)
   })
@@ -1286,4 +1291,17 @@ ControllerSystem.prototype.initializeFirstStart = function () {
     }
     self.config.set('first_start', false);
   }
+};
+
+ControllerSystem.prototype.setThisDeviceVolumioProperties = function (data) {
+    var self = this;
+    self.logger.info('Setting Additional Device Volumio Properties: ' + data);
+    // expects and object with additional device properties
+    additionalDeviceVolumioProperties = data;
+};
+
+ControllerSystem.prototype.getThisDeviceVolumioProperties = function () {
+    var self = this;
+
+    return additionalDeviceVolumioProperties;
 };

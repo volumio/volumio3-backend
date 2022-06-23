@@ -917,6 +917,20 @@ function InterfaceWebUI (context) {
       }
     });
 
+      connWebSocket.on('getSystemInfo', function () {
+          var selfConnWebSocket = this;
+          self.logger.info('Received Get System Info');
+          var returnedData = self.commandRouter.executeOnPlugin('system_controller', 'system', 'getSystemInfo');
+
+          if (returnedData != undefined) {
+              returnedData.then(function (data) {
+                  if (data != undefined) {
+                      selfConnWebSocket.emit('pushSystemInfo', data);
+                  }
+              });
+          }
+      });
+
     /**
 			 * Executes the getMyCollectionStats method on the MPD plugin
 			 */
