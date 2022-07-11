@@ -1275,10 +1275,12 @@ ControllerSystem.prototype.initializeFirstStart = function () {
 
     if (process.env.AUTO_RENAME_HOTSPOT_TO_UID_ONFIRSTSTART === 'true') {
       self.logger.info('Setting Hotspot Unique name on first start: ' + newPlayerName);
+      var defaultHotspotName = self.getAdditionalConf('system_controller', 'network', 'hotspot_name', 'Volumio');
+      var newPlayerHotspotName = defaultHotspotName + '-' + sysShortID;
       var hotspotOptions = {
         enable_hotspot: true,
         hotspot_fallback: false,
-        hotspot_name: newPlayerName,
+        hotspot_name: newPlayerHotspotName,
         hotspot_protection: false,
         hotspot_channel: {value: 4, label: '4'}
       };
