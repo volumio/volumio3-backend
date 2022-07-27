@@ -15,6 +15,7 @@ var deviceVolumeOverride;
 var overrideAvoidSoftwareMixer = false;
 var overrideMixerType;
 var externalVolume = false;
+var systemInfo = {};
 
 // Define the ControllerAlsa class
 module.exports = ControllerAlsa;
@@ -152,6 +153,7 @@ ControllerAlsa.prototype.onVolumioStart = function () {
   }
 
   self.checkMixer();
+  self.getSystemInfo();
 
   return libQ.resolve();
 };
@@ -1229,6 +1231,11 @@ ControllerAlsa.prototype.getMixerControls = function (device) {
 
   if (volumioDeviceName === 'primo' && device === '1,1') {
     mixers = [];
+  }
+
+  // We don't show available mixers for MP1 Spdif out
+  if (systemInfo && systemInfo.hardware && systemInfo.hardware === 'mp1' && device === '0,2') {
+      mixers = [];
   }
 
   return mixers;
@@ -2310,4 +2317,13 @@ ControllerAlsa.prototype.setExternalVolume = function (data) {
         process.env.EXTERNAL_VOLUME_CONTROL = 'false';
         externalVolume = false;
     }
+};
+
+ControllerAlsa.prototype.getSystemInfo = function () {
+    var self = this;
+
+    var systemInformations = self.commandRouter.executeOnPlugin('system_controller', 'system', 'getSystemVersion', '');
+    systemInformations.then((info) => {
+        systemInfo = info;
+    });
 };
