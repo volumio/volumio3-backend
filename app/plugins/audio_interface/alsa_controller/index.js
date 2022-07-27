@@ -1384,7 +1384,7 @@ ControllerAlsa.prototype.setDefaultMixer = function (device) {
   }
   setTimeout(() => {
     self.commandRouter.retrieveVolumeLevels();
-  }, 2500);
+  }, 4000);
 };
 
 ControllerAlsa.prototype.checkMixer = function () {
