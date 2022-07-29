@@ -13,6 +13,7 @@ var app = express();
 var dev = express();
 var plugin = express();
 var background = express();
+var stream = express();
 /* eslint-disable */
 var plugindir = '/tmp/plugins';
 var backgrounddir = '/data/backgrounds';
@@ -85,6 +86,14 @@ app.use(allowCrossDomain);
 app.use('/dev', dev);
 app.use('/api', restapi);
 app.use('/plugin-serve', plugin);
+app.use('/stream', stream);
+
+stream.use(express.static('/tmp/hls', { maxAge: 0 }));
+
+stream.use(function (req, res, next) {
+  res.status(404);
+  res.send("Not found");
+});
 
 // catch 404 and forward to error handler
 dev.use(function (req, res, next) {
@@ -312,5 +321,7 @@ app.use('/backgrounds', express.static('/data/backgrounds/'));
 app.use('/cover-art', express.static('/var/lib/mpd/music/'));
 app.use('/music', express.static('/'));
 
+
 module.exports.app = app;
 module.exports.dev = dev;
+
