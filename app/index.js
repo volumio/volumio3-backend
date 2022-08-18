@@ -1299,10 +1299,12 @@ CoreCommandRouter.prototype.reboot = function () {
 
 CoreCommandRouter.prototype.networkRestart = function () {
   this.platformspecific.networkRestart();
+  this.executeOnPlugin('system_controller', 'volumiodiscovery', 'onNetworkingRestart', '');
 };
 
 CoreCommandRouter.prototype.wirelessRestart = function () {
   this.platformspecific.wirelessRestart();
+  this.executeOnPlugin('system_controller', 'volumiodiscovery', 'onNetworkingRestart', '');
 };
 
 CoreCommandRouter.prototype.startupSound = function () {

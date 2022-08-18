@@ -817,7 +817,7 @@ ControllerNetwork.prototype.rebuildNetworkConfig = function (networkInterfaceToR
           self.commandRouter.wirelessRestart();
         }
       } catch (err) {
-        self.commandRouter.pushToastMessage('error', self.commandRouter.getI18nString('NETWORK.NETWORK_RESTART_ERROR'), self.getI18NString('NETWORK.NETWORK_RESTART_ERROR') + err);
+        self.commandRouter.pushToastMessage('error', self.commandRouter.getI18nString('NETWORK.NETWORK_RESTART_ERROR'), self.commandRouter.getI18nString('NETWORK.NETWORK_RESTART_ERROR') + err);
       }
     }
   });
