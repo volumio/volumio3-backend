@@ -57,19 +57,23 @@ ControllerAlsa.prototype.onVolumioStart = function () {
 	// Update the outputdevice card so that it uses the up to date alsa number
 	
 	if(outputdevicecardname === null) {
-	  self.logger.warn('The ALSA output card is not set, defaulting to card ' + output);
 	  outputdevicecard = self.getCardByAlsaCardNumber(alsacards, output);
-	  var outputdevicecardMulti = self.getCardByAlsaCardNumber(alsacards, output + ',0');
+      if (alsacards && alsacards[0] && alsacards[0].id && alsacards[0].id.length) {
+          var firstCard =  alsacards[0].id;
+      }  else {
+          var firstCard = output + ',0';
+      }
+	  var outputdevicecardMulti = self.getCardByAlsaCardNumber(alsacards, firstCard);
 	  if (outputdevicecard === null && outputdevicecardMulti !== null) {
           outputdevicecard = outputdevicecardMulti;
       }
+        self.logger.warn('The ALSA output card is not set, defaulting to card ' + outputdevicecard);
 	} else {
 	  outputdevicecard = self.getCardByAlsaCardNameAndDevice(alsacards, outputdevicecardname, outputdevicealsadevice);
 	}
 	
     var outputdevicename = self.config.get('outputdevicename');
 	if(outputdevicecard) {
-      
       if(outputdevicename) {
         // Don't change the UI label based on hw reporting, as lots of DACs show up as hifiberry-dac
         outputdevicecard.name = outputdevicename;
