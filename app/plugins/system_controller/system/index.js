@@ -11,6 +11,8 @@ var crypto = require('crypto');
 var calltrials = 0;
 var additionalSVInfo;
 var additionalDeviceVolumioProperties;
+var hwFwVersion;
+var hwVersion;
 const { v4: uuidv4 } = require('uuid');
 const e = require('express');
 var hwUuid;
@@ -424,6 +426,14 @@ ControllerSystem.prototype.getSystemVersion = function () {
 
   if (additionalSVInfo) {
     releaseinfo.additionalSVInfo = additionalSVInfo;
+  }
+
+  if (hwFwVersion) {
+    releaseinfo.hwFwVersion = hwFwVersion;
+  }
+
+  if (hwVersion) {
+    releaseinfo.hwVersion = hwVersion;
   }
 
   defer.resolve(releaseinfo);
@@ -1062,6 +1072,18 @@ ControllerSystem.prototype.setAdditionalSVInfo = function (data) {
   var self = this;
   self.logger.info('Setting Additional System Software info: ' + data);
   additionalSVInfo = data;
+};
+
+ControllerSystem.prototype.setHwFwVersion = function (data) {
+  var self = this;
+  self.logger.info('Setting HW Firmware info: ' + data);
+  hwFwVersion = data;
+};
+
+ControllerSystem.prototype.setHwVersion = function (data) {
+  var self = this;
+  self.logger.info('Setting HW Version info: ' + data);
+  hwVersion = data;
 };
 
 ControllerSystem.prototype.getAdvancedSettingsStatus = function () {
