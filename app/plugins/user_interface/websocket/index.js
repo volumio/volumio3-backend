@@ -1807,6 +1807,24 @@ function InterfaceWebUI (context) {
           });
       }
     });
+
+    connWebSocket.on('setTOSAccepted', function () {
+      var selfConnWebSocket = this;
+
+      var returnedData = self.commandRouter.executeOnPlugin('miscellanea', 'appearance', 'setTOSAccepted', '');
+      returnedData.then(function (data) {
+        selfConnWebSocket.emit('pushLatestTOSAccepted', data);
+      });
+    });
+
+    connWebSocket.on('isLatestTOSAccepted', function () {
+      var selfConnWebSocket = this;
+
+      var returnedData = self.commandRouter.executeOnPlugin('miscellanea', 'appearance', 'isLatestTOSAccepted', '');
+      returnedData.then(function (data) {
+        selfConnWebSocket.emit('pushLatestTOSAccepted', data);
+      });
+    });
   });
 }
 

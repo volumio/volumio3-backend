@@ -6,6 +6,8 @@ var libQ = require('kew');
 var path = require('path');
 var Jimp = require('jimp');
 var execSync = require('child_process').execSync;
+var exec = require('child_process').exec;
+var crypto = require('crypto');
 
 var backgroundPath = '/data/backgrounds';
 
@@ -489,4 +491,75 @@ volumioAppearance.prototype.setVolumio3UI = function (data) {
 volumioAppearance.prototype.sendSizeErrorToasMessage = function (size) {
   var self = this;
   return self.commandRouter.pushToastMessage('error', self.commandRouter.getI18nString('APPEARANCE.UPLOAD_FAILED'), self.commandRouter.getI18nString('APPEARANCE.IMAGE_MUST_BE_LESS_THAN') + ' ' + size + ' MB');
+};
+
+volumioAppearance.prototype.setTOSAccepted = function () {
+  var self = this;
+  var defer = libQ.defer();
+
+  self.getRemoteTOSHash().then((hashToSave)=>{
+    config.set('tos_accepted_hash', hashToSave);
+    config.set('tos_accepted', true);
+    defer.resolve(true);
+  }).fail((e) => {
+    self.logger.error('Failed save TOS status: ' + e)
+  });
+
+  return defer.promise;
+};
+
+volumioAppearance.prototype.getRemoteTOSHash = function () {
+  var self = this;
+  var defer = libQ.defer();
+
+  exec('curl https://volumio.github.io/volumio-tos/ --output /tmp/tos', function (error, stdout, stderr) {
+    if (error !== null) {
+      defer.resolve('default');
+    } else {
+      self.getFileHash('/tmp/tos').then((hashedFile)=>{
+        defer.resolve(hashedFile);
+      })
+    }
+  });
+  return defer.promise;
+};
+
+volumioAppearance.prototype.getFileHash = function (filePath) {
+  var self = this;
+  var defer = libQ.defer();
+
+  fs.readFile(filePath, 'utf8', (err, data) => {
+    if (err) {
+      defer.resolve('');
+    } else {
+      var ashedResult = crypto.createHash('md5').update(data).digest("hex");
+      defer.resolve(ashedResult);
+    }
+  });
+
+  return defer.promise;
+};
+
+volumioAppearance.prototype.isLatestTOSAccepted = function () {
+  var self = this;
+  var defer = libQ.defer();
+
+  if (config.get('tos_accepted', false)) {
+    if (process.env.REQUIRE_LATEST_TOS_ACCEPTANCE === 'true') {
+      self.getRemoteTOSHash().then((remoteTOSHash)=>{
+        var acceptedTOSHash = config.get('tos_accepted_hash', '');
+        if (acceptedTOSHash === remoteTOSHash) {
+          defer.resolve(true);
+        } else {
+          defer.resolve(false);
+        }
+      })
+    } else {
+      defer.resolve(true);
+    }
+  } else {
+    defer.resolve(false);
+  }
+
+  return defer.promise;
 };
