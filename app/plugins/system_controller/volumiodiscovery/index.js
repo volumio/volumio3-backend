@@ -267,10 +267,13 @@ ControllerVolumioDiscovery.prototype.connectToRemoteVolumio = function (uuid, ip
     self.remoteConnections.delete(uuid);
   }
 
-  if ((!self.remoteConnections.has(uuid)) && (myuuid != uuid)) {
+  if (myuuid === uuid) {
+    var selfState = self.commandRouter.volumioGetState();
+    self.updateMultiroomDevice(myuuid, selfState);
+  } else if ((!self.remoteConnections.has(uuid))) {
     var socket = io('http://' + ip + ':3000', {autoConnect: true, timeout: 5000});
     self.logger.info("Discovery: Connecting to remote: " + ip);
-    socket.on('connect', function () {      
+    socket.on('connect', function () {
       socket.on('pushMultiroomSyncOutput', function (data) {
         self.commandRouter.updateMultiroomSyncOutput(data);
       });
@@ -307,9 +310,6 @@ ControllerVolumioDiscovery.prototype.connectToRemoteVolumio = function (uuid, ip
       self.commandRouter.pushMultiroomDevices(toAdvertise);
     });
     self.remoteConnections.set(uuid, socket);    
-  } else {
-    var selfState = self.commandRouter.volumioGetState();
-    self.updateMultiroomDevice(uuid, selfState);
   }
 };
 
@@ -452,6 +452,7 @@ ControllerVolumioDiscovery.prototype.getDevices = function () {
       }
     }
   }
+  console.log(response.list)
   return response;
 };
 
