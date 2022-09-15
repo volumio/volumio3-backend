@@ -68,7 +68,7 @@ app.use(function (req, res, next) {
   if (process.env.NEW_WIZARD === 'true' && fs.existsSync(volumioWizardFlagFile)){
     staticMiddlewareWizard(req, res, next);
   } else {
-    if (fs.existsSync(volumioManifestUIDir) && fs.existsSync(volumioManifestUIFlagFile) && !fs.existsSync(volumioManifestUIDisabledFile)){
+    if (fs.existsSync(volumioManifestUIDir) && !fs.existsSync(volumioManifestUIDisabledFile)){
       staticMiddlewareManifestUI(req, res, next);
     } else {
       if ((userAgent && userAgent.includes('volumiokiosk')) || process.env.VOLUMIO_3_UI === 'false') {

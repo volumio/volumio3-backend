@@ -61,7 +61,7 @@ expressApp.get('/?*', function (req, res) {
   if (process.env.NEW_WIZARD === 'true' && fs.existsSync(volumioWizardFlagFile)){
     res.sendFile(path.join(__dirname, 'http', 'wizard', 'index.html'));   
   } else {
-    if (fs.existsSync(volumioManifestUIDir) && fs.existsSync(volumioManifestUIFlagFile) && !fs.existsSync(volumioManifestUIDisabledFile)) {
+    if (fs.existsSync(volumioManifestUIDir) && !fs.existsSync(volumioManifestUIDisabledFile)) {
       res.sendFile(path.join(__dirname, 'http', 'www4', 'index.html'));     
     } else {
       if ((userAgent && userAgent.includes('volumiokiosk')) || process.env.VOLUMIO_3_UI === 'false') {
