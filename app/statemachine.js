@@ -1523,12 +1523,11 @@ CoreStateMachine.prototype.setVolatile = function (data) {
 };
 
 CoreStateMachine.prototype.unSetVolatile = function () {
-  this.logger.verbose('UNSET VOLATILE');
-
   /**
      * This function will be called on volatile stop
      */
   if (this.volatileCallback !== undefined) {
+    this.logger.verbose('UNSET VOLATILE: Service: ' + this.volatileService);
     this.volatileCallback.call();
     this.volatileCallback = undefined;
   }
