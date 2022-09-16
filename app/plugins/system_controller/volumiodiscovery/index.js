@@ -452,7 +452,6 @@ ControllerVolumioDiscovery.prototype.getDevices = function () {
       }
     }
   }
-  console.log(response.list)
   return response;
 };
 
