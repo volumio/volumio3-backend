@@ -35,11 +35,11 @@ function CoreVolumeController (commandRouter) {
 
   var outputdevicename = this.commandRouter.executeOnPlugin('audio_interface', 'alsa_controller', 'getConfigParam', 'outputdevicename');
   device = this.commandRouter.executeOnPlugin('audio_interface', 'alsa_controller', 'getConfigParam', 'outputdevice');
-  
+
   if (device.indexOf(',') >= 0) {
     device = device.charAt(0);
   }
-  
+
   if (process.env.MODULAR_ALSA_PIPELINE === 'true') {
     if(this.commandRouter.executeOnPlugin('audio_interface', 'alsa_controller', 'getConfigParam', 'softvolume')) {
       // Software volume is enabled
@@ -55,7 +55,7 @@ function CoreVolumeController (commandRouter) {
       devicename = outputdevicename;
     }
   }
-  
+
   var mixerdev = this.commandRouter.executeOnPlugin('audio_interface', 'alsa_controller', 'getConfigParam', 'mixer');
 
   if (mixerdev.indexOf(',') >= 0) {
@@ -310,6 +310,10 @@ CoreVolumeController.prototype.updateVolumeSettings = function (data) {
     overridePluginName = data.pluginName;
   } else {
     volumeOverride = false;
+  }
+
+  if (volumeOverride) {
+    this.commandRouter.executeOnPlugin(overridePluginType, overridePluginName, 'updateVolumeSettings', data);
   }
 
   return self.retrievevolume();
