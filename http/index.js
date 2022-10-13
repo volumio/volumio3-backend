@@ -206,16 +206,20 @@ app.route('/backgrounds-upload')
         }
         var properfilename = this.filename.replace(/ /g, '-');
         var bgFileName = '/data/backgrounds/' + properfilename;
-        fs.writeFile(bgFileName, this.fileData, (err) => {
-          if (err) {
-            console.log('Error Saving Custom Albumart: ' + err);
-          } else {
-            console.log('Background Successfully Uploaded');
-            var socket = io.connect('http://localhost:3000');
-            socket.emit('regenerateThumbnails', '');
-            res.status(201);
-          }
-        });
+        if (this.fileData) {
+          fs.writeFile(bgFileName, this.fileData, (err) => {
+            if (err) {
+              console.log('Error Saving Custom Albumart: ' + err);
+            } else {
+              console.log('Background Successfully Uploaded');
+              var socket = io.connect('http://localhost:3000');
+              socket.emit('regenerateThumbnails', '');
+              res.status(201);
+            }
+          });
+        } else {
+          console.log('Failed to upload background file: no file received');
+        }
       }
     });
   });
