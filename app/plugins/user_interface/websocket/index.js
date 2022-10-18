@@ -334,6 +334,14 @@ function InterfaceWebUI (context) {
       }
     });
 
+    connWebSocket.on('getDSPUiConfig', function () {
+      var selfConnWebSocket = this;
+      var response = self.commandRouter.getUIConfigOnPlugin('audio_interface', 'fusiondsp', {});
+      response.then(function (config) {
+        selfConnWebSocket.emit('pushDSPUiConfig', config);
+      });
+    });
+
     connWebSocket.on('getMultiRoomDevices', function (data) {
       var selfConnWebSocket = this;
 
@@ -361,6 +369,21 @@ function InterfaceWebUI (context) {
       if (response != undefined) {
         response.then(function (result) {
           selfConnWebSocket.emit('pushBrowseLibrary', result);
+        })
+          .fail(function () {
+            self.printToastMessage('error', self.commandRouter.getI18nString('COMMON.ERROR'), self.commandRouter.getI18nString('COMMON.NO_RESULTS'));
+          });
+      }
+    });
+
+    connWebSocket.on('getInputSources', function () {
+      var selfConnWebSocket = this;
+
+      var response = self.musicLibrary.executeBrowseSource('inputs');
+
+      if (response != undefined) {
+        response.then(function (result) {
+          selfConnWebSocket.emit('pushInputSources', result);
         })
           .fail(function () {
             self.printToastMessage('error', self.commandRouter.getI18nString('COMMON.ERROR'), self.commandRouter.getI18nString('COMMON.NO_RESULTS'));
