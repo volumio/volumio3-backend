@@ -368,6 +368,21 @@ function InterfaceWebUI (context) {
       }
     });
 
+    connWebSocket.on('getInputSources', function () {
+      var selfConnWebSocket = this;
+
+      var response = self.musicLibrary.executeBrowseSource('inputs');
+
+      if (response != undefined) {
+        response.then(function (result) {
+          selfConnWebSocket.emit('pushInputSources', result);
+        })
+          .fail(function () {
+            self.printToastMessage('error', self.commandRouter.getI18nString('COMMON.ERROR'), self.commandRouter.getI18nString('COMMON.NO_RESULTS'));
+          });
+      }
+    });
+
     // TO DO: ADD TRANSLATIONS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     connWebSocket.on('manageBackup', function (data) {
       var selfConnWebSocket = this;
