@@ -334,6 +334,14 @@ function InterfaceWebUI (context) {
       }
     });
 
+    connWebSocket.on('getDSPUiConfig', function () {
+      var selfConnWebSocket = this;
+      var response = self.commandRouter.getUIConfigOnPlugin('audio_interface', 'fusiondsp', {});
+      response.then(function (config) {
+        selfConnWebSocket.emit('pushUiConfig', config);
+      });
+    });
+
     connWebSocket.on('getMultiRoomDevices', function (data) {
       var selfConnWebSocket = this;
 
