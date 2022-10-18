@@ -338,7 +338,7 @@ function InterfaceWebUI (context) {
       var selfConnWebSocket = this;
       var response = self.commandRouter.getUIConfigOnPlugin('audio_interface', 'fusiondsp', {});
       response.then(function (config) {
-        selfConnWebSocket.emit('pushUiConfig', config);
+        selfConnWebSocket.emit('pushDSPUiConfig', config);
       });
     });
 
