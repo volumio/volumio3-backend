@@ -447,8 +447,8 @@ CoreCommandRouter.prototype.preLoadItems = function (items) {
   }
 };
 
-CoreCommandRouter.prototype.preLoadItemsStop = function (items) {
-    this.stateMachine.preLoadItemsStop(items);
+CoreCommandRouter.prototype.preLoadItemsStop = function () {
+    this.stateMachine.preLoadItemsStop();
 };
 
 CoreCommandRouter.prototype.addPlay = function (data) {
