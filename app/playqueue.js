@@ -4,7 +4,6 @@ var libQ = require('kew');
 var fs = require('fs-extra');
 var execSync = require('child_process').execSync;
 const NodeCache = require( "node-cache" );
-const queue = require( "queue" );
 
 // Define the CorePlayQueue class
 module.exports = CorePlayQueue;
