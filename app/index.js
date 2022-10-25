@@ -439,6 +439,14 @@ CoreCommandRouter.prototype.addQueueItems = function (arrayItems) {
   return this.stateMachine.addQueueItems(arrayItems);
 };
 
+CoreCommandRouter.prototype.preLoadItems = function (items) {
+  try {
+    this.stateMachine.preLoadItems(items);
+  } catch (error) {
+    this.logger.error("Preload failed: " + error);
+  }
+};
+
 CoreCommandRouter.prototype.addPlay = function (data) {
     var self = this;
 
@@ -1327,7 +1335,7 @@ CoreCommandRouter.prototype.explodeUriFromService = function (service, uri) {
       promise.resolve(explodedUri);
     }).fail((error)=>{
       // If explodeUri Fails we resolve an empty promise, in order not to lock the playback progression
-      this.logger.error('Cannot explode uri ' + uri + ' from service ' + service + ': ' + error);
+      this.logger.error('Commandrouter: Cannot explode uri ' + uri + ' from service ' + service + ': ' + error);
       promise.resolve();
     });
   } else {
