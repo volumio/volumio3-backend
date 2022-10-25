@@ -22,6 +22,7 @@ function CoreCommandRouter (server) {
 
   this.callbacks = [];
   this.pluginsRestEndpoints = [];
+  this.standByHandler = {};
   this.sharedVars = new vconf();
   this.sharedVars.registerCallback('language_code', this.loadI18nStrings.bind(this));
   this.sharedVars.addConfigValue('selective_search', 'boolean', true);
@@ -1278,12 +1279,17 @@ CoreCommandRouter.prototype.pushAirplay = function (data) {
 CoreCommandRouter.prototype.shutdown = function () {
   var self = this;
 
-  self.pluginManager.onVolumioShutdown().then(function () {
-    self.platformspecific.shutdown();
-  }).fail(function (e) {
-    self.logger.info('Error in onVolumioShutdown Plugin Promise handling: ' + e);
-    self.platformspecific.shutdown();
-  });
+  if (self.standByHandler && self.standByHandler.category && self.standByHandler.name && self.standByHandler.method) {
+    self.logger.info('Executing Standby mode with handler plugin ' + self.standByHandler.name);
+    self.executeOnPlugin(self.standByHandler.category, self.standByHandler.name, self.standByHandler.method, '');
+  } else {
+    self.pluginManager.onVolumioShutdown().then(function () {
+      self.platformspecific.shutdown();
+    }).fail(function (e) {
+      self.logger.info('Error in onVolumioShutdown Plugin Promise handling: ' + e);
+      self.platformspecific.shutdown();
+    });
+  }
 };
 
 CoreCommandRouter.prototype.reboot = function () {
@@ -2263,3 +2269,14 @@ CoreCommandRouter.prototype.rebuildALSAConfiguration = function () {
     return libQ.resolve();
   }
 };
+
+CoreCommandRouter.prototype.registerStandByHandler = function (data) {
+  var self = this;
+
+  if (data && data.category && data.name && data.method) {
+    self.standByHandler = data;
+  } else {
+    self.logger.erorr('Failed to register Standby handler, missing data');
+  }
+};
+
