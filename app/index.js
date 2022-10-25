@@ -447,6 +447,10 @@ CoreCommandRouter.prototype.preLoadItems = function (items) {
   }
 };
 
+CoreCommandRouter.prototype.preLoadItemsStop = function (items) {
+    this.stateMachine.preLoadItemsStop(items);
+};
+
 CoreCommandRouter.prototype.addPlay = function (data) {
     var self = this;
 

@@ -106,14 +106,17 @@ function InterfaceWebUI (context) {
     });
 
     connWebSocket.on('addPlay', function (data) {
-        return self.commandRouter.addPlay(data);
+      self.commandRouter.preLoadItemsStop(list.items);
+      return self.commandRouter.addPlay(data);
     });
 
     connWebSocket.on('playItemsList', function (data) {
-        return self.commandRouter.playItemsList(data);
+      self.commandRouter.preLoadItemsStop(list.items);
+      return self.commandRouter.playItemsList(data);
     });
 
     connWebSocket.on('addPlayCue', function (data) {
+      self.commandRouter.preLoadItemsStop(list.items);
       if (data.service == undefined || data.service == 'mpd') {
         var uri = data.uri;
         var arr = uri.split('/');

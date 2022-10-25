@@ -247,6 +247,10 @@ CoreStateMachine.prototype.preLoadItems = function (item) {
   this.playQueue.preLoadItems(item);
 };
 
+CoreStateMachine.prototype.preLoadItemsStop = function (item) {
+  this.playQueue.clearPreloadQueue();
+};
+
 // Add array of items to queue
 CoreStateMachine.prototype.clearQueue = function () {
   this.commandRouter.pushConsoleMessage('CoreStateMachine::ClearQueue');
