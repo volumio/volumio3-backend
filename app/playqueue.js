@@ -115,8 +115,8 @@ CorePlayQueue.prototype.explodeUriFromCache = function (service, uri) {
   var self = this;  
   var defer = libQ.defer();
   var value = self.cache.get(uri);
-  
-  if (value && value.uri) {
+ 
+  if (value && Array.isArray(value)) {
     self.commandRouter.logger.info('Using cached record of: ' + uri);
     return value;
   } else { 
