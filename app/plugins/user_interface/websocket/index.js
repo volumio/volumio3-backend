@@ -106,14 +106,17 @@ function InterfaceWebUI (context) {
     });
 
     connWebSocket.on('addPlay', function (data) {
-        return self.commandRouter.addPlay(data);
+      self.commandRouter.preLoadItemsStop();
+      return self.commandRouter.addPlay(data);
     });
 
     connWebSocket.on('playItemsList', function (data) {
-        return self.commandRouter.playItemsList(data);
+      self.commandRouter.preLoadItemsStop();
+      return self.commandRouter.playItemsList(data);
     });
 
     connWebSocket.on('addPlayCue', function (data) {
+      self.commandRouter.preLoadItemsStop();
       if (data.service == undefined || data.service == 'mpd') {
         var uri = data.uri;
         var arr = uri.split('/');
@@ -367,8 +370,19 @@ function InterfaceWebUI (context) {
       response = self.musicLibrary.executeBrowseSource(curUri);
 
       if (response != undefined) {
-        response.then(function (result) {
+        response.then(function (result) {       
           selfConnWebSocket.emit('pushBrowseLibrary', result);
+
+          if (result.navigation != undefined && result.navigation.lists != undefined) {
+            result.navigation.lists.forEach(list => {              
+              if (list.items != undefined)
+                try {
+                  setTimeout(function(){ self.commandRouter.preLoadItems(list.items) }, 50)
+                } catch (error) {
+                  self.logger.error("Preload failed: " + error);
+                }
+            });
+          }
         })
           .fail(function () {
             self.printToastMessage('error', self.commandRouter.getI18nString('COMMON.ERROR'), self.commandRouter.getI18nString('COMMON.NO_RESULTS'));
