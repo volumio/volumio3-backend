@@ -116,7 +116,10 @@ CorePlayQueue.prototype.explodeUriFromCache = function (service, uri) {
   var defer = libQ.defer();
   var value = self.cache.get(uri);
   
-  if ( value == undefined ){
+  if (value && value.uri) {
+    self.commandRouter.logger.info('Using cached record of: ' + uri);
+    return value;
+  } else { 
     self.commandRouter.explodeUriFromService(service, uri)
     .then(result => {      
       self.cache.set(uri, result, 3600);
@@ -126,10 +129,7 @@ CorePlayQueue.prototype.explodeUriFromCache = function (service, uri) {
       defer.resolve();
     });
     return defer.promise;
-  } else {
-    self.commandRouter.logger.info('Using cached record of: ' + uri);
-    return value;
-  }  
+  } 
 }
 
 CorePlayQueue.prototype.preLoadItems = function (items) {
