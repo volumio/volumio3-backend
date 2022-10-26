@@ -189,10 +189,8 @@ CorePlayQueue.prototype.addQueueItems = function (arrayItems) {
           self.arrayQueue = self.arrayQueue.concat(contentArray);
       }
 
-      self.saveQueue();
-
-      // self.commandRouter.logger.info("Adding item to queue: "+JSON.stringify(content[j]));
       self.commandRouter.volumioPushQueue(self.arrayQueue);
+      self.saveQueue();
     })
     .then(function () {
       self.stateMachine.updateTrackBlock();
@@ -244,9 +242,11 @@ CorePlayQueue.prototype.saveQueue = function () {
   var self = this;
   this.commandRouter.pushConsoleMessage('CorePlayQueue::saveQueue');
 
-  fs.writeJson('/data/queue', self.arrayQueue, {spaces: 2}, function (err) {
-    if (err) { self.commandRouter.logger.info('An error occurred saving queue to disk: ' + err); }
-  });
+  setTimeout(() => {
+    fs.writeJson('/data/queue', self.arrayQueue, {spaces: 2}, function (err) {
+      if (err) { self.commandRouter.logger.info('An error occurred saving queue to disk: ' + err); }
+    });
+  }, 500);
 };
 /* CorePlayQueue.prototype.clearMpdQueue = function () {
 	return this.commandRouter.executeOnPlugin('music_service', 'mpd', 'clear');
