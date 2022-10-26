@@ -249,7 +249,7 @@ CorePlayQueue.prototype.saveQueue = function () {
     fs.writeJson('/data/queue', self.arrayQueue, {spaces: 2}, function (err) {
       if (err) { self.commandRouter.logger.info('An error occurred saving queue to disk: ' + err); }
     });
-  }, 500);
+  }, 50);
 };
 /* CorePlayQueue.prototype.clearMpdQueue = function () {
 	return this.commandRouter.executeOnPlugin('music_service', 'mpd', 'clear');

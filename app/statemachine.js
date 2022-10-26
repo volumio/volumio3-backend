@@ -1170,8 +1170,8 @@ CoreStateMachine.prototype.next = function (promisedResponse) {
 
           return libQ.resolve();
         })
-        .then(self.play.bind(self))
-        .then(self.updateTrackBlock.bind(self));
+        .then(self.updateTrackBlock.bind(self))
+        .then(self.play.bind(self));
     }
   }
 };
