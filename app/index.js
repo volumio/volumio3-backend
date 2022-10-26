@@ -403,7 +403,7 @@ CoreCommandRouter.prototype.serviceResume = function (sService) {
 
 CoreCommandRouter.prototype.servicePushState = function (state, sService) {
   this.pushConsoleMessage('CoreCommandRouter::servicePushState');
-  return this.stateMachine.syncState(state, sService);
+  return this.stateMachine.syncState(state, sService, "CoreCommandRouter::servicePushState");
 };
 
 CoreCommandRouter.prototype.getMusicPlugin = function (sService) {

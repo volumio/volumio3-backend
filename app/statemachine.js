@@ -489,14 +489,14 @@ CoreStateMachine.prototype.getcurrentVolume = function () {
 };
 
 // Announce updated Volumio state
-CoreStateMachine.prototype.pushState = function (source) {
+CoreStateMachine.prototype.pushState = function (context) {
   this.commandRouter.pushConsoleMessage('CoreStateMachine::pushState');
   var self = this;
   var promise = libQ.defer();
 
   var state = this.getState();
 
-  state.pushSource = source;
+  state.context = context;
 
   self.commandRouter.volumioPushState(state)
     .then(function (data) {
@@ -547,7 +547,7 @@ CoreStateMachine.prototype.pushError = function (sReason) {
 
 // Sync state from service status announcement
 // Input state object has the form {status: sStatus, position: nPosition, seek: nSeek, duration: nDuration, samplerate: nSampleRate, bitdepth: nBitDepth, channels: nChannels, dynamictitle: sTitle}
-CoreStateMachine.prototype.syncState = function (stateService, sService) {
+CoreStateMachine.prototype.syncState = function (stateService, sService, caller) {
   var self = this;
   this.commandRouter.pushDebugConsoleMessage('CoreStateMachine::syncState');
 
@@ -560,11 +560,11 @@ CoreStateMachine.prototype.syncState = function (stateService, sService) {
     this.volatileService = sService;
     this.currentStatus = stateService.status;
     this.volatileState = stateService;
-    this.pushState().fail(this.pushError.bind(this));
+    this.pushState(caller + "->CoreStateMachine::syncState").fail(this.pushError.bind(this));
     return;
   } else if (this.volatileState && stateService.status == 'stop') {
     this.volatileService = undefined;
-    this.pushState().fail(this.pushError.bind(this));
+    this.pushState(caller + "->CoreStateMachine::syncState").fail(this.pushError.bind(this));
     // this.currentStatus='stop';
     var trackBlock = this.getTrack(this.currentPosition);
   } else if (this.isUpnp) {
@@ -744,7 +744,7 @@ CoreStateMachine.prototype.syncState = function (stateService, sService) {
       }
 
       this.currentStatus = 'play';
-      this.pushState().fail(this.pushError.bind(this));
+      this.pushState(caller + "->CoreStateMachine::syncState").fail(this.pushError.bind(this));
     } else if (this.currentStatus === 'stop') {
       // this.currentPosition = stateService.position;
       this.currentSeek = stateService.seek;
@@ -777,7 +777,7 @@ CoreStateMachine.prototype.syncState = function (stateService, sService) {
         this.consumeState.status = 'play';
         this.consumeState.seek = this.currentSeek;
       }
-      this.pushState().fail(this.pushError.bind(this));
+      this.pushState(caller + "->CoreStateMachine::syncState").fail(this.pushError.bind(this));
     }
   } else if (stateService.status === 'stop') {
     if (this.currentStatus === 'play') {
@@ -881,13 +881,13 @@ CoreStateMachine.prototype.syncState = function (stateService, sService) {
             this.prefetchDone = false;
             this.askedForPrefetch = false;
             this.simulateStopStartDone = false;
-            this.pushState();
+            this.pushState(caller + "->CoreStateMachine::syncState").fail(this.pushError.bind(this));
             this.commandRouter.pushDebugConsoleMessage('Prefetch done, skipping queuing');
           }
         }
       }
     } else if (this.currentStatus === 'stop') {
-      this.pushState().fail(this.pushError.bind(this));
+      this.pushState(caller + "->CoreStateMachine::syncState").fail(this.pushError.bind(this));
       this.commandRouter.pushConsoleMessage('No code');
     }
   } else if (stateService.status === 'pause') {
@@ -898,7 +898,7 @@ CoreStateMachine.prototype.syncState = function (stateService, sService) {
     if (this.currentStatus === 'play') {
       if (this.isConsume) {
         this.consumeState.status = 'pause';
-        this.pushState().fail(this.pushError.bind(this));
+        this.pushState(caller + "->CoreStateMachine::syncState").fail(this.pushError.bind(this));
 
         return this.stopPlaybackTimer();
       }
@@ -908,13 +908,13 @@ CoreStateMachine.prototype.syncState = function (stateService, sService) {
         this.consumeState.seek = this.currentSeek;
       }
 
-      this.pushState().fail(this.pushError.bind(this));
+      this.pushState(caller + "->CoreStateMachine::syncState").fail(this.pushError.bind(this));
 
       return this.stopPlaybackTimer();
     }
   }
 
-  this.pushState().fail(this.pushError.bind(this));
+  this.pushState(caller + "->CoreStateMachine::syncState").fail(this.pushError.bind(this));
 
   /* else if (stateService.status === 'undefined') {
 	 stateService.status = 'stop';
@@ -1060,7 +1060,7 @@ CoreStateMachine.prototype.seek = function (position) {
         this.commandRouter.pushConsoleMessage('WARNING: No seek method for volatile plugin ' + this.volatileService);
       }
       this.startPlaybackTimer(curPos + 10000);
-      this.pushState().fail(this.pushError.bind(this));
+      this.pushState("CoreStateMachine::seek").fail(this.pushError.bind(this));
     } else if (position == '-') {
       var curPos = this.getState().seek;
       var thisPlugin = this.commandRouter.pluginManager.getPlugin('music_service', this.volatileService);
@@ -1071,7 +1071,7 @@ CoreStateMachine.prototype.seek = function (position) {
         this.commandRouter.pushConsoleMessage('WARNING: No seek method for volatile plugin ' + this.volatileService);
       }
       this.startPlaybackTimer(curPos - 10000);
-      this.pushState().fail(this.pushError.bind(this));
+      this.pushState("CoreStateMachine::seek").fail(this.pushError.bind(this));
     } else {
       var thisPlugin = this.commandRouter.pluginManager.getPlugin('music_service', this.volatileService);
       if (thisPlugin && typeof thisPlugin.seek === 'function') {
@@ -1081,7 +1081,7 @@ CoreStateMachine.prototype.seek = function (position) {
       }
       this.currentSeek = position * 1000;
       this.startPlaybackTimer(position * 1000);
-      this.pushState().fail(this.pushError.bind(this));
+      this.pushState("CoreStateMachine::seek").fail(this.pushError.bind(this));
     }
   } else {
     var trackBlock = this.getTrack(this.currentPosition);
@@ -1098,7 +1098,7 @@ CoreStateMachine.prototype.seek = function (position) {
         	this.commandRouter.pushConsoleMessage('WARNING: No seek method for plugin ' + trackBlock.service);
         }
 
-        this.pushState().fail(this.pushError.bind(this));
+        this.pushState("CoreStateMachine::seek").fail(this.pushError.bind(this));
       } else if (position == '-') {
   	    var curPos = this.getState().seek;
         var thisPlugin = this.commandRouter.pluginManager.getPlugin('music_service', trackBlock.service);
@@ -1111,7 +1111,7 @@ CoreStateMachine.prototype.seek = function (position) {
           this.commandRouter.pushConsoleMessage('WARNING: No seek method for plugin ' + trackBlock.service);
         }
 
-      	this.pushState().fail(this.pushError.bind(this));
+        this.pushState("CoreStateMachine::seek").fail(this.pushError.bind(this));
 	    	} else {
         this.commandRouter.pushConsoleMessage('TRACKBLOCK ' + JSON.stringify(trackBlock));
 
@@ -1124,7 +1124,7 @@ CoreStateMachine.prototype.seek = function (position) {
         } else {
           this.commandRouter.pushConsoleMessage('WARNING: No seek method for plugin ' + trackBlock.service);
         }
-        this.pushState().fail(this.pushError.bind(this));
+        this.pushState("CoreStateMachine::seek").fail(this.pushError.bind(this));
       }
     }
   }
@@ -1221,7 +1221,7 @@ CoreStateMachine.prototype.stop = function (promisedResponse) {
       // Play -> Stop transition
       this.currentStatus = 'stop';
       this.currentSeek = 0;
-      this.pushState().fail(this.pushError.bind(this));
+      this.pushState("stop").fail(this.pushError.bind(this));
       this.stopPlaybackTimer();
       this.updateTrackBlock();
 
@@ -1230,7 +1230,7 @@ CoreStateMachine.prototype.stop = function (promisedResponse) {
       // Pause -> Stop transition
       this.currentStatus = 'stop';
       this.currentSeek = 0;
-      this.pushState().fail(this.pushError.bind(this));
+      this.pushState("stop").fail(this.pushError.bind(this));
       this.updateTrackBlock();
       this.stopPlaybackTimer();
 
@@ -1288,7 +1288,7 @@ CoreStateMachine.prototype.previous = function (promisedResponse) {
       } else if (this.currentPosition > 0) {
         this.currentPosition--;
         this.updateTrackBlock();
-        return this.pushState();
+        return this.pushState("CoreStateMachine::previous");
       }
     } else if (this.currentStatus === 'play') {
       if (this.isConsume && this.consumeState.service != undefined && this.consumeState.service !== 'webradio') {
@@ -1383,7 +1383,7 @@ CoreStateMachine.prototype.setRandom = function (value) {
   } else {
     this.currentRandom = value;
 
-    this.pushState().fail(this.pushError.bind(this));
+    this.pushState("CoreStateMachine::setRandom").fail(this.pushError.bind(this));
   }
 };
 
@@ -1405,7 +1405,7 @@ CoreStateMachine.prototype.setRepeat = function (value, repeatSingle) {
 		this.currentRepeatSingleSong = false;
 	}
 
-    this.pushState().fail(this.pushError.bind(this));
+    this.pushState("CoreStateMachine::setRepeat").fail(this.pushError.bind(this));
   }
 };
 
@@ -1414,7 +1414,7 @@ CoreStateMachine.prototype.setConsume = function (value) {
 
   this.currentConsume = value;
 
-  this.pushState().fail(this.pushError.bind(this));
+  this.pushState("CoreStateMachine::setConsume").fail(this.pushError.bind(this));
 };
 
 CoreStateMachine.prototype.skipBackwards = function (data) {
@@ -1459,7 +1459,7 @@ CoreStateMachine.prototype.moveQueueItem = function (from, to) {
 
   var defer = libQ.defer();
   this.playQueue.moveQueueItem(from, to).then(function () {
-    return self.pushState();
+    return self.pushState("CoreStateMachine::moveQueueItem");
   }).then(function () {
     defer.resolve({});
   }).fail(function (err) {
