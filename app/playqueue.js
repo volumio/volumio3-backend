@@ -129,8 +129,7 @@ CorePlayQueue.prototype.explodeUriFromCache = function (service, uri) {
   } else {
     self.commandRouter.logger.info('Using cached record of: ' + uri);
     return value;
-  }
-  
+  }  
 }
 
 CorePlayQueue.prototype.preLoadItems = function (items) {
@@ -198,6 +197,8 @@ CorePlayQueue.prototype.addQueueItems = function (arrayItems) {
 
   this.commandRouter.pushConsoleMessage('CorePlayQueue::addQueueItems');
 
+  self.clearPreloadQueue();
+
   // self.commandRouter.logger.info(arrayItems);
 
   var array = [].concat(arrayItems);
@@ -214,14 +215,14 @@ CorePlayQueue.prototype.addQueueItems = function (arrayItems) {
   else
     items = arrayItems;
 
-  self.clearPreloadQueue();
 
-  items.forEach(item => {
+
+  for (const item of items) {    
     if (item.uri != undefined) {
       self.commandRouter.logger.info('Adding Item to queue: ' + item.uri);
       promiseArray.push(self.explodeUri(item));     
     }
-  });
+  }
 
   libQ.all(promiseArray)
     .then(function (content) {
