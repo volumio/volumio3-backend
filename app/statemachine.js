@@ -224,7 +224,8 @@ CoreStateMachine.prototype.getEmptyState = function () {
     repeat: this.currentRepeat,
     repeatSingle: this.currentRepeatSingleSong,
     updatedb: this.currentUpdate,
-    consume: this.currentConsume
+    consume: this.currentConsume,
+    context: null
   };
 };
 
@@ -526,6 +527,8 @@ CoreStateMachine.prototype.pushEmptyState = function () {
   var promise = libQ.defer();
 
   var state = this.getEmptyState();
+
+  state.context = "CoreStateMachine::pushEmptyState";
 
   var self = this;
   self.commandRouter.volumioPushState(state)
@@ -1361,11 +1364,9 @@ CoreStateMachine.prototype.removeQueueItem = function (nIndex) {
   var defer = libQ.defer();
   this.playQueue.removeQueueItem(nIndex)
     .then(function () {
-      return self.commandRouter.volumioPushState(self.getState());
+      self.pushState("CoreStateMachine::removeQueueItem").fail(this.pushError.bind(this));   
+      defer.resolve();   
     })
-    .then(function () {
-      defer.resolve();
-    });
 
   return defer.promise;
 };
