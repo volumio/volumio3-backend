@@ -245,11 +245,15 @@ CoreStateMachine.prototype.addQueueItems = function (arrayItems) {
 };
 
 // Add array of items to queue
-CoreStateMachine.prototype.clearQueue = function () {
+CoreStateMachine.prototype.clearQueue = function (sendEmptyState) {
   this.commandRouter.pushConsoleMessage('CoreStateMachine::ClearQueue');
 
+  if (sendEmptyState === undefined) {
+    sendEmptyState = true;
+  }
+
   this.stop();
-  return this.playQueue.clearPlayQueue();
+  return this.playQueue.clearPlayQueue(sendEmptyState);
 };
 
 // Volumio Stop Command

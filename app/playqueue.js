@@ -212,12 +212,15 @@ CorePlayQueue.prototype.clearAddPlayQueue = function (arrayItems) {
   return this.commandRouter.volumioPushQueue(this.arrayQueue);
 };
 
-CorePlayQueue.prototype.clearPlayQueue = function () {
+CorePlayQueue.prototype.clearPlayQueue = function (sendEmptyState) {
   this.commandRouter.pushConsoleMessage('CorePlayQueue::clearPlayQueue');
   this.arrayQueue = [];
   this.saveQueue();
 
-  this.commandRouter.stateMachine.pushEmptyState();
+  if (sendEmptyState) {
+    this.commandRouter.stateMachine.pushEmptyState();
+  }
+
   return this.commandRouter.volumioPushQueue(this.arrayQueue);
 };
 
