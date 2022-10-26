@@ -683,8 +683,7 @@ CoreStateMachine.prototype.syncState = function (stateService, sService, caller)
             channels: stateService.channels,
             bitrate: stateService.bitrate,
             stream: stateService.isStreaming,
-            service: trackBlock.service,
-            consumeIgnoreMetadata: consumeIgnoreMetadata
+            service: trackBlock.service
           };
         } else {
           if (process.env.UPNP_192_CAP === 'true' && this.isUpnp && stateService.samplerate) {
@@ -705,8 +704,7 @@ CoreStateMachine.prototype.syncState = function (stateService, sService, caller)
             channels: stateService.channels,
             bitrate: stateService.bitrate,
             stream: stateService.isStreaming,
-            service: stateService.service,
-            consumeIgnoreMetadata: consumeIgnoreMetadata
+            service: stateService.service
           };
         }
       } else {
