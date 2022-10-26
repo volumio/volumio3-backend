@@ -150,7 +150,8 @@ CoreStateMachine.prototype.getState = function () {
         updatedb: this.currentUpdate,
         volatile: false,
         trackType: this.consumeState.trackType,
-        service: this.consumeState.service
+        service: this.consumeState.service,
+        trackBlock: this.getTrack(this.currentPosition)
       };
     } else {
       return this.getEmptyState();
