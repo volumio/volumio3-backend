@@ -125,11 +125,12 @@ CorePlayQueue.prototype.explodeUriFromCache = function (service, uri) {
       this.logger.error('PlayQueue: Cannot explode uri ' + uri + ' from service ' + service + ': ' + error);
       defer.resolve();
     });
+    return defer.promise;
   } else {
     self.commandRouter.logger.info('Using cached record of: ' + uri);
-    defer.resolve(value);
+    return value;
   }
-  return defer.promise;
+  
 }
 
 CorePlayQueue.prototype.preLoadItems = function (items) {
@@ -143,7 +144,7 @@ CorePlayQueue.prototype.preLoadItems = function (items) {
         try {
           self.commandRouter.logger.info('Preloading ' + item.type + ': ' + item.uri);
 
-          self.preloadQueue.push(setTimeout(function(){ self.cache.set(item.uri, self.explodeUri(item), 3600) }, timeOut));
+          self.preloadQueue.push(setTimeout(function(){ self.cache.set(item.uri, libQ.resolve(self.explodeUri(item), 3600)) }, timeOut));
           timeOut += 50;
         } catch (error) {
           self.commandRouter.logger.error("Preload failed for uri: " + item.uri + ": " + error);
@@ -214,7 +215,6 @@ CorePlayQueue.prototype.addQueueItems = function (arrayItems) {
     items = arrayItems;
 
   self.clearPreloadQueue();
-
 
   items.forEach(item => {
     if (item.uri != undefined) {
