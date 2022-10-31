@@ -752,7 +752,6 @@ CoreStateMachine.prototype.syncState = function (stateService, sService, caller)
       }
 
       this.currentStatus = 'play';
-      this.pushState(caller + "->CoreStateMachine::syncState").fail(this.pushError.bind(this));
     } else if (this.currentStatus === 'stop') {
       // this.currentPosition = stateService.position;
       this.currentSeek = stateService.seek;
@@ -767,6 +766,8 @@ CoreStateMachine.prototype.syncState = function (stateService, sService, caller)
       this.currentBitDepth = null;
       this.currentChannels = null;
       this.currentStatus = 'play';
+
+      return;
 
       /* if (this.currentPosition >= this.playQueue.arrayQueue.length) {
 			 this.commandRouter.logger.info("END OF QUEUE ");
@@ -785,7 +786,6 @@ CoreStateMachine.prototype.syncState = function (stateService, sService, caller)
         this.consumeState.status = 'play';
         this.consumeState.seek = this.currentSeek;
       }
-      this.pushState(caller + "->CoreStateMachine::syncState").fail(this.pushError.bind(this));
     }
   } else if (stateService.status === 'stop') {
     if (this.currentStatus === 'play') {
