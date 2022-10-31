@@ -243,6 +243,14 @@ CoreStateMachine.prototype.addQueueItems = function (arrayItems) {
   return this.playQueue.addQueueItems(arrayItems);
 };
 
+CoreStateMachine.prototype.preLoadItems = function (item) {
+  this.playQueue.preLoadItems(item);
+};
+
+CoreStateMachine.prototype.preLoadItemsStop = function () {
+  this.playQueue.clearPreloadQueue();
+};
+
 // Add array of items to queue
 CoreStateMachine.prototype.clearQueue = function (sendEmptyState) {
   this.commandRouter.pushConsoleMessage('CoreStateMachine::ClearQueue');
@@ -746,7 +754,6 @@ CoreStateMachine.prototype.syncState = function (stateService, sService) {
           }
         }
       }
-
       this.currentStatus = 'play';
     } else if (this.currentStatus === 'stop') {
       // this.currentPosition = stateService.position;
