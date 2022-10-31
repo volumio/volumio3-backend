@@ -749,8 +749,7 @@ CoreStateMachine.prototype.syncState = function (stateService, sService) {
         }
       }
 
-      this.currentStatus = 'play';
-      this.pushState().fail(this.pushError.bind(this));
+      this.currentStatus = 'play';      
     } else if (this.currentStatus === 'stop') {
       // this.currentPosition = stateService.position;
       this.currentSeek = stateService.seek;
@@ -765,6 +764,8 @@ CoreStateMachine.prototype.syncState = function (stateService, sService) {
       this.currentBitDepth = null;
       this.currentChannels = null;
       this.currentStatus = 'play';
+
+      return;
 
       /* if (this.currentPosition >= this.playQueue.arrayQueue.length) {
 			 this.commandRouter.logger.info("END OF QUEUE ");
@@ -782,8 +783,7 @@ CoreStateMachine.prototype.syncState = function (stateService, sService) {
       if (this.isConsume) {
         this.consumeState.status = 'play';
         this.consumeState.seek = this.currentSeek;
-      }
-      this.pushState().fail(this.pushError.bind(this));
+      }      
     }
   } else if (stateService.status === 'stop') {
     if (this.currentStatus === 'play') {
