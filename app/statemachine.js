@@ -1306,6 +1306,7 @@ CoreStateMachine.prototype.previous = function (promisedResponse) {
         var thisPlugin = this.commandRouter.getMusicPlugin(this.consumeState.service);
         if (!this.previousTrackonPrev && typeof thisPlugin.seek === 'function') {
           thisPlugin.seek(0);
+          this.currentSeek = 0;
           this.startTimerForPreviousTrack();
         } else {
           if (typeof thisPlugin.previous === 'function') {
@@ -1319,6 +1320,7 @@ CoreStateMachine.prototype.previous = function (promisedResponse) {
         var thisPlugin = this.commandRouter.pluginManager.getPlugin('music_service', trackBlock.service);
         if (!this.previousTrackonPrev && typeof thisPlugin.seek === 'function') {
           thisPlugin.seek(0);
+          this.currentSeek = 0;
           this.startTimerForPreviousTrack();
         } else {
           if (this.currentRandom !== undefined && this.currentRandom === true) {
