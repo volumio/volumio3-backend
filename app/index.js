@@ -477,7 +477,7 @@ CoreCommandRouter.prototype.replaceAndPlay = function (data) {
 
   this.pushConsoleMessage('CoreCommandRouter::volumioReplaceandPlayItems');
 
-  this.stateMachine.clearQueue();
+  this.stateMachine.clearQueue(false);
 
   if (data.uri != undefined) {
     	if (data.uri.indexOf('playlists/') >= 0 && data.uri.indexOf('://') == -1) {
@@ -512,7 +512,7 @@ CoreCommandRouter.prototype.replaceAndPlay = function (data) {
 
 CoreCommandRouter.prototype.replaceAndPlayCue = function (arrayItems) {
   this.pushConsoleMessage('CoreCommandRouter::volumioReplaceandPlayCue');
-  this.stateMachine.clearQueue();
+  this.stateMachine.clearQueue(false);
 
   if (arrayItems.uri != undefined && arrayItems.uri.indexOf('playlists/') >= 0) {
     return this.playPlaylist(arrayItems.title);

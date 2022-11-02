@@ -259,10 +259,8 @@ CorePlayQueue.prototype.addQueueItems = function (arrayItems) {
           self.arrayQueue = self.arrayQueue.concat(contentArray);
       }
 
-      self.saveQueue();
-
-      // self.commandRouter.logger.info("Adding item to queue: "+JSON.stringify(content[j]));
       self.commandRouter.volumioPushQueue(self.arrayQueue);
+      self.saveQueue();
     })
     .then(function () {
       self.stateMachine.updateTrackBlock();
@@ -284,12 +282,15 @@ CorePlayQueue.prototype.clearAddPlayQueue = function (arrayItems) {
   return this.commandRouter.volumioPushQueue(this.arrayQueue);
 };
 
-CorePlayQueue.prototype.clearPlayQueue = function () {
+CorePlayQueue.prototype.clearPlayQueue = function (sendEmptyState) {
   this.commandRouter.pushConsoleMessage('CorePlayQueue::clearPlayQueue');
   this.arrayQueue = [];
   this.saveQueue();
 
-  this.commandRouter.stateMachine.pushEmptyState();
+  if (sendEmptyState) {
+    this.commandRouter.stateMachine.pushEmptyState();
+  }
+
   return this.commandRouter.volumioPushQueue(this.arrayQueue);
 };
 
@@ -314,9 +315,11 @@ CorePlayQueue.prototype.saveQueue = function () {
   var self = this;
   this.commandRouter.pushConsoleMessage('CorePlayQueue::saveQueue');
 
-  fs.writeJson('/data/queue', self.arrayQueue, {spaces: 2}, function (err) {
-    if (err) { self.commandRouter.logger.info('An error occurred saving queue to disk: ' + err); }
-  });
+  setTimeout(() => {
+    fs.writeJson('/data/queue', self.arrayQueue, {spaces: 2}, function (err) {
+      if (err) { self.commandRouter.logger.info('An error occurred saving queue to disk: ' + err); }
+    });
+  }, 50);
 };
 /* CorePlayQueue.prototype.clearMpdQueue = function () {
 	return this.commandRouter.executeOnPlugin('music_service', 'mpd', 'clear');
