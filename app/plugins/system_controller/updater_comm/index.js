@@ -19,6 +19,7 @@ function updater_comm (context) {
   self.commandRouter = self.context.coreCommand;
   self.configManager = self.context.configManager;
   self.logger = self.context.logger;
+  self.updateMessageCache = "";
 }
 
 updater_comm.prototype.onVolumioStart = function () {
@@ -163,6 +164,7 @@ updater_comm.prototype.onStart = function () {
     if (process.env.PUSH_UPDATES_COMM === 'true') {
       self.pushUpdatesSubscribe();
     }
+    self.checkUpdates();
   }, 30000);
   return libQ.resolve();
 };
@@ -291,4 +293,20 @@ updater_comm.prototype.killInterferingProcesses = function () {
       }
     });
   }
+};
+
+updater_comm.prototype.checkUpdates = function () {
+  var self = this;
+  self.commandRouter.broadcastMessage('ClientUpdateCheck', 'search-for-upgrade');
+  setTimeout(() => {
+    self.checkUpdates();
+  }, 43200000)
+};
+
+updater_comm.prototype.setUpdateMessageCache = function (message) {
+  this.updateMessageCache = message;
+};
+
+updater_comm.prototype.getUpdateMessageCache = function () {
+  return this.updateMessageCache;
 };

@@ -18,6 +18,8 @@ function InterfaceWebUI (context) {
 
   self.logger = self.commandRouter.logger;
 
+  self.sendUpdateReady = false;
+
   /** Init SocketIO listener */
   self.libSocketIO = require('socket.io')(self.context.websocketServer);
 
@@ -863,7 +865,15 @@ function InterfaceWebUI (context) {
 
       var checkingMessage = {'changeLogLink': '', 'description': self.commandRouter.getI18nString('UPDATER.CHECKING_FOR_UPDATES_WAIT'), 'title': self.commandRouter.getI18nString('UPDATER.CHECKING_FOR_UPDATES'), 'updateavailable': false};
       selfConnWebSocket.emit('updateWaitMsg', checkingMessage);
+      self.sendUpdateReady = true;
       self.commandRouter.broadcastMessage('ClientUpdateCheck', 'search-for-upgrade');
+    });
+
+    connWebSocket.on('updateCheckCache', function () {
+      var selfConnWebSocket = this;      
+      self.sendUpdateReady = false;
+      var updateMessage = self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'getUpdateMessageCache');
+      selfConnWebSocket.emit('updateReadyCache', updateMessage);
     });
 
     connWebSocket.on('ClientUpdateReady', function (message) {
@@ -891,8 +901,11 @@ function InterfaceWebUI (context) {
              }
          }
       }
-
-      self.commandRouter.broadcastMessage('updateReady', updateMessage);
+      self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'setUpdateMessageCache', updateMessage);
+      if (self.sendUpdateReady) {
+        self.commandRouter.broadcastMessage('updateReady', updateMessage);
+      }
+      self.sendUpdateReady = false;
     });
 
     connWebSocket.on('update', function (data) {
