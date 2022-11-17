@@ -148,16 +148,17 @@ ControllerVolumioDiscovery.prototype.startMDNSBrowse = function () {
 
     var sequence = [
       mdns.rst.DNSServiceResolve(),
-			mdns.rst.getaddrinfo({families: [4] })
+      'DNSServiceGetAddrInfo' in mdns.dns_sd ? mdns.rst.DNSServiceGetAddrInfo() : mdns.rst.getaddrinfo({families:[4]}),
+      mdns.rst.makeAddressesUnique()
     ];
     self.browser = mdns.createBrowser(mdns.tcp(serviceName), {resolverSequence: sequence});
 
     self.browser.on('error', function (error) {
       self.context.coreCommand.pushConsoleMessage('Discovery: Browse raised the following error ' + error);
-      self.browser.stop();
-      setTimeout(() => {        
-        self.startMDNSBrowse();
-      }, 10000);
+      // self.browser.stop();
+      // setTimeout(() => {        
+      //   self.startMDNSBrowse();
+      // }, 10000);
     });
     self.browser.on('serviceUp', function (service) {
       if (registeredUUIDs.indexOf(service.txtRecord.UUID) > -1) {
