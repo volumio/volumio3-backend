@@ -356,7 +356,7 @@
     },
     "SYSTEM": {
         "ALLOW_UI_STATISTICS": "Allow UI Statistics collection",
-        "ALLOW_UI_STATISTICS_DOC": "Allow the collection of behavioral and usage statistics on Volumio UI via Facebook Pixel and Google Analytics. These data are used to improve Volumio user experience. For further information about how we collect and process data please refer to volumio.org/privacy-policy",
+        "ALLOW_UI_STATISTICS_DOC": "Allow the collection of behavioral and usage statistics on Volumio UI. These data are used to improve Volumio user experience. For further information about how we collect and process data please refer to volumio.com/privacy-policy",
         "CANNOT_REMOVE_MEDIA": "Cannot remove media",
         "CHECKING_SYSTEM_INTEGRITY": "Checking system integrity",
         "CHECK_UPDATES": "Check Updates",
