@@ -415,7 +415,9 @@
         "TURN_OFF_IN": "Turn off in",
         "UPDATE_ALREADY_LATEST_VERSION": "You're already on the latest version",
         "UPDATE_FAILED": "Update failed",
-        "VIDEO_OUT_OPTIONS": "Video output options"
+        "VIDEO_OUT_OPTIONS": "Video output options",
+        "AUTOMATIC_UPDATES": "Automatic updates",
+        "AUTOMATIC_UPDATES_DOC": "Your system will be automatically updated to the latest version"
     },
     "UPDATER": {
         "CHECKING_FOR_UPDATES": "Checking for Updates",
