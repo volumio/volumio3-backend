@@ -644,7 +644,8 @@ ControllerVolumioDiscovery.prototype.browseForService = function (serviceType) {
   if (serviceType !== undefined) {
     var sequence = [
       mdns.rst.DNSServiceResolve(),
-      mdns.rst.getaddrinfo({families: [4] })
+      'DNSServiceGetAddrInfo' in mdns.dns_sd ? mdns.rst.DNSServiceGetAddrInfo() : mdns.rst.getaddrinfo({families:[4]}),
+      mdns.rst.makeAddressesUnique()
     ];
     self.serviceBrowser = mdns.createBrowser(mdns.tcp(serviceType), {resolverSequence: sequence});
     self.serviceBrowser.on('serviceUp', function (service) {
