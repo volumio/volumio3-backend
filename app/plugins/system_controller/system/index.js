@@ -1030,6 +1030,11 @@ ControllerSystem.prototype.saveUpdateSettings = function (data) {
   self.config.set('autoUpdate', data['automatic_updates']);
 };
 
+ControllerSystem.prototype.getAutoUpdateEnabled = function (data) {
+  var self = this;
+  return self.config.get('autoUpdate', false);
+};
+
 ControllerSystem.prototype.versionChangeDetect = function () {
   var self = this;
 

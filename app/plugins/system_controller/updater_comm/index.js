@@ -297,11 +297,52 @@ updater_comm.prototype.killInterferingProcesses = function () {
 
 updater_comm.prototype.checkUpdates = function () {
   var self = this;
-  self.commandRouter.broadcastMessage('ClientUpdateCheck', 'search-for-upgrade');
+  //self.commandRouter.broadcastMessage('ClientUpdateCheck', 'search-for-upgrade');
+  
+  self.autoUpdate();
+
+  var autoUpdateEnabled = self.commandRouter.executeOnPlugin('system_controller', 'system', 'getAutoUpdateEnabled');
+  
+  if (autoUpdateEnabled) {    
+
+    setTimeout(() => {
+      if (self.updateMessageCache && self.updateMessageCache.updateavailable) {
+
+        var now = new Date();
+        var nowTime = new Date().setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+      
+        var updateTime = new Date().setHours(23, 59, 59);
+        var minUpdateWaitTime = 10800000;
+        var maxUpdateWaitTime = 21600000;
+      
+        var updateWaitTime = updateTime - nowTime + (Math.floor(Math.random() * (maxUpdateWaitTime - minUpdateWaitTime) ) + minUpdateWaitTime);
+
+        setTimeout(() => {
+          self.autoUpdate();
+        }, updateWaitTime)
+
+      }
+    }, 30000);
+  }
+  
   setTimeout(() => {
     self.checkUpdates();
-  }, 43200000)
+  }, 43200000);
 };
+
+updater_comm.prototype.autoUpdate = function () {
+  var self = this;
+  self.logger.info('UPDATER: Doing automatic update');
+  var integrityCheck = self.checkSystemIntegrity();
+  integrityCheck.then((integrity) => {
+    if (integrity && integrity.isSystemOk != undefined && integrity.isSystemOk) {
+      self.commandRouter.broadcastMessage('ClientUpdate', {value: 'now'});
+    } else {
+      //Integrity check failed, save value to notify frontend
+      self.logger.info('UPDATER: Integrity check failed');
+    }
+  });
+}
 
 updater_comm.prototype.setUpdateMessageCache = function (message) {
   this.updateMessageCache = message;
