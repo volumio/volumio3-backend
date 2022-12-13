@@ -872,8 +872,19 @@ function InterfaceWebUI (context) {
     connWebSocket.on('updateCheckCache', function () {
       var selfConnWebSocket = this;      
       self.sendUpdateReady = false;
-      var updateMessage = self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'getUpdateMessageCache');
-      selfConnWebSocket.emit('updateReadyCache', updateMessage);
+
+      var autoUpdateCheckCloudEnabled = self.commandRouter.executeOnPlugin('system_controller', 'my_volumio', 'getAutoUpdateCheckEnabled');
+      if (autoUpdateCheckCloudEnabled != undefined) {
+        autoUpdateCheckCloudEnabled.then(function (result) {
+          if (result) {
+            var updateMessage = self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'getUpdateMessageCache');
+            selfConnWebSocket.emit('updateReadyCache', updateMessage);
+          }
+        })
+        .fail(function () {
+          defer.resolve();
+        });
+      } 
     });
 
     connWebSocket.on('ClientUpdateReady', function (message) {
@@ -916,6 +927,7 @@ function InterfaceWebUI (context) {
       var integrityCheck = self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'checkSystemIntegrity');
       integrityCheck.then((integrity) => {
         if ((data.ignoreIntegrityCheck !== undefined && data.ignoreIntegrityCheck) || (integrity && integrity.isSystemOk != undefined && integrity.isSystemOk)) {
+          self.commandRouter.executeOnPlugin('system_controller', 'system', 'setTestSystem', false);
           self.commandRouter.broadcastMessage('ClientUpdate', {value: 'now'});
           var started = { 'downloadSpeed': '', 'eta': '5m', 'progress': 1, 'status': self.commandRouter.getI18nString('SYSTEM.STARTING_SOFTWARE_UPDATE')};
           selfConnWebSocket.emit('updateProgress', started);

@@ -486,6 +486,8 @@ ControllerSystem.prototype.setTestSystem = function (data) {
       });
     });
   }
+
+  self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'checkUpdates');
 };
 
 ControllerSystem.prototype.setTestPlugins = function (data) {
@@ -1030,7 +1032,7 @@ ControllerSystem.prototype.saveUpdateSettings = function (data) {
   self.config.set('autoUpdate', data['automatic_updates']);
 };
 
-ControllerSystem.prototype.getAutoUpdateEnabled = function (data) {
+ControllerSystem.prototype.getAutoUpdateEnabled = function () {
   var self = this;
   return self.config.get('autoUpdate', false);
 };

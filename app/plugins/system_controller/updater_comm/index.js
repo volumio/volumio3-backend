@@ -11,7 +11,7 @@ global.fs = require('fs');
 var libQ = require('kew');
 var interferingProcessesKilled = false;
 
-function updater_comm (context) {
+function updater_comm(context) {
   var self = this;
 
   // Save a reference to the parent commandRouter
@@ -67,7 +67,7 @@ updater_comm.prototype.notifyProgress = function () {
             if (message === 'updateDone') {
               return self.initRestartRoutine(obj.message);
             } else {
-              self.commandRouter.executeOnPlugin('user_interface', 'websocket', 'broadcastMessage', {'msg': message, 'value': obj});
+              self.commandRouter.executeOnPlugin('user_interface', 'websocket', 'broadcastMessage', { 'msg': message, 'value': obj });
             }
             console.log(message);
             console.log(obj);
@@ -101,7 +101,7 @@ updater_comm.prototype.translateUpdateString = function (string) {
       switch (string) {
         case 'Preparing update':
           if (!interferingProcessesKilled) {
-              self.killInterferingProcesses();
+            self.killInterferingProcesses();
           }
           return self.commandRouter.getI18nString('UPDATER.PREPARING_UPDATE');
           break;
@@ -145,7 +145,7 @@ updater_comm.prototype.initRestartRoutine = function (string) {
       if (seconds !== 0) {
         var message = string + ' ' + seconds;
         var obj = { message: message, progress: 100, status: 'success' };
-        self.commandRouter.executeOnPlugin('user_interface', 'websocket', 'broadcastMessage', {'msg': 'updateDone', 'value': obj});
+        self.commandRouter.executeOnPlugin('user_interface', 'websocket', 'broadcastMessage', { 'msg': 'updateDone', 'value': obj });
         seconds = seconds - 1;
       } else {
         self.commandRouter.closeModals();
@@ -159,7 +159,6 @@ updater_comm.prototype.initRestartRoutine = function (string) {
 
 updater_comm.prototype.onStart = function () {
   var self = this;
-
   setTimeout(() => {
     if (process.env.PUSH_UPDATES_COMM === 'true') {
       self.pushUpdatesSubscribe();
@@ -204,7 +203,7 @@ updater_comm.prototype.checkSystemIntegrity = function () {
 
   var ignoreSystemCheck = self.getAdditionalConf('system_controller', 'system', 'ignoreSystemCheck', false);
   if (fs.existsSync('/data/ignoresystemcheck') || ignoreSystemCheck) {
-    defer.resolve({'isSystemOk': true});
+    defer.resolve({ 'isSystemOk': true });
   } else {
     var file = fs.readFileSync('/etc/os-release').toString().split('\n');
     var nLines = file.length;
@@ -221,18 +220,18 @@ updater_comm.prototype.checkSystemIntegrity = function () {
     }
 
     if (thisVariant && thisVariant !== 'volumio') {
-      defer.resolve({'isSystemOk': true});
+      defer.resolve({ 'isSystemOk': true });
     } else {
       exec('/usr/bin/md5deep -r -l -s -q /volumio | sort | md5sum | tr -d "-" | tr -d " \t\n\r"', function (error, stdout, stderr) {
         if (error !== null) {
           self.logger.error('Cannot read os relase file: ' + error);
-          defer.resolve({'isSystemOk': false});
+          defer.resolve({ 'isSystemOk': false });
         } else {
           var currentHash = stdout;
           if (currentHash === defaultHash) {
-            defer.resolve({'isSystemOk': true});
+            defer.resolve({ 'isSystemOk': true });
           } else {
-            defer.resolve({'isSystemOk': false});
+            defer.resolve({ 'isSystemOk': false });
           }
         }
       });
@@ -246,7 +245,7 @@ updater_comm.prototype.pushUpdatesSubscribe = function () {
   var self = this;
 
   try {
-    var id = execSync('/usr/bin/md5sum /sys/class/net/eth0/address', {uid: 1000, gid: 1000}).toString().split(' ')[0];
+    var id = execSync('/usr/bin/md5sum /sys/class/net/eth0/address', { uid: 1000, gid: 1000 }).toString().split(' ')[0];
     var isHw = true;
   } catch (e) {
     var id = self.getAdditionalConf('system_controller', 'system', 'uuid', '0000000000000000000000000');
@@ -297,37 +296,52 @@ updater_comm.prototype.killInterferingProcesses = function () {
 
 updater_comm.prototype.checkUpdates = function () {
   var self = this;
-  //self.commandRouter.broadcastMessage('ClientUpdateCheck', 'search-for-upgrade');
+
+  libQ.defer();
+
+  var autoUpdateCheckCloudEnabled = self.commandRouter.executeOnPlugin('system_controller', 'my_volumio', 'getAutoUpdateCheckEnabled');
+  if (autoUpdateCheckCloudEnabled != undefined) {
+    autoUpdateCheckCloudEnabled.then(function (result) {
+
+      if (result) {
+        self.commandRouter.broadcastMessage('ClientUpdateCheck', 'search-for-upgrade');
+        var autoUpdateCloudEnabled = self.commandRouter.executeOnPlugin('system_controller', 'my_volumio', 'getAutoUpdateEnabled');
+        if (autoUpdateCloudEnabled != undefined) {
+          autoUpdateCloudEnabled.then(function (updateResult) {
+            var autoUpdateEnabled = self.commandRouter.executeOnPlugin('system_controller', 'system', 'getAutoUpdateEnabled');
   
-  self.autoUpdate();
-
-  var autoUpdateEnabled = self.commandRouter.executeOnPlugin('system_controller', 'system', 'getAutoUpdateEnabled');
+            if (updateResult && autoUpdateEnabled) {
+              setTimeout(() => {
+                if (self.updateMessageCache && self.updateMessageCache.updateavailable) {
+                  var now = new Date();
+                  var nowTime = new Date().setHours(now.getHours(), now.getMinutes(), now.getSeconds());
   
-  if (autoUpdateEnabled) {    
-
-    setTimeout(() => {
-      if (self.updateMessageCache && self.updateMessageCache.updateavailable) {
-
-        var now = new Date();
-        var nowTime = new Date().setHours(now.getHours(), now.getMinutes(), now.getSeconds());
-      
-        var updateTime = new Date().setHours(23, 59, 59);
-        var minUpdateWaitTime = 10800000;
-        var maxUpdateWaitTime = 21600000;
-      
-        var updateWaitTime = updateTime - nowTime + (Math.floor(Math.random() * (maxUpdateWaitTime - minUpdateWaitTime) ) + minUpdateWaitTime);
-
-        setTimeout(() => {
-          self.autoUpdate();
-        }, updateWaitTime)
-
+                  var updateTime = new Date().setHours(23, 59, 59);
+                  var minUpdateWaitTime = 10800000;
+                  var maxUpdateWaitTime = 21600000;
+  
+                  var updateWaitTime = updateTime - nowTime + (Math.floor(Math.random() * (maxUpdateWaitTime - minUpdateWaitTime)) + minUpdateWaitTime);
+  
+                  setTimeout(() => {
+                    self.autoUpdate();
+                  }, updateWaitTime)
+  
+                }
+              }, 30000);
+            }
+            defer.resolve();
+          })
+          .fail(function () {
+            defer.resolve();
+          });
+        }
       }
-    }, 30000);
+    })
+    .fail(function () {
+      defer.resolve();
+    });
   }
-  
-  setTimeout(() => {
-    self.checkUpdates();
-  }, 43200000);
+
 };
 
 updater_comm.prototype.autoUpdate = function () {
@@ -336,7 +350,8 @@ updater_comm.prototype.autoUpdate = function () {
   var integrityCheck = self.checkSystemIntegrity();
   integrityCheck.then((integrity) => {
     if (integrity && integrity.isSystemOk != undefined && integrity.isSystemOk) {
-      self.commandRouter.broadcastMessage('ClientUpdate', {value: 'now'});
+      self.commandRouter.executeOnPlugin('system_controller', 'system', 'setTestSystem', false);
+      self.commandRouter.broadcastMessage('ClientUpdate', { value: 'now' });
     } else {
       //Integrity check failed, save value to notify frontend
       self.logger.info('UPDATER: Integrity check failed');
