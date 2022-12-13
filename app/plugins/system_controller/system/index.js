@@ -139,6 +139,9 @@ ControllerSystem.prototype.getUIConfig = function () {
         }
       }
 
+      var autoUpdate = self.config.get('autoUpdate', false);
+      uiconf.sections[3].content[2].value = autoUpdate;
+
       var allowUiStatistics = self.config.get('allow_ui_statistics', true);
       uiconf.sections[6].content[0].value = allowUiStatistics;
       
@@ -454,9 +457,6 @@ ControllerSystem.prototype.getSystemInfo = function () {
   return defer.promise;
 };
 
-
-
-
 ControllerSystem.prototype.setTestSystem = function (data) {
   var self = this;
 
@@ -478,6 +478,8 @@ ControllerSystem.prototype.setTestSystem = function (data) {
       });
     });
   }
+
+  self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'checkUpdates');
 };
 
 ControllerSystem.prototype.setTestPlugins = function (data) {
@@ -1017,6 +1019,16 @@ ControllerSystem.prototype.saveHDMISettings = function (data) {
   }
 };
 
+ControllerSystem.prototype.saveUpdateSettings = function (data) {
+  var self = this;
+  self.config.set('autoUpdate', data['automatic_updates']);
+};
+
+ControllerSystem.prototype.getAutoUpdateEnabled = function () {
+  var self = this;
+  return self.config.get('autoUpdate', false);
+};
+
 ControllerSystem.prototype.versionChangeDetect = function () {
   var self = this;
 
@@ -1266,7 +1278,6 @@ ControllerSystem.prototype.initializeFirstStart = function () {
   var isFirstStart = self.config.get('first_start', false);
   if (isFirstStart) {
     execSync('/usr/bin/touch /data/wizard');
-    self.commandRouter.reloadUi();
     var playerName = self.config.get('playerName');
     var sysShortID = self.getHwuuid().toUpperCase().substring(0,5);
     var newPlayerName = playerName + '-' + sysShortID;
@@ -1294,6 +1305,7 @@ ControllerSystem.prototype.initializeFirstStart = function () {
           hotspotOptions
       );
     }
+    self.commandRouter.reloadUi();
     self.config.set('first_start', false);
   }
 };

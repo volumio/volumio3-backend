@@ -18,6 +18,8 @@ function InterfaceWebUI (context) {
 
   self.logger = self.commandRouter.logger;
 
+  self.sendUpdateReady = false;
+
   /** Init SocketIO listener */
   self.libSocketIO = require('socket.io')(self.context.websocketServer);
 
@@ -863,7 +865,26 @@ function InterfaceWebUI (context) {
 
       var checkingMessage = {'changeLogLink': '', 'description': self.commandRouter.getI18nString('UPDATER.CHECKING_FOR_UPDATES_WAIT'), 'title': self.commandRouter.getI18nString('UPDATER.CHECKING_FOR_UPDATES'), 'updateavailable': false};
       selfConnWebSocket.emit('updateWaitMsg', checkingMessage);
+      self.sendUpdateReady = true;
       self.commandRouter.broadcastMessage('ClientUpdateCheck', 'search-for-upgrade');
+    });
+
+    connWebSocket.on('updateCheckCache', function () {
+      var selfConnWebSocket = this;      
+      self.sendUpdateReady = false;
+
+      var autoUpdateCheckCloudEnabled = self.commandRouter.executeOnPlugin('system_controller', 'my_volumio', 'getAutoUpdateCheckEnabled');
+      if (autoUpdateCheckCloudEnabled != undefined) {
+        autoUpdateCheckCloudEnabled.then(function (result) {
+          if (result) {
+            var updateMessage = self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'getUpdateMessageCache');
+            selfConnWebSocket.emit('updateReadyCache', updateMessage);
+          }
+        })
+        .fail(function () {
+          defer.resolve();
+        });
+      } 
     });
 
     connWebSocket.on('ClientUpdateReady', function (message) {
@@ -891,8 +912,11 @@ function InterfaceWebUI (context) {
              }
          }
       }
-
-      self.commandRouter.broadcastMessage('updateReady', updateMessage);
+      self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'setUpdateMessageCache', updateMessage);
+      if (self.sendUpdateReady) {
+        self.commandRouter.broadcastMessage('updateReady', updateMessage);
+      }
+      self.sendUpdateReady = false;
     });
 
     connWebSocket.on('update', function (data) {
@@ -903,6 +927,7 @@ function InterfaceWebUI (context) {
       var integrityCheck = self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'checkSystemIntegrity');
       integrityCheck.then((integrity) => {
         if ((data.ignoreIntegrityCheck !== undefined && data.ignoreIntegrityCheck) || (integrity && integrity.isSystemOk != undefined && integrity.isSystemOk)) {
+          self.commandRouter.executeOnPlugin('system_controller', 'system', 'setTestSystem', false);
           self.commandRouter.broadcastMessage('ClientUpdate', {value: 'now'});
           var started = { 'downloadSpeed': '', 'eta': '5m', 'progress': 1, 'status': self.commandRouter.getI18nString('SYSTEM.STARTING_SOFTWARE_UPDATE')};
           selfConnWebSocket.emit('updateProgress', started);

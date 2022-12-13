@@ -8,7 +8,11 @@
       "element": "section",
       "label": "TRANSLATE.SYSTEM.GENERAL_SETTINGS",
       "icon": "fa-wrench",
-      "onSave": {"type":"controller", "endpoint":"system_controller/system", "method":"saveGeneralSettings"},
+      "onSave": {
+        "type": "controller",
+        "endpoint": "system_controller/system",
+        "method": "saveGeneralSettings"
+      },
       "saveButton": {
         "label": "TRANSLATE.COMMON.SAVE",
         "data": [
@@ -20,42 +24,46 @@
       "content": [
         {
           "id": "player_name",
-          "type":"text",
+          "type": "text",
           "element": "input",
           "doc": "TRANSLATE.SYSTEM.PLAYER_NAME_DOC",
           "label": "TRANSLATE.SYSTEM.PLAYER_NAME",
           "value": "volumio"
         },
         {
-          "id":"startup_sound",
+          "id": "startup_sound",
           "element": "switch",
           "doc": "TRANSLATE.SYSTEM.STARTUP_SOUND_DOC",
           "label": "TRANSLATE.SYSTEM.STARTUP_SOUND",
           "value": true
         },
         {
-          "id":"config_wizard",
+          "id": "config_wizard",
           "element": "button",
           "label": "TRANSLATE.WIZARD.RUN_FIRST_CONFIG_WIZARD",
-          "onClick": {"type":"emit", "message":"runFirstConfigWizard", "data":""}
+          "onClick": {
+            "type": "emit",
+            "message": "runFirstConfigWizard",
+            "data": ""
+          }
         },
         {
-          "id":"advanced_settings",
+          "id": "advanced_settings",
           "element": "select",
           "doc": "TRANSLATE.SYSTEM.SHOW_ADVANCED_SETTINGS_DOC",
           "label": "TRANSLATE.SYSTEM.SHOW_ADVANCED_SETTINGS",
-          "hidden":true,
-          "value":  {
-            "value":true,
+          "hidden": true,
+          "value": {
+            "value": true,
             "label": "TRANSLATE.SYSTEM.FULL_SETTINGS_SET"
           },
           "options": [
             {
-              "value":true,
+              "value": true,
               "label": "TRANSLATE.SYSTEM.FULL_SETTINGS_SET"
             },
             {
-              "value":false,
+              "value": false,
               "label": "TRANSLATE.SYSTEM.SIMPLE_SETTINGS_SET"
             }
           ]
@@ -68,7 +76,11 @@
       "hidden": true,
       "label": "TRANSLATE.SYSTEM.VIDEO_OUT_OPTIONS",
       "icon": "fa-desktop",
-      "onSave": {"type":"controller", "endpoint":"system_controller/system", "method":"saveHDMISettings"},
+      "onSave": {
+        "type": "controller",
+        "endpoint": "system_controller/system",
+        "method": "saveHDMISettings"
+      },
       "saveButton": {
         "label": "TRANSLATE.COMMON.SAVE",
         "data": [
@@ -77,7 +89,7 @@
       },
       "content": [
         {
-          "id":"hdmi_enabled",
+          "id": "hdmi_enabled",
           "element": "switch",
           "doc": "TRANSLATE.SYSTEM.HDMI_UI_DOC",
           "label": "TRANSLATE.SYSTEM.HDMI_UI",
@@ -85,32 +97,63 @@
         }
       ]
     },
-    {"coreSection": "system-version"},
     {
-      "id":"section_updates",
+      "coreSection": "system-version"
+    },
+    {
+      "id": "section_updates",
       "type": "section",
       "label": "TRANSLATE.SYSTEM.SYSTEM_UPDATES",
       "icon": "fa-refresh",
+      "onSave": {
+        "type": "controller",
+        "endpoint": "system_controller/system",
+        "method": "saveUpdateSettings"
+      },
+      "saveButton": {
+        "label": "TRANSLATE.COMMON.SAVE",
+        "data": [
+          "automatic_updates"
+        ]
+      },
       "content": [
         {
-          "id":"update",
+          "id": "update",
           "element": "button",
           "label": "TRANSLATE.SYSTEM.CHECK_UPDATES",
           "description": "TRANSLATE.SYSTEM.CHECK_UPDATES_DESCR",
-          "onClick": {"type":"emit", "message":"updateCheck", "data":"search-for-upgrade"}
-        },
-         {
-            "id":"factory",
-              "element": "button",
-              "label": "TRANSLATE.SYSTEM.FACTORY_RESET",
-              "description": "TRANSLATE.SYSTEM.FACTORY_RESET_DESCR",
-              "onClick": {"type":"emit", "message":"deleteUserData", "data":" ", "askForConfirm": {"title": "TRANSLATE.SYSTEM.FACTORY_RESET_TITLE", "message": "TRANSLATE.SYSTEM.FACTORY_RESET_MESSAGE"}}
+          "onClick": {
+            "type": "emit",
+            "message": "updateCheck",
+            "data": "search-for-upgrade"
           }
+        },        
+        {
+          "id": "factory",
+          "element": "button",
+          "label": "TRANSLATE.SYSTEM.FACTORY_RESET",
+          "description": "TRANSLATE.SYSTEM.FACTORY_RESET_DESCR",
+          "onClick": {
+            "type": "emit",
+            "message": "deleteUserData",
+            "data": " ",
+            "askForConfirm": {
+              "title": "TRANSLATE.SYSTEM.FACTORY_RESET_TITLE",
+              "message": "TRANSLATE.SYSTEM.FACTORY_RESET_MESSAGE"
+            }
+          }
+        },
+        {
+          "id": "automatic_updates",
+          "element": "switch",
+          "doc": "TRANSLATE.SYSTEM.AUTOMATIC_UPDATES_DOC",
+          "label": "TRANSLATE.SYSTEM.AUTOMATIC_UPDATES",
+          "value": true
+        }
       ]
-
     },
     {
-      "id":"section_install",
+      "id": "section_install",
       "type": "section",
       "hidden": true,
       "label": "TRANSLATE.SYSTEM.INSTALL_TO_DISK",
@@ -118,18 +161,22 @@
       "content": []
     },
     {
-      "id":"section_foss",
+      "id": "section_foss",
       "type": "section",
       "label": "TRANSLATE.SYSTEM.CREDITS_OPEN_SOURCE_LICENSES",
       "icon": "fa-user-circle",
       "content": [
-    {
-      "id":"credits_foss",
-      "element": "button",
-      "hidden": false,
-      "label": "TRANSLATE.SYSTEM.CREDITS_OPEN_SOURCE_LICENSES",
-      "onClick": {"type":"goto", "pageName":"credits"}
-    }]
+        {
+          "id": "credits_foss",
+          "element": "button",
+          "hidden": false,
+          "label": "TRANSLATE.SYSTEM.CREDITS_OPEN_SOURCE_LICENSES",
+          "onClick": {
+            "type": "goto",
+            "pageName": "credits"
+          }
+        }
+      ]
     },
     {
       "id": "section_privacy_settings",
@@ -137,7 +184,11 @@
       "hidden": false,
       "label": "TRANSLATE.SYSTEM.PRIVACY_SETTINGS",
       "icon": "fa-shield",
-      "onSave": {"type":"controller", "endpoint":"system_controller/system", "method":"savePrivacySettings"},
+      "onSave": {
+        "type": "controller",
+        "endpoint": "system_controller/system",
+        "method": "savePrivacySettings"
+      },
       "saveButton": {
         "label": "TRANSLATE.COMMON.SAVE",
         "data": [
@@ -146,7 +197,7 @@
       },
       "content": [
         {
-          "id":"allow_ui_statistics",
+          "id": "allow_ui_statistics",
           "element": "switch",
           "doc": "TRANSLATE.SYSTEM.ALLOW_UI_STATISTICS_DOC",
           "label": "TRANSLATE.SYSTEM.ALLOW_UI_STATISTICS",
