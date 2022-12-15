@@ -337,7 +337,7 @@
     },
     "SYSTEM": {
         "ALLOW_UI_STATISTICS": "Consenti raccolta di statistiche",
-        "ALLOW_UI_STATISTICS_DOC": "Consente la raccolta di statistiche comportamentali e di uso delll'interfaccia tramite Facebbook Pixel e Google Analytitcs. Questi dati ci permettono di migliorare l'esperienza utente. Per ulteriori informazioni consultare volumio.org/privacy-policy",
+        "ALLOW_UI_STATISTICS_DOC": "Consente la raccolta di statistiche comportamentali e di uso delll'interfaccia. Questi dati ci permettono di migliorare l'esperienza utente. Per ulteriori informazioni consultare volumio.org/privacy-policy",
         "CANNOT_REMOVE_MEDIA": "Impossibile rimuovere il supporto",
         "CHECKING_SYSTEM_INTEGRITY": "Controllo dell'integrità del sistema in corso",
         "CHECK_UPDATES": "Controlla aggiornamenti",

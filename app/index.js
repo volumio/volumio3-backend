@@ -23,6 +23,7 @@ function CoreCommandRouter (server) {
   this.callbacks = [];
   this.pluginsRestEndpoints = [];
   this.standByHandler = {};
+  this.dspSignalPathElements = [];
   this.sharedVars = new vconf();
   this.sharedVars.registerCallback('language_code', this.loadI18nStrings.bind(this));
   this.sharedVars.addConfigValue('selective_search', 'boolean', true);
@@ -2292,3 +2293,71 @@ CoreCommandRouter.prototype.registerStandByHandler = function (data) {
   }
 };
 
+CoreCommandRouter.prototype.addDSPSignalPathElement = function (data) {
+  var self = this;
+  /*
+  This is a function to set signal path elements, useful to report the signal path to utilities requesting it
+  mandatory values are:
+  { "id": "fusiondspeq", "sub_type": "dsp_plugin", "preset": "FusionDSP", "quality": "enhanced" }
+   */
+
+  // TODO
+  // ADD Other infos such as plugin name, type, function to enable and disable and select presets
+
+  self.logger.info('Adding Signal Path Element ' + data);
+
+  var updated = false;
+
+  if (data.id && data.sub_type && data.preset && data.quality) {
+    if (self.dspSignalPathElements.length) {
+      for (var i in self.dspSignalPathElements) {
+        var element = self.dspSignalPathElements[i];
+        if (element.id === data.id) {
+          updated = true;
+          element = data;
+          self.logger.info('Updating ' + data.id + ' DSP Signal Path Element');
+        }
+      }
+      self.callCallback('volumioPushDSPSignalPathElements', self.dspSignalPathElements);
+      if (!updated) {
+        self.logger.info('Adding ' + data.id + ' DSP Signal Path Element');
+        self.dspSignalPathElements.push(data);
+        self.callCallback('volumioPushDSPSignalPathElements', self.dspSignalPathElements);
+      }
+    } else {
+      self.logger.info('Adding ' + data.id + ' DSP Signal Path Element');
+      self.dspSignalPathElements.push(data);
+      self.callCallback('volumioPushDSPSignalPathElements', self.dspSignalPathElements);
+    }
+  } else {
+    self.logger.error('Not Adding DSP Signal Path Element, missing parameters');
+  }
+};
+
+CoreCommandRouter.prototype.removeDSPSignalPathElement = function (data) {
+  var self = this;
+
+  /*
+  This is a function to remove signal path elements
+  mandatory values are:
+  {"id": "fusiondspeq"}
+   */
+  if (data && data.id) {
+    if (self.dspSignalPathElements.length) {
+      for (var i in self.dspSignalPathElements) {
+        var element = self.dspSignalPathElements[i];
+        if (element.id === data.id) {
+          self.logger.info('Removing ' + data.id + ' DSP Signal Path Element');
+          self.dspSignalPathElements.splice(i, 1);
+          self.callCallback('volumioPushDSPSignalPathElements', self.dspSignalPathElements);
+        }
+      }
+    }
+  }
+};
+
+CoreCommandRouter.prototype.getDSPSignalPathElements = function () {
+  var self = this;
+
+  return self.dspSignalPathElements;
+};

@@ -46,6 +46,11 @@ ControllerSystem.prototype.onVolumioStart = function () {
     self.config.addConfigValue('uuid', 'string', uuidv4());
   }
 
+  var autoUpdate = self.config.get('autoUpdate');
+  if (autoUpdate == undefined) {
+    self.config.addConfigValue('autoUpdate', 'boolean', process.env.AUTO_UPDATE === 'true');
+  }
+
   this.commandRouter.sharedVars.addConfigValue('system.uuid', 'string', uuid);
   this.commandRouter.sharedVars.addConfigValue('system.name', 'string', self.config.get('playerName'));
 
@@ -144,15 +149,7 @@ ControllerSystem.prototype.getUIConfig = function () {
 
       var allowUiStatistics = self.config.get('allow_ui_statistics', true);
       uiconf.sections[6].content[0].value = allowUiStatistics;
-      try {
-	    var variant = execSync('cat /etc/os-release | grep ^VOLUMIO_VARIANT | tr -d \'VOLUMIO_VARIANT="\'').toString().replace(/\n/g, '');
-      } catch (e) {
-        var variant = 'other';
-      }
-      if (variant === 'volumio') {
-        uiconf.sections[6].hidden = false;
-      }
-
+      
       if (showLanguageSelector) {
         self.commandRouter.i18nJson(__dirname + '/../../../i18n/strings_' + lang_code + '.json',
           __dirname + '/../../../i18n/strings_en.json',
@@ -1178,18 +1175,7 @@ ControllerSystem.prototype.getPrivacySettings = function () {
   var privacySettings = {
     allowUIStatistics: allowUIStatistics
   };
-  exec('cat /etc/os-release | grep ^VOLUMIO_VARIANT | tr -d \'VOLUMIO_VARIANT="\'', function (err, data) {
-    if (err) {
-      privacySettings.allowUIStatistics = false;
-      defer.resolve(privacySettings);
-    } else {
-      var variant = data.toString().replace(/\n/g, '');
-      if (variant !== 'volumio') {
-        privacySettings.allowUIStatistics = false;
-      }
-      defer.resolve(privacySettings);
-    }
-  });
+  defer.resolve(privacySettings);
 
   return defer.promise;
 };
