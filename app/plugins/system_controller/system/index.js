@@ -46,6 +46,11 @@ ControllerSystem.prototype.onVolumioStart = function () {
     self.config.addConfigValue('uuid', 'string', uuidv4());
   }
 
+  var autoUpdate = self.config.get('autoUpdate');
+  if (autoUpdate == undefined) {
+    self.config.addConfigValue('autoUpdate', 'boolean', process.env.AUTO_UPDATE === 'true');
+  }
+
   this.commandRouter.sharedVars.addConfigValue('system.uuid', 'string', uuid);
   this.commandRouter.sharedVars.addConfigValue('system.name', 'string', self.config.get('playerName'));
 
