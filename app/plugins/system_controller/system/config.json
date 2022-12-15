@@ -3,6 +3,10 @@
     "value": "Volumio",
     "type": "string"
   },
+  "autoUpdate": {
+    "value": true,
+    "type": "boolean"
+  },
   "startupSound": {
     "value": true,
     "type": "boolean"

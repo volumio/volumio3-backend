@@ -1027,6 +1027,9 @@ ControllerSystem.prototype.saveHDMISettings = function (data) {
 ControllerSystem.prototype.saveUpdateSettings = function (data) {
   var self = this;
   self.config.set('autoUpdate', data['automatic_updates']);
+  if (data['automatic_updates']) {
+    self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'checkUpdates');
+  }
 };
 
 ControllerSystem.prototype.getAutoUpdateEnabled = function () {

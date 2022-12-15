@@ -335,6 +335,9 @@ updater_comm.prototype.checkUpdates = function () {
             defer.resolve();
           });
         }
+        setTimeout(() => {
+          self.checkUpdates();
+        }, 43200000);
       }
     })
     .fail(function () {
