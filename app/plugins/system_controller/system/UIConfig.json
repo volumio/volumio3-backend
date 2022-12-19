@@ -146,7 +146,7 @@
         {
           "id": "automatic_updates",
           "element": "switch",
-          "doc": "TRANSLATE.SYSTEM.AUTOMATIC_UPDATES_DOC",
+          "description": "TRANSLATE.SYSTEM.AUTOMATIC_UPDATES_DOC",
           "label": "TRANSLATE.SYSTEM.AUTOMATIC_UPDATES",
           "value": true
         }

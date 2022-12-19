@@ -417,7 +417,7 @@
         "UPDATE_FAILED": "Update failed",
         "VIDEO_OUT_OPTIONS": "Video output options",
         "AUTOMATIC_UPDATES": "Automatic updates",
-        "AUTOMATIC_UPDATES_DOC": "Your system will be automatically updated to the latest version"
+        "AUTOMATIC_UPDATES_DOC": "Enable automatic updates"
     },
     "UPDATER": {
         "CHECKING_FOR_UPDATES": "Checking for Updates",

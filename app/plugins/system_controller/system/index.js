@@ -48,7 +48,7 @@ ControllerSystem.prototype.onVolumioStart = function () {
 
   var autoUpdate = self.config.get('autoUpdate');
   if (autoUpdate == undefined) {
-    self.config.addConfigValue('autoUpdate', 'boolean', process.env.AUTO_UPDATE === 'true');
+    self.config.addConfigValue('autoUpdate', 'boolean', process.env.AUTO_UPDATE_AUTOMATIC_INSTALL === 'true');
   }
 
   this.commandRouter.sharedVars.addConfigValue('system.uuid', 'string', uuid);
@@ -1027,8 +1027,12 @@ ControllerSystem.prototype.saveHDMISettings = function (data) {
 ControllerSystem.prototype.saveUpdateSettings = function (data) {
   var self = this;
   self.config.set('autoUpdate', data['automatic_updates']);
+
   if (data['automatic_updates']) {
+    process.env.AUTO_UPDATE_AUTOMATIC_INSTALL = 'true';
     self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'checkUpdates');
+  } else {
+    process.env.AUTO_UPDATE_AUTOMATIC_INSTALL = 'false';
   }
 };
 
