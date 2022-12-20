@@ -965,6 +965,11 @@ function InterfaceWebUI (context) {
       self.commandRouter.broadcastMessage('ClientFactoryReset', {value: 'now'});
     });
 
+    connWebSocket.on('getAutomaticUpdateEnabled', function () {
+      var selfConnWebSocket = this;
+      selfConnWebSocket.emit('pushAutomaticUpdateEnabled', process.env.AUTO_UPDATE_AUTOMATIC_INSTALL === 'true');
+    });
+
     connWebSocket.on('getSystemVersion', function () {
       var selfConnWebSocket = this;
       self.logger.info('Received Get System Version');
