@@ -322,6 +322,7 @@ updater_comm.prototype.checkUpdates = function () {
 };
 
 updater_comm.prototype.scheduleUpdate = function () {
+
   var self = this;
   var defer = libQ.defer();
   var autoUpdateCloudEnabled = self.commandRouter.executeOnPlugin('system_controller', 'my_volumio', 'getAutoUpdateEnabled');
@@ -345,6 +346,7 @@ updater_comm.prototype.scheduleUpdate = function () {
             self.autoUpdateTimeout = setTimeout(() => {              
                 self.autoUpdate();
             }, updateWaitTime);
+
           }
         }, 30000);
       }
