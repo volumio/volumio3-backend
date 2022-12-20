@@ -20,6 +20,8 @@ function updater_comm(context) {
   self.configManager = self.context.configManager;
   self.logger = self.context.logger;
   self.updateMessageCache = "";
+  self.autoUpdateTimeout = null;
+  self.autoUpdateRunning = false;
 }
 
 updater_comm.prototype.onVolumioStart = function () {
@@ -302,11 +304,14 @@ updater_comm.prototype.checkUpdates = function () {
   if (autoUpdateCheckCloudEnabled != undefined) {
     autoUpdateCheckCloudEnabled.then(function (result) {
       if (result) {
-        self.commandRouter.broadcastMessage('ClientUpdateCheck', 'search-for-upgrade');
-        self.scheduleUpdate();
         setTimeout(() => {
           self.checkUpdates();
         }, 43200000);
+        self.commandRouter.broadcastMessage('ClientUpdateCheck', 'search-for-upgrade');
+        self.scheduleUpdate()
+        .then(function () {
+          defer.resolve();
+        })
       }
     })
     .fail(function () {
@@ -317,11 +322,12 @@ updater_comm.prototype.checkUpdates = function () {
 };
 
 updater_comm.prototype.scheduleUpdate = function () {
+
+  var self = this;
   var defer = libQ.defer();
   var autoUpdateCloudEnabled = self.commandRouter.executeOnPlugin('system_controller', 'my_volumio', 'getAutoUpdateEnabled');
   if (autoUpdateCloudEnabled != undefined) {
     autoUpdateCloudEnabled.then(function (result) {
-       
       if (result && process.env.AUTO_UPDATE_AUTOMATIC_INSTALL === 'true') {
         setTimeout(() => {
           if (self.updateMessageCache && self.updateMessageCache.updateavailable) {
@@ -336,9 +342,10 @@ updater_comm.prototype.scheduleUpdate = function () {
 
             var updateWaitTime = updateTime - nowTime + (Math.floor(Math.random() * (maxUpdateWaitTime - minUpdateWaitTime)) + minUpdateWaitTime);
 
-            setTimeout(() => {
-              self.autoUpdate();
-            }, updateWaitTime)
+            clearTimeout(self.autoUpdateTimeout);
+            self.autoUpdateTimeout = setTimeout(() => {              
+                self.autoUpdate();
+            }, updateWaitTime);
 
           }
         }, 30000);
@@ -352,20 +359,23 @@ updater_comm.prototype.scheduleUpdate = function () {
   return defer.promise;
 }
 
-
 updater_comm.prototype.autoUpdate = function () {
   var self = this;
-  self.logger.info('UPDATER: Doing automatic update');
-  var integrityCheck = self.checkSystemIntegrity();
-  integrityCheck.then((integrity) => {
-    if (integrity && integrity.isSystemOk != undefined && integrity.isSystemOk) {
-      self.commandRouter.executeOnPlugin('system_controller', 'system', 'setTestSystem', false);
-      self.commandRouter.broadcastMessage('ClientUpdate', { value: 'now' });
-      self.notifyProgress();
-    } else {
-      self.logger.info('UPDATER: Integrity check failed');
-    }
-  });
+  if (!self.autoUpdateRunning) {
+    self.autoUpdateRunning = true;
+    self.logger.info('UPDATER: Doing automatic update');
+    var integrityCheck = self.checkSystemIntegrity();
+    integrityCheck.then((integrity) => {
+      if (integrity && integrity.isSystemOk != undefined && integrity.isSystemOk) {
+        self.commandRouter.executeOnPlugin('system_controller', 'system', 'setTestSystem', false);
+        self.commandRouter.broadcastMessage('ClientUpdate', { value: 'now' });
+        self.notifyProgress();
+      } else {
+        self.autoUpdateRunning = false;
+        self.logger.info('UPDATER: Integrity check failed');
+      }
+    });
+  }
 }
 
 updater_comm.prototype.setUpdateMessageCache = function (message) {
