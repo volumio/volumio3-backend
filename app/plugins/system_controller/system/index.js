@@ -49,6 +49,12 @@ ControllerSystem.prototype.onVolumioStart = function () {
   var autoUpdate = self.config.get('autoUpdate');
   if (autoUpdate == undefined) {
     self.config.addConfigValue('autoUpdate', 'boolean', process.env.AUTO_UPDATE_AUTOMATIC_INSTALL === 'true');
+  } else {
+    if (autoUpdate) {
+      process.env.AUTO_UPDATE_AUTOMATIC_INSTALL = 'true';
+    } else {
+      process.env.AUTO_UPDATE_AUTOMATIC_INSTALL = 'false';
+    }
   }
 
   this.commandRouter.sharedVars.addConfigValue('system.uuid', 'string', uuid);
