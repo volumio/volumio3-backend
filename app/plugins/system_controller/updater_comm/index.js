@@ -20,8 +20,9 @@ function updater_comm(context) {
   self.configManager = self.context.configManager;
   self.logger = self.context.logger;
   self.updateMessageCache = "";
-  self.autoUpdateTimeout = null;
+  self.autoUpdateCheckTimeout = null;
   self.autoUpdateRunning = false;
+  self.autoUpdateScheduled = false;
 }
 
 updater_comm.prototype.onVolumioStart = function () {
@@ -304,14 +305,18 @@ updater_comm.prototype.checkUpdates = function () {
   if (autoUpdateCheckCloudEnabled != undefined) {
     autoUpdateCheckCloudEnabled.then(function (result) {
       if (result) {
-        setTimeout(() => {
+        clearTimeout(self.autoUpdateCheckTimeout);
+        self.autoUpdateCheckTimeout = setTimeout(() => {
           self.checkUpdates();
         }, 43200000);
         self.commandRouter.broadcastMessage('ClientUpdateCheck', 'search-for-upgrade');
-        self.scheduleUpdate()
-        .then(function () {
+        if (!self.autoUpdateScheduled) {
+          self.scheduleUpdate().then(function () {
+            defer.resolve();
+          })
+        } else {
           defer.resolve();
-        })
+        }        
       }
     })
     .fail(function () {
@@ -322,7 +327,6 @@ updater_comm.prototype.checkUpdates = function () {
 };
 
 updater_comm.prototype.scheduleUpdate = function () {
-
   var self = this;
   var defer = libQ.defer();
   var autoUpdateCloudEnabled = self.commandRouter.executeOnPlugin('system_controller', 'my_volumio', 'getAutoUpdateEnabled');
@@ -331,6 +335,7 @@ updater_comm.prototype.scheduleUpdate = function () {
       if (result && process.env.AUTO_UPDATE_AUTOMATIC_INSTALL === 'true') {
         setTimeout(() => {
           if (self.updateMessageCache && self.updateMessageCache.updateavailable) {
+            self.logger.info('UPDATER: Scheduling automatic update');
             var now = new Date();
             var nowTime = new Date().setHours(now.getHours(), now.getMinutes(), now.getSeconds());
 
@@ -342,11 +347,14 @@ updater_comm.prototype.scheduleUpdate = function () {
 
             var updateWaitTime = updateTime - nowTime + (Math.floor(Math.random() * (maxUpdateWaitTime - minUpdateWaitTime)) + minUpdateWaitTime);
 
-            clearTimeout(self.autoUpdateTimeout);
-            self.autoUpdateTimeout = setTimeout(() => {              
-                self.autoUpdate();
-            }, updateWaitTime);
+            var scheduledDate = new Date();
+            scheduledDate.setMilliseconds(now.getMilliseconds() + updateWaitTime);
 
+            setTimeout(() => {
+              self.autoUpdate();
+            }, updateWaitTime);
+            self.autoUpdateScheduled = true;
+            self.logger.info('UPDATER: Auto update will take place at: ' + scheduledDate.toString());
           }
         }, 30000);
       }
@@ -372,6 +380,7 @@ updater_comm.prototype.autoUpdate = function () {
         self.notifyProgress();
       } else {
         self.autoUpdateRunning = false;
+        self.autoUpdateScheduled = false;
         self.logger.info('UPDATER: Integrity check failed');
       }
     });
