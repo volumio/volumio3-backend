@@ -308,8 +308,10 @@ CoreVolumeController.prototype.updateVolumeSettings = function (data) {
     volumeOverride = true;
     overridePluginType = data.pluginType;
     overridePluginName = data.pluginName;
+    this.commandRouter.executeOnPlugin('audio_interface', 'alsa_controller', 'setExternalVolume', true);
   } else {
     volumeOverride = false;
+    this.commandRouter.executeOnPlugin('audio_interface', 'alsa_controller', 'setExternalVolume', false);
   }
 
   if (volumeOverride) {
