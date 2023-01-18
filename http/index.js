@@ -14,6 +14,7 @@ var dev = express();
 var plugin = express();
 var background = express();
 var stream = express();
+var partnerlogo = express();
 /* eslint-disable */
 var plugindir = '/tmp/plugins';
 var backgrounddir = '/data/backgrounds';
@@ -91,6 +92,14 @@ app.use('/stream', stream);
 stream.use(express.static('/tmp/hls', { maxAge: 0 }));
 
 stream.use(function (req, res, next) {
+  res.status(404);
+  res.send("Not found");
+});
+
+app.use('/partnerlogo', partnerlogo);
+partnerlogo.use(express.static('/imgpart/partnerlogo.png', { maxAge: 0 }));
+
+partnerlogo.use(function (req, res, next) {
   res.status(404);
   res.send("Not found");
 });
