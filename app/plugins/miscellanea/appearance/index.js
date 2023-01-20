@@ -141,21 +141,7 @@ volumioAppearance.prototype.getUIConfig = function () {
         self.configManager.setUIConfigParam(uiconf, 'sections[2].hidden', false);
       }
 
-      var uiValue = "";
-      var uiLabel = "";
-      if (process.env.VOLUMIO_3_UI === 'true') {
-        uiValue = "CONTEMPORARY";
-        uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CONTEMPORARY');
-      } else if (fs.existsSync("/data/manifestUI")) {
-        uiValue = "MANIFEST";
-        uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_MANIFEST');
-      } else if (fs.existsSync("/data/volumio2ui")) {
-        uiValue = "CLASSIC";
-        uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CLASSIC');
-      }
-      self.configManager.setUIConfigParam(uiconf, 'sections[2].content[0].value.value', uiValue);
-      self.configManager.setUIConfigParam(uiconf, 'sections[2].content[0].value.label', uiLabel);
-
+      
       defer.resolve(uiconf);
     })
     .fail(function (e) {

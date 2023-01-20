@@ -1580,6 +1580,22 @@ function InterfaceWebUI (context) {
       var name = self.commandRouter.executeOnPlugin('miscellanea', 'appearance', 'setLanguage', languagedata);
     });
 
+    connWebSocket.on('getAvailableTimezones', function () {
+      var selfConnWebSocket = this;
+      var data = self.commandRouter.executeOnPlugin('system_controller', 'system', 'getAvailableTimezones');
+      selfConnWebSocket.emit('pushAvailableTimezones', data);
+    });
+
+    connWebSocket.on('getCurrentTimezone', function () {
+      var selfConnWebSocket = this;
+      var data = self.commandRouter.executeOnPlugin('system_controller', 'system', 'getCurrentTimezone');
+      selfConnWebSocket.emit('pushCurrentTimezone', data);
+    });
+
+    connWebSocket.on('setTimezone', function (data) {
+      self.commandRouter.executeOnPlugin('system_controller', 'system', 'setTimezone', data);
+    });
+
     connWebSocket.on('getDeviceName', function () {
       var selfConnWebSocket = this;
 
