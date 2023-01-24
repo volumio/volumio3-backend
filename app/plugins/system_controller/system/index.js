@@ -1375,7 +1375,14 @@ ControllerSystem.prototype.getThisDeviceVolumioProperties = function () {
 ControllerSystem.prototype.setTimezone = function (data) {
   var self = this;
   try {
-    execSync('/usr/bin/sudo /usr/bin/timedatectl set-timezone \'' + data + '\'', { uid: 1000, gid: 1000, encoding: 'utf8'});
+    execSync('echo volumio | sudo -S unlink /etc/localtime', { uid: 1000, gid: 1000, encoding: 'utf8'});
+    execSync('echo volumio | sudo -S ln -s /usr/share/zoneinfo/' + data + ' /etc/localtime', { uid: 1000, gid: 1000, encoding: 'utf8'});
+    process.env.TZ = data;    
+  } catch (e) {
+      self.logger.info('Could not set timezone');
+  }
+  try {
+    execSync('/usr/bin/sudo /usr/bin/timedatectl set-timezone \'' + data + '\'', { uid: 1000, gid: 1000, encoding: 'utf8'});    
   } catch (e) {
     try {
       self.logger.info('Could not set timezone, retrying');
@@ -1383,9 +1390,12 @@ ControllerSystem.prototype.setTimezone = function (data) {
         execSync('/usr/bin/sudo /usr/bin/timedatectl set-timezone \'' + data + '\'', { uid: 1000, gid: 1000, encoding: 'utf8'});
       }, 1000)
     } catch {
-      self.logger.info('Could not set timezone, giving up');
+      self.logger.info('Could not set timezone');
     }
-  }  
+  }
+  setTimeout(() => {
+    self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'clearUpdateSchedule');  
+  }, 30000);
 }
 
 ControllerSystem.prototype.setLanguageTimezone = function (data) {

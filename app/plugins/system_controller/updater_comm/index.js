@@ -23,6 +23,7 @@ function updater_comm(context) {
   self.autoUpdateCheckTimeout = null;
   self.autoUpdateRunning = false;
   self.autoUpdateScheduled = false;
+  self.autoUpdateTimeout = null;
 }
 
 updater_comm.prototype.onVolumioStart = function () {
@@ -297,6 +298,13 @@ updater_comm.prototype.killInterferingProcesses = function () {
   }
 };
 
+updater_comm.prototype.clearUpdateSchedule = function () {
+  var self = this;
+  clearTimeout(self.autoUpdateTimeout);
+  self.autoUpdateScheduled = false;
+  self.checkUpdates();
+}
+
 updater_comm.prototype.checkUpdates = function () {
   var self = this;
   var defer = libQ.defer();
@@ -350,7 +358,7 @@ updater_comm.prototype.scheduleUpdate = function () {
             var scheduledDate = new Date();
             scheduledDate.setMilliseconds(now.getMilliseconds() + updateWaitTime);
 
-            setTimeout(() => {
+            self.autoUpdateTimeout = setTimeout(() => {
               self.autoUpdate();
             }, updateWaitTime);
             self.autoUpdateScheduled = true;
