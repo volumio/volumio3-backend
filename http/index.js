@@ -97,7 +97,7 @@ stream.use(function (req, res, next) {
 });
 
 app.use('/partnerlogo', partnerlogo);
-partnerlogo.use(express.static('/imgpart/partnerlogo.png', { maxAge: 0 }));
+partnerlogo.use(express.static('/volumio/partnerlogo.png', { maxAge: 0 }));
 
 partnerlogo.use(function (req, res, next) {
   res.status(404);

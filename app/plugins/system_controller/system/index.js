@@ -10,7 +10,7 @@ var spawn = require('child_process').spawn;
 var crypto = require('crypto');
 var calltrials = 0;
 var additionalSVInfo;
-var additionalDeviceVolumioProperties;
+var additionalDeviceVolumioProperties = {};
 var hwFwVersion;
 var hwVersion;
 const { v4: uuidv4 } = require('uuid');
@@ -76,6 +76,7 @@ ControllerSystem.prototype.onStart = function () {
 
   self.callHome();
   self.initializeFirstStart();
+  self.loadDefaultAdditionalDeviceVolumioProperties();
   
   defer.resolve('OK')
   return defer.promise;
@@ -2020,3 +2021,14 @@ ControllerSystem.prototype.getAvailableTimezones = function () {
     "Zulu"
   ]
 }
+
+ControllerSystem.prototype.loadDefaultAdditionalDeviceVolumioProperties = function () {
+  var self = this;
+
+  additionalDeviceVolumioProperties.isPremiumDevice = (process.env.IS_PREMIUM_DEVICE === 'true');
+  additionalDeviceVolumioProperties.isVolumioProduct = (process.env.IS_VOLUMIO_PRODUCT === 'true');
+  if (process.env.PRODUCT_NAME !== undefined) {
+    additionalDeviceVolumioProperties.productName = process.env.PRODUCT_NAME;
+  }
+};
+
