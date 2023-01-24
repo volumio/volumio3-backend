@@ -40,14 +40,16 @@
         "SHOW_TRACKNUMBERS": "Show Track numbers",
         "SHOW_TRACKNUMBERS_DOC": "Prepend track numbers to tracks title",
         "SMALL": "Small",
-        "UI_CONFIG_LANGUAGE": "Language",
+        "UI_CONFIG_LANGUAGE": "Language and Timezone",
         "UI_CONFIG_SELECT_LANGUAGE": "Select Language",
         "UI_CONFIG_SELECT_LANGUAGE_DOC": "Select the Language of your system",
+        "UI_CONFIG_SELECT_TIMEZONE": "Select Timezone",
+        "UI_CONFIG_SELECT_TIMEZONE_DOC": "Select the Timezone of your system",
         "UPLOAD_FAILED": "Upload failed",
         "USER_INTERFACE_CLASSIC": "Classic",
         "USER_INTERFACE_CONTEMPORARY": "Contemporary",
         "USER_INTERFACE_MANIFEST": "Manifest",
-        "USER_INTERFACE_LAYOUT_DESIGN": "User Interface layout design",
+        "USER_INTERFACE_LAYOUT_DESIGN": "Legacy User Interfaces",
         "USER_INTERFACE_LAYOUT_DESIGN_DOC": "Select the desired user interface layout design. Contemporary UI offers an experience based on the most popular music players UI. Classic has a 3 tab design, offering a more minimalistic approach ",
         "VOLUMIO3_EXPERIMENTAL_UI": "Enable Experimental User Interface",
         "VOLUMIO3_EXPERIMENTAL_UI_DOC": "Enable Experimental User Interface",
@@ -417,7 +419,7 @@
         "UPDATE_FAILED": "Update failed",
         "VIDEO_OUT_OPTIONS": "Video output options",
         "AUTOMATIC_UPDATES": "Automatic updates",
-        "AUTOMATIC_UPDATES_DOC": "Enable automatic updates"
+        "AUTOMATIC_UPDATES_DOC": "Enable automatic updates. Please make sure your timezone is correctly configured. "
     },
     "UPDATER": {
         "CHECKING_FOR_UPDATES": "Checking for Updates",

@@ -3,11 +3,12 @@
   "element": "section",
   "label": "TRANSLATE.APPEARANCE.UI_CONFIG_LANGUAGE",
   "icon": "fa-language",
-  "onSave": {"type":"controller", "endpoint":"miscellanea/appearance", "method":"setLanguage"},
+  "onSave": {"type":"controller", "endpoint":"system_controller/system", "method":"setLanguageTimezone"},
   "saveButton": {
     "label": "TRANSLATE.COMMON.SAVE",
     "data": [
-      "language"
+      "language",
+      "timezone"
     ]
   },
   "value":  {
@@ -20,6 +21,18 @@
       "element": "select",
       "doc": "TRANSLATE.APPEARANCE.UI_CONFIG_SELECT_LANGUAGE",
       "label": "TRANSLATE.APPEARANCE.UI_CONFIG_SELECT_LANGUAGE",
+      "value":  {
+        "value":0,
+        "label": "0"
+      },
+      "options": [
+      ]
+    },
+    {
+      "id": "timezone",
+      "element": "select",
+      "doc": "TRANSLATE.APPEARANCE.UI_CONFIG_SELECT_TIMEZONE",
+      "label": "TRANSLATE.APPEARANCE.UI_CONFIG_SELECT_TIMEZONE",
       "value":  {
         "value":0,
         "label": "0"
