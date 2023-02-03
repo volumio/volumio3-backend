@@ -410,7 +410,7 @@ ControllerI2s.prototype.enableI2SDAC = function (data) {
 
           this.config.set('i2s_enabled', true);
           this.config.set('i2s_dac', outdevicename);
-          
+
           if (process.env.MODULAR_ALSA_PIPELINE !== 'true') {
             self.commandRouter.sharedVars.set('alsa.outputdevice', num);
             // Restarting MPD, this seems needed only on first boot
@@ -493,10 +493,9 @@ ControllerI2s.prototype.disableI2SDAC = function () {
 ControllerI2s.prototype.forceConfigTxtBannerCompat = function () {
   var self = this;
   var defer = libQ.defer();
-  
+
   fs.readFile('/boot/config.txt', 'utf8', function (err, configTxt) {
   		if (err) {
-            self.logger.error('Cannot read config.txt file: ' + err);
             defer.reject(err);
   		} else {
   			var index = configTxt.search(i2sOverlayBanner);
@@ -506,7 +505,7 @@ ControllerI2s.prototype.forceConfigTxtBannerCompat = function () {
 
                 fs.readFile('/volumio/app/plugins/system_controller/i2s_dacs/dacs.json', 'utf8', function (err, dacdata) {
   					if (err) {
-                        self.logger.error('Cannot read dacs.json file: ' + err);
+
                         defer.resolve();
   					} else {
                         var entries = configTxt.split(/dtoverlay=/);
@@ -525,7 +524,6 @@ ControllerI2s.prototype.forceConfigTxtBannerCompat = function () {
 
   							fs.writeFile('/boot/config.txt', configTxt, 'utf8', function (err) {
                                 if (err) {
-                                    self.logger.error('Cannot write config.txt file: ' + err);
                                     defer.reject(err);
                                 } else {
                                     defer.resolve();
@@ -619,7 +617,7 @@ ControllerI2s.prototype.execDacScript = function () {
       defer.reject(err);
       return;
     }
-  
+
     var devicename = self.getAdditionalConf('system_controller', 'system', 'device');
 
     outer: for (var i = 0; i < dacdata.devices.length; i++) {
@@ -648,7 +646,7 @@ ControllerI2s.prototype.execDacScript = function () {
     // No matching device
     defer.resolve();
   });
-  
+
   return defer.promise;
 };
 

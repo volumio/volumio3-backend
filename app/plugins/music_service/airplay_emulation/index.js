@@ -115,7 +115,7 @@ AirPlayInterface.prototype.startShairportSync = function () {
   var self = this;
   // Loading Configured output device
   var outdev = this.commandRouter.sharedVars.get('alsa.outputdevice');
-  
+
   if (process.env.MODULAR_ALSA_PIPELINE === 'true') {
     // No post-processing required
   } else {
@@ -126,7 +126,7 @@ AirPlayInterface.prototype.startShairportSync = function () {
       outdev = 'plughw:' + outdev;
     } else {
       outdev = 'plughw:' + outdev + ',0';
-    }  
+    }
   }
 
   var buffer_size_line;
@@ -440,7 +440,6 @@ AirPlayInterface.prototype.detectPrimo = function () {
       return false;
     }
   } catch (e) {
-    self.logger.info('Could not detect Primo: ' + e);
     return false;
   }
 };

@@ -56,7 +56,7 @@ ControllerSystem.prototype.onStart = function () {
 
   self.callHome();
   self.initializeFirstStart();
-  
+
   defer.resolve('OK')
   return defer.promise;
 };
@@ -169,7 +169,7 @@ ControllerSystem.prototype.getUIConfig = function () {
       }
     })
     .fail(function (error) {
-      self.logger.info(error);
+      self.logger.error('Failed to load system UIConfig: ' + error);
       defer.reject(new Error());
     });
 
