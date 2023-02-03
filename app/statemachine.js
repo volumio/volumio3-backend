@@ -507,12 +507,12 @@ CoreStateMachine.prototype.pushState = function (source) {
   var promise = libQ.defer();
 
   var state = this.getState();
+  self.saveCurrenState(state);
 
   state.pushSource = source;
 
   self.commandRouter.volumioPushState(state)
     .then(function (data) {
-      self.saveCurrenState(state);
       self.checkFavourites(state)
         .then(function (a) {
           promise.resolve({});
@@ -755,6 +755,7 @@ CoreStateMachine.prototype.syncState = function (stateService, sService) {
         }
       }
       this.currentStatus = 'play';
+      this.pushState().fail(this.pushError.bind(this));
     } else if (this.currentStatus === 'stop') {
       // this.currentPosition = stateService.position;
       this.currentSeek = stateService.seek;
@@ -1232,19 +1233,19 @@ CoreStateMachine.prototype.stop = function (promisedResponse) {
       // Play -> Stop transition
       this.currentStatus = 'stop';
       this.currentSeek = 0;
-      this.pushState().fail(this.pushError.bind(this));
+
       this.stopPlaybackTimer();
       this.updateTrackBlock();
-
+      this.pushState().fail(this.pushError.bind(this));
       return this.serviceStop();
     } else if (this.currentStatus === 'pause') {
       // Pause -> Stop transition
       this.currentStatus = 'stop';
       this.currentSeek = 0;
-      this.pushState().fail(this.pushError.bind(this));
+
       this.updateTrackBlock();
       this.stopPlaybackTimer();
-
+      this.pushState().fail(this.pushError.bind(this));
       return this.serviceStop();
     } else {
       return libQ.resolve();
