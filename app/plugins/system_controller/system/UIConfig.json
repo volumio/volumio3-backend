@@ -113,7 +113,9 @@
       "saveButton": {
         "label": "TRANSLATE.COMMON.SAVE",
         "data": [
-          "automatic_updates"
+          "automatic_updates",
+          "automatic_updates_start_time",
+          "automatic_updates_stop_time"
         ]
       },
       "content": [
@@ -149,6 +151,30 @@
           "description": "TRANSLATE.SYSTEM.AUTOMATIC_UPDATES_DOC",
           "label": "TRANSLATE.SYSTEM.AUTOMATIC_UPDATES",
           "value": true
+        },
+        {
+          "id": "automatic_updates_start_time",
+          "element": "select",
+          "description": "TRANSLATE.SYSTEM.AUTOMATIC_UPDATES_START_TIME_DOC",
+          "label": "TRANSLATE.SYSTEM.AUTOMATIC_UPDATES_START_TIME",
+          "value":  {
+            "value":0,
+            "label": "0"
+          },
+          "options": [
+          ]
+        },
+        {
+          "id": "automatic_updates_stop_time",
+          "element": "select",
+          "description": "TRANSLATE.SYSTEM.AUTOMATIC_UPDATES_STOP_TIME_DOC",
+          "label": "TRANSLATE.SYSTEM.AUTOMATIC_UPDATES_STOP_TIME",
+          "value":  {
+            "value":0,
+            "label": "0"
+          },
+          "options": [
+          ]
         }
       ]
     },

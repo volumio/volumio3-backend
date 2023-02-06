@@ -9,6 +9,7 @@ global.exec = require('child_process').exec;
 var execSync = require('child_process').execSync;
 global.fs = require('fs');
 var libQ = require('kew');
+const { min } = require('underscore');
 var interferingProcessesKilled = false;
 
 function updater_comm(context) {
@@ -348,8 +349,14 @@ updater_comm.prototype.scheduleUpdate = function () {
             var nowTime = new Date().setHours(now.getHours(), now.getMinutes(), now.getSeconds());
 
             var updateTime = new Date().setHours(23, 59, 59);
-            var minHours = 3;
-            var maxHours = 6;
+            var minHours = parseInt(self.commandRouter.executeOnPlugin('system_controller', 'system', 'getAutoUpdateWindowStartTime'));
+            var maxHours = parseInt(self.commandRouter.executeOnPlugin('system_controller', 'system', 'getAutoUpdateWindowStopTime'));
+
+            if (maxHours < minHours) {
+              //Add minHours to maxHours for the random number generator
+              maxHours = minHours + (24 - minHours) + maxHours;
+            }
+
             var minUpdateWaitTime = 1000 * 60 * 60 * minHours;
             var maxUpdateWaitTime = 1000 * 60 * 60 * maxHours;
 
