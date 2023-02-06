@@ -1379,6 +1379,7 @@ ControllerSystem.prototype.setTimezone = function (data) {
     execSync('echo volumio | sudo -S unlink /etc/localtime', { uid: 1000, gid: 1000, encoding: 'utf8'});
     execSync('echo volumio | sudo -S ln -s /usr/share/zoneinfo/' + data + ' /etc/localtime', { uid: 1000, gid: 1000, encoding: 'utf8'});
     process.env.TZ = data;    
+    self.config.set('timezone', data);
   } catch (e) {
       self.logger.info('Could not set timezone');
   }
@@ -1412,16 +1413,9 @@ ControllerSystem.prototype.setLanguageTimezone = function (data) {
 }
 
 ControllerSystem.prototype.getCurrentTimezone = function () {
-  return execSync('timedatectl | grep \'Time zone\'')
-    .toString()
-    .replace('Time zone: ', '')
-    .replace('Etc/', '')
-    .replace(/ *\([^)]*\) */g, '')
-    .replace(' ', '')
-    .replace(/\n/, '')
-    .replace(/\t/g, '')
-    .trim();
+  return this.config.get('timezone', "UTC");  
 }
+  
 
 ControllerSystem.prototype.getAvailableTimezones = function () {
   return [
