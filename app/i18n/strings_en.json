@@ -419,7 +419,11 @@
         "UPDATE_FAILED": "Update failed",
         "VIDEO_OUT_OPTIONS": "Video output options",
         "AUTOMATIC_UPDATES": "Automatic updates",
-        "AUTOMATIC_UPDATES_DOC": "Enable automatic updates. Please make sure your timezone is correctly configured. "
+        "AUTOMATIC_UPDATES_DOC": "Enable automatic updates. Please make sure your timezone is correctly configured. ",
+        "AUTOMATIC_UPDATES_START_TIME": "Automatic update window start time",
+        "AUTOMATIC_UPDATES_START_TIME_DOC": "Automatic update window start time",
+        "AUTOMATIC_UPDATES_STOP_TIME": "Automatic update window end time",
+        "AUTOMATIC_UPDATES_STOP_TIME_DOC": "Automatic update window end time"
     },
     "UPDATER": {
         "CHECKING_FOR_UPDATES": "Checking for Updates",

@@ -150,9 +150,34 @@ ControllerSystem.prototype.getUIConfig = function () {
             });
         }
       }
-
+            
       var autoUpdate = self.config.get('autoUpdate', false);
       uiconf.sections[3].content[2].value = autoUpdate;
+
+      self.getAutoUpdateTimes().forEach((time) => {
+        self.configManager.pushUIConfigParam(uiconf, 'sections[3].content[3].options', {
+          value: time,
+          label: time
+        });
+        self.configManager.pushUIConfigParam(uiconf, 'sections[3].content[4].options', {
+          value: time,
+          label: time
+        });
+      })
+
+      var autoUpdateWindowStartTime = self.getAutoUpdateWindowStartTime();
+
+      self.configManager.setUIConfigParam(uiconf, 'sections[3].content[3].value', {
+        value: autoUpdateWindowStartTime,
+        label: autoUpdateWindowStartTime
+      });
+
+      var autoUpdateWindowStopTime = self.getAutoUpdateWindowStopTime();
+
+      self.configManager.setUIConfigParam(uiconf, 'sections[3].content[4].value', {
+        value: autoUpdateWindowStopTime,
+        label: autoUpdateWindowStopTime
+      });
 
       var allowUiStatistics = self.config.get('allow_ui_statistics', true);
       uiconf.sections[6].content[0].value = allowUiStatistics;
@@ -170,8 +195,6 @@ ControllerSystem.prototype.getUIConfig = function () {
             value: language_code,
             label: language
         });
-
-
 
         for (var n = 0; n < languagesdata.languages.length; n++) {
           self.configManager.pushUIConfigParam(uiconf, 'sections[0].content[0].options', {
@@ -1065,18 +1088,32 @@ ControllerSystem.prototype.saveHDMISettings = function (data) {
 ControllerSystem.prototype.saveUpdateSettings = function (data) {
   var self = this;
   self.config.set('autoUpdate', data['automatic_updates']);
+  self.config.set('autoUpdateWindowStartTime', data['automatic_updates_start_time'].value);
+  self.config.set('autoUpdateWindowStopTime', data['automatic_updates_stop_time'].value);
 
   if (data['automatic_updates']) {
     process.env.AUTO_UPDATE_AUTOMATIC_INSTALL = 'true';
-    self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'checkUpdates');
   } else {
     process.env.AUTO_UPDATE_AUTOMATIC_INSTALL = 'false';
   }
+
+  self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'clearUpdateSchedule');
 };
 
 ControllerSystem.prototype.getAutoUpdateEnabled = function () {
   var self = this;
   return self.config.get('autoUpdate', false);
+};
+
+
+ControllerSystem.prototype.getAutoUpdateWindowStartTime = function () {
+  var self = this;
+  return self.config.get('autoUpdateWindowStartTime', "3");
+};
+
+ControllerSystem.prototype.getAutoUpdateWindowStopTime = function () {
+  var self = this;
+  return self.config.get('autoUpdateWindowStopTime', "6");
 };
 
 ControllerSystem.prototype.versionChangeDetect = function () {
@@ -2016,6 +2053,35 @@ ControllerSystem.prototype.getAvailableTimezones = function () {
   ]
 }
 
+ControllerSystem.prototype.getAutoUpdateTimes = function () {
+  return [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "16",
+    "17",
+    "18",
+    "19",
+    "20",
+    "21",
+    "22",
+    "23"
+  ]
+}
+
 ControllerSystem.prototype.loadDefaultAdditionalDeviceVolumioProperties = function () {
   var self = this;
 
@@ -2025,4 +2091,5 @@ ControllerSystem.prototype.loadDefaultAdditionalDeviceVolumioProperties = functi
     additionalDeviceVolumioProperties.productName = process.env.PRODUCT_NAME;
   }
 };
+
 
