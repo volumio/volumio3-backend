@@ -1092,7 +1092,6 @@ ControllerSystem.prototype.saveUpdateSettings = function (data) {
 
   if (data['automatic_updates']) {
     process.env.AUTO_UPDATE_AUTOMATIC_INSTALL = 'true';
-    self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'checkUpdates');
   } else {
     process.env.AUTO_UPDATE_AUTOMATIC_INSTALL = 'false';
   }
