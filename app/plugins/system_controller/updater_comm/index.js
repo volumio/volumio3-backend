@@ -9,7 +9,6 @@ global.exec = require('child_process').exec;
 var execSync = require('child_process').execSync;
 global.fs = require('fs');
 var libQ = require('kew');
-const { min } = require('underscore');
 var interferingProcessesKilled = false;
 
 function updater_comm(context) {
