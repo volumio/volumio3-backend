@@ -372,7 +372,10 @@ function InterfaceWebUI (context) {
       response = self.musicLibrary.executeBrowseSource(curUri);
 
       if (response != undefined) {
-        response.then(function (result) {       
+        response.then(function (result) {   
+          if (data.ref) {
+            result.ref = data.ref;
+          }
           selfConnWebSocket.emit('pushBrowseLibrary', result);
 
           if (result.navigation != undefined && result.navigation.lists != undefined) {
