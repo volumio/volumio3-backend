@@ -1076,13 +1076,13 @@ CoreStateMachine.prototype.seek = function (position) {
     } else if (position == '-') {
       var curPos = this.getState().seek;
       var thisPlugin = this.commandRouter.pluginManager.getPlugin('music_service', this.volatileService);
-      this.currentSeek = curPos - 10000;
+      this.currentSeek = curPos < 10000 ? 0 : curPos - 10000;
       if (thisPlugin && typeof thisPlugin.seek === 'function') {
-        thisPlugin.seek(curPos - 10000);
+        thisPlugin.seek(this.currentSeek);
       } else {
         this.commandRouter.pushConsoleMessage('WARNING: No seek method for volatile plugin ' + this.volatileService);
       }
-      this.startPlaybackTimer(curPos - 10000);
+      this.startPlaybackTimer(this.currentSeek);
       this.pushState().fail(this.pushError.bind(this));
     } else {
       var thisPlugin = this.commandRouter.pluginManager.getPlugin('music_service', this.volatileService);
@@ -1115,10 +1115,10 @@ CoreStateMachine.prototype.seek = function (position) {
   	    var curPos = this.getState().seek;
         var thisPlugin = this.commandRouter.pluginManager.getPlugin('music_service', trackBlock.service);
 
-      	this.currentSeek = curPos - 10000;
-  	    this.startPlaybackTimer(curPos - 10000);
+        this.currentSeek = curPos < 10000 ? 0 : curPos - 10000;
+        this.startPlaybackTimer(this.currentSeek);
   	    if (thisPlugin && typeof thisPlugin.seek === 'function') {
-          thisPlugin.seek(curPos - 10000);
+          thisPlugin.seek(this.currentSeek);
         } else {
           this.commandRouter.pushConsoleMessage('WARNING: No seek method for plugin ' + trackBlock.service);
         }
