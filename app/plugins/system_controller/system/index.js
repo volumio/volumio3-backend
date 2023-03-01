@@ -8,6 +8,7 @@ var spawn = require('child_process').spawn;
 var exec = require('child_process').exec;
 var spawn = require('child_process').spawn;
 var crypto = require('crypto');
+var os = require('os');
 var calltrials = 0;
 var additionalSVInfo;
 var additionalDeviceVolumioProperties = {};
@@ -66,6 +67,9 @@ ControllerSystem.prototype.onVolumioStart = function () {
   } else {
     process.env.NEW_WIZARD = 'false';
   }
+  setTimeout(()=>{
+    self.updateVersionHistoryFile();
+  }, 30000);
 
   return libQ.all(self.deviceDetect());
 };
@@ -2099,4 +2103,32 @@ ControllerSystem.prototype.loadDefaultAdditionalDeviceVolumioProperties = functi
   }
 };
 
+ControllerSystem.prototype.updateVersionHistoryFile = function () {
+  var self = this;
+  var historyFilePath = '/data/updatesHistoryFile';
 
+  self.getSystemVersion().then(function (currentVersionInfoJSON) {
+    try {
+      var currentVersionInfoString = JSON.stringify(currentVersionInfoJSON);
+      fs.readFile(historyFilePath, 'utf8', (err, data) => {
+        if (err) {
+          var fileContent = '';
+        } else {
+          var fileContent = data.toString();
+        }
+        if (!fileContent.includes(currentVersionInfoString)) {
+          var currentVersionContent = '---' + os.EOL + new Date().toString() + os.EOL +  currentVersionInfoString + os.EOL + '---';
+          fs.appendFile(historyFilePath, currentVersionContent, function (err) {
+            if (err) {
+              self.logger.error('Failed to update update history file: ' + e );
+            }
+          });
+        }
+      });
+    } catch(e) {
+      self.logger.error('Failed to update update history file: ' + e);
+    }
+  });
+}
+
+// Remember to send it via logs
