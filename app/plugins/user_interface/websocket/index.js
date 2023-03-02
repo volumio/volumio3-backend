@@ -19,6 +19,7 @@ function InterfaceWebUI (context) {
   self.logger = self.commandRouter.logger;
 
   self.sendUpdateReady = false;
+  self.lastPushedBrowseLibraryObject = {};
 
   /** Init SocketIO listener */
   self.libSocketIO = require('socket.io')(self.context.websocketServer);
@@ -376,6 +377,7 @@ function InterfaceWebUI (context) {
           if (data.ref) {
             result.ref = data.ref;
           }
+          self.lastPushedBrowseLibraryObject = result;
           selfConnWebSocket.emit('pushBrowseLibrary', result);
 
           if (result.navigation != undefined && result.navigation.lists != undefined) {
@@ -454,6 +456,7 @@ function InterfaceWebUI (context) {
       var selfConnWebSocket = this;
       var returnedData = self.musicLibrary.search(data);
       returnedData.then(function (result) {
+        self.lastPushedBrowseLibraryObject = result;
         selfConnWebSocket.emit('pushBrowseLibrary', result);
       });
     });
@@ -464,6 +467,7 @@ function InterfaceWebUI (context) {
       var returnedData = self.musicLibrary.goto(data);
       if (returnedData) {
         returnedData.then(function (result) {
+          self.lastPushedBrowseLibraryObject = result;
           selfConnWebSocket.emit('pushBrowseLibrary', result);
         })
           .fail(function () {
@@ -508,6 +512,7 @@ function InterfaceWebUI (context) {
 
           if (response2 != undefined) {
             response2.then(function (result2) {
+              self.lastPushedBrowseLibraryObject = result2;
               selfConnWebSocket.emit('pushBrowseLibrary', result2);
             })
               .fail(function () {
@@ -555,6 +560,7 @@ function InterfaceWebUI (context) {
 
         if (response != undefined) {
           response.then(function (result) {
+            self.lastPushedBrowseLibraryObject = result;
             selfConnWebSocket.emit('pushBrowseLibrary', result);
           })
             .fail(function () {
@@ -595,6 +601,7 @@ function InterfaceWebUI (context) {
         var response = self.musicLibrary.executeBrowseSource('playlists/' + playlistname);
         if (response != undefined) {
           response.then(function (result) {
+            self.lastPushedBrowseLibraryObject = result;
             selfConnWebSocket.emit('pushBrowseLibrary', result);
           })
             .fail(function () {
@@ -647,6 +654,7 @@ function InterfaceWebUI (context) {
           response = self.commandRouter.executeOnPlugin('music_service', 'shoutcast', 'listRadioFavourites');
           if (response != undefined) {
             response.then(function (result) {
+              self.lastPushedBrowseLibraryObject = result;
               selfConnWebSocket.emit('pushBrowseLibrary', result);
             })
               .fail(function () {
@@ -659,6 +667,7 @@ function InterfaceWebUI (context) {
                         	response = self.musicLibrary.executeBrowseSource(uri);
             if (response != undefined) {
               response.then(function (result) {
+                self.lastPushedBrowseLibraryObject = result;
                 selfConnWebSocket.emit('pushBrowseLibrary', result);
               })
                 .fail(function () {
@@ -670,6 +679,7 @@ function InterfaceWebUI (context) {
           var response = self.commandRouter.playListManager.listFavourites();
           if (response != undefined) {
             response.then(function (result) {
+              self.lastPushedBrowseLibraryObject = result;
               selfConnWebSocket.emit('pushBrowseLibrary', result);
             })
               .fail(function () {
@@ -1709,6 +1719,7 @@ function InterfaceWebUI (context) {
 
       if (remove != undefined) {
         remove.then(function (result) {
+          self.lastPushedBrowseLibraryObject = result;
           selfConnWebSocket.emit('pushBrowseLibrary', result);
         })
           .fail(function () {
@@ -1865,6 +1876,7 @@ function InterfaceWebUI (context) {
       var deleteFolder = self.commandRouter.executeOnPlugin('music_service', 'mpd', 'deleteFolder', data);
       deleteFolder.then(function (data) {
         self.printToastMessage('success', self.commandRouter.getI18nString('SYSTEM.DELETE_FOLDER'), self.commandRouter.getI18nString('SYSTEM.SUCCESSFULLY_DELETED_FOLDER'));
+        self.lastPushedBrowseLibraryObject = data;
         selfConnWebSocket.emit('pushBrowseLibrary', data);
       })
         .fail(function (error) {
@@ -1910,6 +1922,12 @@ function InterfaceWebUI (context) {
       returnedData.then(function (data) {
         selfConnWebSocket.emit('pushLatestTOSAccepted', data);
       });
+    });
+
+    connWebSocket.on('getLastPushedBrowseLibrary', function () {
+      var selfConnWebSocket = this;
+
+      selfConnWebSocket.emit('pushBrowseLibrary', self.lastPushedBrowseLibraryObject);
     });
   });
 }
