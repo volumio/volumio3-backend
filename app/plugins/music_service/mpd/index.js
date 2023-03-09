@@ -681,7 +681,7 @@ ControllerMpd.prototype.mpdEstablish = function () {
   // Catch and log errors
   self.clientMpd.on('error', function (err) {
     self.logger.error('MPD error: ' + err);
-    if (err = "{ [Error: This socket has been ended by the other party] code: 'EPIPE' }") {
+    if (err === "{ [Error: This socket has been ended by the other party] code: 'EPIPE' }") {
       // Wait 5 seconds before trying to reconnect
       setTimeout(function () {
         self.mpdEstablish();
@@ -1859,18 +1859,6 @@ ControllerMpd.prototype.updateDb = function (data) {
   return self.sendMpdCommand('update', [pos]);
 };
 
-ControllerMpd.prototype.getGroupVolume = function () {
-  var self = this;
-  return self.sendMpdCommand('status', [])
-    .then(function (objState) {
-      var state = self.parseState(objState);
-      if (state.volume != undefined) {
-        state.volume = groupvolume;
-        return libQ.resolve(groupvolume);
-      }
-    });
-};
-
 ControllerMpd.prototype.setGroupVolume = function (data) {
   var self = this;
   return self.sendMpdCommand('setvol', [data]);
@@ -2842,7 +2830,7 @@ ControllerMpd.prototype.getGroupVolume = function () {
   var self = this;
   var defer = libQ.defer();
 
-  return self.sendMpdCommand('status', [])
+  self.sendMpdCommand('status', [])
     .then(function (objState) {
       if (objState.volume) {
         defer.resolve(objState.volume);
@@ -2918,7 +2906,7 @@ ControllerMpd.prototype.handleBrowseUri = function (curUri, previous) {
         response = self.listArtist(curUri, 3, 'genres://' + splitted[2], 'genres://');
       } else if (splitted.length == 5) {
         response = self.listAlbumSongs(curUri, 4, 'genres://' + splitted[2]);
-      } else if (splitted.length = 6) {
+      } else if (splitted.length == 6) {
         response = self.listAlbumSongs(curUri, 4, 'genres://' + splitted[4] + '/' + splitted[5]);
       }
     }
