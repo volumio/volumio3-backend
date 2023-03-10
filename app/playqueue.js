@@ -2,7 +2,7 @@
 
 var libQ = require('kew');
 var fs = require('fs-extra');
-var execSync = require('child_process').execSync;
+var exec = require('child_process').exec;
 const NodeCache = require( "node-cache" );
 
 // Define the CorePlayQueue class
@@ -308,7 +308,7 @@ CorePlayQueue.prototype.moveQueueItem = function (from, to) {
   if (this.arrayQueue.length > to) {
     this.arrayQueue.splice(to, 0, this.arrayQueue.splice(from, 1)[0]);
     return this.commandRouter.volumioPushQueue(this.arrayQueue);
-  } else return defer.resolve();
+  } else return libQ.resolve();
 };
 
 CorePlayQueue.prototype.saveQueue = function () {

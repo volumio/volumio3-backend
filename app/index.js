@@ -873,7 +873,7 @@ CoreCommandRouter.prototype.restorePlaylistBackup = function () {
   var isbackup = check[0];
 
   if (isbackup) {
-    self.restorePlaylist({'type': 'playlist', 'backup': backup});
+    self.restorePlaylist({'type': 'playlist', 'backup': check[1]});
   }
 };
 
