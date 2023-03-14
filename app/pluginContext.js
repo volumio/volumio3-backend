@@ -2,28 +2,31 @@
 
 var HashMap = require('hashmap');
 
-module.exports = PluginContext;
-function PluginContext (ccommand, server, configManager) {
-  var self = this;
+class PluginContext {
+  constructor(ccommand, server, configManager) {
+    var self = this;
 
-  self.coreCommand = ccommand;
-  self.websocketServer = server;
-  self.configManager = configManager;
-  self.logger = ccommand.logger;
+    self.coreCommand = ccommand;
+    self.websocketServer = server;
+    self.configManager = configManager;
+    self.logger = ccommand.logger;
 
-  self.env = new HashMap();
+    self.env = new HashMap();
 
-  // TODO: add environment variables here
+    // TODO: add environment variables here
+  }
+
+  getEnvVariable(key) {
+    var self = this;
+
+    return self.env.get(key);
+  }
+
+  setEnvVariable(key, value) {
+    var self = this;
+
+    return self.env.set(key, value);
+  }
 }
 
-PluginContext.prototype.getEnvVariable = function (key) {
-  var self = this;
-
-  return self.env.get(key);
-};
-
-PluginContext.prototype.setEnvVariable = function (key, value) {
-  var self = this;
-
-  return self.env.set(key, value);
-};
+module.exports = PluginContext;
