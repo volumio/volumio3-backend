@@ -1255,6 +1255,7 @@ ControllerMpd.prototype.lsInfo = function (uri) {
   self.mpdReady.then(function () {
     self.clientMpd.sendCommand(cmd(command, []), function (err, msg) {
       var list = [];
+      var mediaServerList = [];
       if (singleBrowse && uri === 'music-library') {
         prev = '/';
         var browseSources = [{albumart: '/albumart?sourceicon=music_service/mpd/favouritesicon.png', title: self.commandRouter.getI18nString('COMMON.FAVOURITES'), uri: 'favourites', type: 'folder', disablePlayButton: true},
@@ -1268,7 +1269,7 @@ ControllerMpd.prototype.lsInfo = function (uri) {
         }
 
         if (self.commandRouter.getPluginEnabled('music_service', 'upnp_browser')) {
-          list.push({albumart: '/albumart?sourceicon=music_service/upnp_browser/dlnaicon.png', title: self.commandRouter.getI18nString('COMMON.MEDIA_SERVERS'), uri: 'upnp', type: 'folder', disablePlayButton: true});
+          mediaServerList.push({albumart: '/albumart?sourceicon=music_service/upnp_browser/dlnaicon.png', title: self.commandRouter.getI18nString('COMMON.MEDIA_SERVERS'), uri: 'upnp', type: 'folder', disablePlayButton: true});
         }
       }
       if (uri === 'music-library' && stickingMusicLibrary) {
@@ -1441,7 +1442,7 @@ ControllerMpd.prototype.lsInfo = function (uri) {
           prev: {
             uri: prev
           },
-          lists: [{availableListViews: ['grid', 'list'], items: list}]
+          lists: [{isCategoryView: true, title: "My Music", availableListViews: ['grid', 'list'], items: list}, {availableListViews: ['grid', 'list'], isCategoryView: true, title: "Media servers", items: mediaServerList}]
         }
       });
     });
@@ -3745,13 +3746,13 @@ ControllerMpd.prototype.loadLibrarySettings = function () {
   var tracknumbersConf = this.config.get('tracknumbers', false);
   var compilationConf = this.config.get('compilation', 'Various,various,Various Artists,various artists,VA,va');
   var artistsortConf = this.config.get('artistsort', true);
-  var singleBrowseConf = this.config.get('singleBrowse', false);
+  var singleBrowseConf = true;
   var stickingMusicLibraryConf = this.config.get('stickingMusicLibrary', false);
 
   tracknumbers = tracknumbersConf;
   compilation = compilationConf.split(',');
   artistsort = artistsortConf;
-  singleBrowse = singleBrowseConf;
+  singleBrowse = process.env.CONDENSE_FILE_SOURCES_VISIBILITY;
   stickingMusicLibrary = stickingMusicLibraryConf;
 };
 
