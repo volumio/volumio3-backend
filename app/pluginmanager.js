@@ -1143,8 +1143,14 @@ PluginManager.prototype.checkPluginDependencies = function (folder) {
   self.logger.info('Check plugin dependencies');
 
   // Check for native addons
-  var native_modules = execSync(`find ${folder}/node_modules -name obj.target -prune -false -o -type f -name "*.node" 2>/dev/null`,{ encoding: 'utf8' }).split('\n').filter(n=>n);
   var package_json = self.getPackageJson(folder);
+  
+  try {
+    var native_modules = execSync(`find ${folder}/node_modules -name obj.target -prune -false -o -type f -name "*.node" 2>/dev/null`,{ encoding: 'utf8' }).split('\n').filter(n=>n);  
+  } catch (error) {
+    self.logger.error('Error finding native modules: ',error);
+    var native_modules = [];
+  }  
   
   if(package_json.engines) {
     
