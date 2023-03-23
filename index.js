@@ -62,12 +62,15 @@ expressApp.get('/?*', function (req, res) {
     res.sendFile(path.join(__dirname, 'http', 'wizard', 'index.html'));   
   } else {
     if (fs.existsSync(volumioManifestUIDir) && !fs.existsSync(volumioManifestUIDisabledFile)) {
-      res.sendFile(path.join(__dirname, 'http', 'www4', 'index.html'));     
+      res.sendFile(path.join(__dirname, 'http', 'www4', 'index.html'));    
+      process.env.CONDENSE_FILE_SOURCES_VISIBILITY = true; 
     } else {
       if ((userAgent && userAgent.includes('volumiokiosk')) || process.env.VOLUMIO_3_UI === 'false') {
-        res.sendFile(path.join(__dirname, 'http', 'www', 'index.html'));         
+        res.sendFile(path.join(__dirname, 'http', 'www', 'index.html'));     
+        process.env.CONDENSE_FILE_SOURCES_VISIBILITY = false;    
       } else {
         res.sendFile(path.join(__dirname, 'http', 'www3', 'index.html'));
+        process.env.CONDENSE_FILE_SOURCES_VISIBILITY = false;    
       }
     }
   }
