@@ -104,7 +104,19 @@ ControllerWebradio.prototype.listRoot = function () {
           'availableListViews': [
             'grid', 'list'
           ],
+          'title': "My webradios",
+          'isCategoryView': true,
           'items': [
+            
+            {
+              service: 'webradio',
+              type: 'radio-favourites',
+              title: self.commandRouter.getI18nString('WEBRADIO.FAVOURITE_RADIOS'),
+              artist: '',
+              album: '',
+              icon: 'fa fa-heart',
+              uri: 'radio/favourites'
+            },
             {
               service: 'radio',
               type: 'mywebradio-category',
@@ -116,13 +128,23 @@ ControllerWebradio.prototype.listRoot = function () {
             },
             {
               service: 'webradio',
-              type: 'radio-favourites',
-              title: self.commandRouter.getI18nString('WEBRADIO.FAVOURITE_RADIOS'),
+              type: 'radio-category',
+              title: self.commandRouter.getI18nString('WEBRADIO.LOCAL_RADIOS'),
               artist: '',
               album: '',
-              icon: 'fa fa-heart',
-              uri: 'radio/favourites'
-            },
+              icon: 'fa fa-map-marker',
+              uri: 'radio/tunein/local'
+            }
+          ]
+        },
+        {
+          'availableListViews': [
+            'grid', 'list'
+          ],
+          'title': "Discover",
+          'isCategoryView': true,
+          'items': [
+            
             {
               service: 'webradio',
               type: 'radio-category',
@@ -140,25 +162,7 @@ ControllerWebradio.prototype.listRoot = function () {
               album: '',
               icon: 'fa fa-tags',
               uri: 'radio/byGenre'
-            },
-            {
-              service: 'webradio',
-              type: 'radio-category',
-              title: self.commandRouter.getI18nString('WEBRADIO.LOCAL_RADIOS'),
-              artist: '',
-              album: '',
-              icon: 'fa fa-map-marker',
-              uri: 'radio/tunein/local'
-            },
-            {
-              service: 'webradio',
-              type: 'radio-category',
-              title: self.commandRouter.getI18nString('WEBRADIO.BY_COUNTRY_RADIOS'),
-              artist: '',
-              album: '',
-              icon: 'fa fa-globe',
-              uri: 'radio/tunein/location'
-            },
+            },            
             {
               service: 'webradio',
               type: 'radio-category',
@@ -176,7 +180,19 @@ ControllerWebradio.prototype.listRoot = function () {
               album: '',
               icon: 'fa fa-diamond',
               uri: 'radio/tunein/best'
-            }/*,
+            },
+            {
+              service: 'webradio',
+              type: 'radio-category',
+              title: self.commandRouter.getI18nString('WEBRADIO.BY_COUNTRY_RADIOS'),
+              artist: '',
+              album: '',
+              icon: 'fa fa-globe',
+              uri: 'radio/tunein/location'
+            }
+            
+            
+            /*,
 
                         {
                             service: 'webradio',
@@ -229,7 +245,7 @@ ControllerWebradio.prototype.listRoot = function () {
       if (selection != undefined && selection.available) {
         selectionObject.title = selection.name;
         selectionObject.albumart = selection.albumart;
-        radioRoot.navigation.lists[0].items.unshift(selectionObject);
+        radioRoot.navigation.lists[1].items.unshift(selectionObject);
         defer.resolve(radioRoot);
       } else {
         defer.resolve(radioRoot);

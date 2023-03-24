@@ -71,11 +71,14 @@ app.use(function (req, res, next) {
   } else {
     if (fs.existsSync(volumioManifestUIDir) && !fs.existsSync(volumioManifestUIDisabledFile)){
       staticMiddlewareManifestUI(req, res, next);
+      process.env.CONDENSE_FILE_SOURCES_VISIBILITY = true;
     } else {
       if ((userAgent && userAgent.includes('volumiokiosk')) || process.env.VOLUMIO_3_UI === 'false') {
         staticMiddlewareUI2(req, res, next);
+        process.env.CONDENSE_FILE_SOURCES_VISIBILITY = false;
       } else {
         staticMiddlewareUI3(req, res, next);
+        process.env.CONDENSE_FILE_SOURCES_VISIBILITY = false;
       }
     }
   }  
