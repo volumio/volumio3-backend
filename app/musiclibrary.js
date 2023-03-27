@@ -104,10 +104,6 @@ function CoreMusicLibrary (commandRouter) {
   var sourcesJson = '/volumio/app/browsesources.json';
   if (fs.existsSync(sourcesJson)) {
     self.browseSources = fs.readJsonSync((sourcesJson), 'utf8', {throws: false});
-  } else if (process.env.CONDENSE_FILE_SOURCES_VISIBILITY) {
-    self.browseSources = [
-      {albumart: '/albumart?sourceicon=music_service/mpd/musiclibraryicon.png', name: 'Music Library', uri: 'music-library', plugin_type: 'music_service', plugin_name: 'mpd'},
-    ];
   } else {
     self.browseSources = [{albumart: '/albumart?sourceicon=music_service/mpd/favouritesicon.png', name: 'Favourites', uri: 'favourites', plugin_type: '', plugin_name: ''},
       {albumart: '/albumart?sourceicon=music_service/mpd/playlisticon.png', name: 'Playlists', uri: 'playlists', plugin_type: 'music_service', plugin_name: 'mpd'},
