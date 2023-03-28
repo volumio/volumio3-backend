@@ -610,7 +610,7 @@ var sendTinyArt = function (req, res, filePath) {
       res.removeHeader('Content-Type');
       res.removeHeader('X-Powered-By');
       res.setHeader('Connection', 'Keep-Alive');
-      res.setHeader('Keep-Alive', 'imeout=15, max=767');
+      res.setHeader('Keep-Alive', 'timeout=15, max=767');
       res.end(data, 'binary');
     }
   });
