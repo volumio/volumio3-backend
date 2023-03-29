@@ -30,7 +30,7 @@
     {"name": "TinkerAudio OnBoard", "multidevice": true, "devices":[{"number":0, "prettyname": "HDMI", "defaultmixer": ""}, {"number":1, "prettyname": "SPDIF", "defaultmixer": ""}, {"number":2, "prettyname": "Audio Jack Out", "defaultmixer": "Headphone,1"}],"type":"integrated"},
     {"name": "USB Audio OnBoard", "multidevice": true, "devices":[{"number":0, "prettyname": "HDMI", "defaultmixer": ""}, {"number":1, "prettyname": "SPDIF", "defaultmixer": ""}, {"number":2, "prettyname": "Audio Jack Out", "defaultmixer": "Headphone,1"}],"type":"integrated"},
     {"name": "rockchip", "multidevice": false, "prettyname": "HDMI", "defaultmixer": "","type":"integrated"},
-    {"name": "sun4i-codec", "multidevice": false, "prettyname": "Analog", "defaultmixer": "Power Amplifier", "type":"integrated"},
+    {"name": "sun4i-codec", "multidevice": false, "prettyname": "Onboard Analog", "defaultmixer": "Power Amplifier", "type":"integrated"},
     {"name": "snd-sun8i-i2s-dac", "multidevice": false, "prettyname": "I2S", "defaultmixer": "","type":"integrated"},
     {"name": "H3 Audio Codec", "multidevice": false, "prettyname": "Onboard Audio", "defaultmixer": "DAC","type":"integrated"},
     {"name": "HDA Intel HDMI", "multidevice": true, "devices":[{"number":3, "prettyname": "HDMI 0", "defaultmixer": ""},{"number":7, "prettyname": "HDMI 1", "defaultmixer": ""},{"number":8, "prettyname": "HDMI 2", "defaultmixer": ""},{"number":9, "prettyname": "HDMI 3", "defaultmixer": ""},{"number":10, "prettyname": "HDMI 4", "defaultmixer": ""}],"type":"integrated"},
