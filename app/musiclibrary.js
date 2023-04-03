@@ -340,6 +340,8 @@ CoreMusicLibrary.prototype.parseBrowseSource = function (curUri) {
     return self.commandRouter.executeOnPlugin('music_service', 'mpd', 'handleBrowseUri', curUri);
   } else if (curUri.startsWith('upnp')) {
     return self.commandRouter.executeOnPlugin('music_service', 'upnp_browser', 'handleBrowseUri', curUri);
+  } else if (curUri.startsWith('globalUri')) {
+    return this.handleGlobalUri(curUri);
   } else {
     for (var i in self.browseSources) {
       var source = self.browseSources[i];
@@ -677,3 +679,106 @@ CoreMusicLibrary.prototype.searchOnPlugin = function (plugin_type, plugin_name, 
 
   return defer.promise;
 };
+
+CoreMusicLibrary.prototype.handleGlobalUri = function (uri) {
+  var self = this;
+
+  // Artist handling
+  if (uri.startsWith('globalUriArtist')) {
+    return self.handleGlobalUriArtist(uri);
+  }
+
+  // Album handling
+  if (uri.startsWith('globalUriAlbum')) {
+    return self.handleGlobalUriAlbum(uri);
+  }
+
+  // Track handling
+  if (uri.startsWith('globalUriTrack')) {
+    return self.handleGlobalUriTrack(uri);
+  }
+};
+
+
+CoreMusicLibrary.prototype.handleGlobalUriArtist = function (uri) {
+  var self = this;
+  var defer = libQ.defer();
+
+  // URI STRUCTURE: globalUriArtist/artist
+
+  var artistToSearch = uri.split('/')[1];
+
+  // Todo: receive the global search item list
+  // Just redirect to one URI using the following algo:
+  // prioritize streaming services in high res
+  // prioritiza streaming services in low res
+  // if not found, go to local libraries
+
+
+  this.executeGlobalSearch({value:artistToSearch}).then(function(results){
+    defer.resolve(results)
+  })
+  return defer.promise;
+};
+
+CoreMusicLibrary.prototype.handleGlobalUriAlbum = function (uri) {
+  var self = this;
+
+  // URI STRUCTURE: globalUriArtist/artist/album
+
+};
+
+CoreMusicLibrary.prototype.handleGlobalUriTrack = function (uri) {
+  var self = this;
+
+  // URI STRUCTURE: globalUriArtist/artist/album/track
+
+};
+
+CoreMusicLibrary.prototype.executeGlobalSearch = function (data) {
+  var self = this;
+  var defer = libQ.defer();
+
+  var query = {'value': data.value, 'uri': data.uri};
+
+  var deferArray = [];
+  var executed = [];
+  var itemsList = [];
+
+  var searchableSources = self.getVisibleBrowseSources();
+  for (var i = 0; i < searchableSources.length; i++) {
+    var source = searchableSources[i];
+
+    var key = source.plugin_type + '_' + source.plugin_name;
+    if (executed.indexOf(key) == -1 && source.uri !== 'radio') {
+      executed.push(key);
+
+      var response;
+
+      response = self.searchOnPlugin(source.plugin_type, source.plugin_name, query);
+      if (response != undefined) {
+        deferArray.push(response);
+      }
+    }
+  }
+  libQ.all(deferArray)
+      .then(function (results) {
+        self.logger.info('All search sources collected, pushing search results');
+        for (var i = 0; i < results.length; i++) {
+          var resultBlock = results[i];
+          if (resultBlock && resultBlock.items && resultBlock.items.length) {
+            itemsList.concat(resultBlock.items);
+          }
+          if (i+1 == results.length-1) {
+
+            defer.resolve(itemsList);
+          }
+        }
+      }).fail(function (error) {
+        self.logger.error('Failed to execute global search: ' + error);
+        defer.reject(error);
+  });
+
+  return defer.promise;
+};
+
