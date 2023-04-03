@@ -1142,7 +1142,15 @@ PluginManager.prototype.checkPluginDependencies = function (folder) {
   
   self.logger.info('Check plugin dependencies');
 
+  // Check for native addons
   var package_json = self.getPackageJson(folder);
+  
+  try {
+    var native_modules = execSync(`find ${folder}/node_modules -name obj.target -prune -false -o -type f -name "*.node" 2>/dev/null`,{ encoding: 'utf8' }).split('\n').filter(n=>n);  
+  } catch (error) {
+    self.logger.error('Error finding native modules: ',error);
+    var native_modules = [];
+  }  
   
   if(package_json.engines) {
     
@@ -1151,12 +1159,17 @@ PluginManager.prototype.checkPluginDependencies = function (folder) {
         if(package_json.engines.node) {
             result.nodeCheck = true;
             var nodeVersion = semver.coerce(process.versions.node);
+            var pluginNodeVersion = semver.coerce(package_json.engines.node);
             if(nodeVersion === null) {
                 result.success = 'warn';
                 result.message += 'Current Node version cannot be detected. ';
             } else if(!semver.satisfies(nodeVersion, package_json.engines.node)) {
                 result.success = 'failed';
                 result.message += 'Node version ' + nodeVersion + ' not usable with plugin. ';
+            } else if(native_modules.length > 0 && nodeVersion.major !== pluginNodeVersion.major) {
+                self.logger.warn(`Plugin ${package_json.name} has native modules version miss match! Current ${nodeVersion.major} != plugin ${pluginNodeVersion.major} effected modules:`,native_modules);
+                result.success = 'failed';
+                result.message += `Plugin has native addons ${pluginNodeVersion} which may not be usable with ${nodeVersion} `;
             }
         }
         
