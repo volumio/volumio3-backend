@@ -711,12 +711,13 @@ CoreMusicLibrary.prototype.handleGlobalUriArtist = function (uri) {
   this.executeGlobalSearch({value:artistToSearch}).then(function(results){
     for (var i in results) {
       if (self.matchArtist(artistToSearch, results[i])) {
+        found = true;
         self.executeBrowseSource(results[i].uri).then((data)=>{
-          found = true;
           defer.resolve(data);
-          // Return
-          results.length = index + 1;
         })
+        if (found) {
+          break;
+        }
       }
     }
     if (!found) {
@@ -746,7 +747,7 @@ CoreMusicLibrary.prototype.handleGlobalUriAlbum = function (uri) {
   // URI STRUCTURE: globalUriArtist/artist/album
   var artistToSearch = uri.split('/')[1];
   var albumToSearch = uri.split('/')[2];
-  var searchString = albumToSearch;
+  var searchString = artistToSearch + ' ' + albumToSearch;
 
   this.executeGlobalSearch({value:searchString}).then(function(results){
     for (var i in results) {
@@ -754,9 +755,10 @@ CoreMusicLibrary.prototype.handleGlobalUriAlbum = function (uri) {
         found = true;
         self.executeBrowseSource(results[i].uri).then((data)=>{
           defer.resolve(data);
-          // Return
-          results.length = index + 1;
         })
+        if (found) {
+          break;
+        }
       }
     }
     if (!found) {
@@ -786,35 +788,30 @@ CoreMusicLibrary.prototype.handleGlobalUriTrack = function (uri) {
   var defer = libQ.defer();
   var found = false;
 
-  // URI STRUCTURE: globalUriArtist/artist/album/track
+  // URI STRUCTURE: globalUriArtist/artist/track
   var artistToSearch = uri.split('/')[1];
-  var albumToSearch = uri.split('/')[2];
-  var trackToSearch = uri.split('/')[3];
-  var searchString = trackToSearch;
+  var trackToSearch = uri.split('/')[2];
+  var searchString = artistToSearch + ' ' + trackToSearch;
 
   this.executeGlobalSearch({value:searchString}).then(function(results){
     for (var i in results) {
-      if (self.matchTrack(artistToSearch, albumToSearch, trackToSearch, results[i])) {
+      if (self.matchTrack(artistToSearch, trackToSearch, results[i])) {
         found = true;
-        self.executeBrowseSource(results[i].uri).then((data)=>{
-          defer.resolve(data);
-          // Return
-          results.length = index + 1;
-        })
+        defer.resolve(results[i]);
+        break;
       }
     }
     if (!found) {
-      defer.resolve({})
+      defer.resolve({});
     }
   })
   return defer.promise;
 };
 
-CoreMusicLibrary.prototype.matchTrack = function (artistToSearch, albumToSearch, trackToSearch, item) {
+CoreMusicLibrary.prototype.matchTrack = function (artistToSearch, trackToSearch, item) {
   var self = this;
 
   var artist = item.artist || 'undefined';
-  var album = item.album || 'undefined';
   var track = item.title || 'undefined';
 
   if (item.type !== 'song') {
@@ -822,7 +819,6 @@ CoreMusicLibrary.prototype.matchTrack = function (artistToSearch, albumToSearch,
   }
 
   if (artist.toLowerCase() ===  artistToSearch.toLowerCase()
-      && album.toLowerCase() === albumToSearch.toLowerCase()
       && track.toLowerCase() === trackToSearch.toLowerCase()) {
     return true;
   }
