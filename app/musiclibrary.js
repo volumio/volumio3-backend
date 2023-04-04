@@ -703,27 +703,24 @@ CoreMusicLibrary.prototype.handleGlobalUri = function (uri) {
 CoreMusicLibrary.prototype.handleGlobalUriArtist = function (uri) {
   var self = this;
   var defer = libQ.defer();
+  var found = false;
 
   // URI STRUCTURE: globalUriArtist/artist
-
   var artistToSearch = uri.split('/')[1];
-
-  // Todo: receive the global search item list
-  // Just redirect to one URI using the following algo:
-  // prioritize streaming services in high res
-  // prioritiza streaming services in low res
-  // if not found, go to local libraries
-
 
   this.executeGlobalSearch({value:artistToSearch}).then(function(results){
     for (var i in results) {
       if (self.matchArtist(artistToSearch, results[i])) {
         self.executeBrowseSource(results[i].uri).then((data)=>{
+          found = true;
           defer.resolve(data);
           // Return
           results.length = index + 1;
         })
       }
+    }
+    if (!found) {
+      defer.resolve({})
     }
   })
   return defer.promise;
@@ -738,22 +735,97 @@ CoreMusicLibrary.prototype.matchArtist = function (artistToSearch, item) {
   } else {
     return false;
   }
-
 };
 
 
 CoreMusicLibrary.prototype.handleGlobalUriAlbum = function (uri) {
   var self = this;
+  var defer = libQ.defer();
+  var found = false;
 
   // URI STRUCTURE: globalUriArtist/artist/album
+  var artistToSearch = uri.split('/')[1];
+  var albumToSearch = uri.split('/')[2];
+  var searchString = albumToSearch;
 
+  this.executeGlobalSearch({value:searchString}).then(function(results){
+    for (var i in results) {
+      if (self.matchAlbum(artistToSearch, albumToSearch, results[i])) {
+        found = true;
+        self.executeBrowseSource(results[i].uri).then((data)=>{
+          defer.resolve(data);
+          // Return
+          results.length = index + 1;
+        })
+      }
+    }
+    if (!found) {
+      defer.resolve({})
+    }
+  })
+  return defer.promise;
+};
+
+CoreMusicLibrary.prototype.matchAlbum = function (artistToSearch, albumToSearch, item) {
+  var self = this;
+
+  var artist = item.artist || 'undefined';
+  var album = item.album || item.title || 'undefined';
+
+  if (item.type === 'song') {
+    return false;
+  }
+
+  if (artist.toLowerCase() ===  artistToSearch.toLowerCase() && album.toLowerCase() === albumToSearch.toLowerCase()) {
+    return true;
+  }
 };
 
 CoreMusicLibrary.prototype.handleGlobalUriTrack = function (uri) {
   var self = this;
+  var defer = libQ.defer();
+  var found = false;
 
   // URI STRUCTURE: globalUriArtist/artist/album/track
+  var artistToSearch = uri.split('/')[1];
+  var albumToSearch = uri.split('/')[2];
+  var trackToSearch = uri.split('/')[3];
+  var searchString = trackToSearch;
 
+  this.executeGlobalSearch({value:searchString}).then(function(results){
+    for (var i in results) {
+      if (self.matchTrack(artistToSearch, albumToSearch, trackToSearch, results[i])) {
+        found = true;
+        self.executeBrowseSource(results[i].uri).then((data)=>{
+          defer.resolve(data);
+          // Return
+          results.length = index + 1;
+        })
+      }
+    }
+    if (!found) {
+      defer.resolve({})
+    }
+  })
+  return defer.promise;
+};
+
+CoreMusicLibrary.prototype.matchTrack = function (artistToSearch, albumToSearch, trackToSearch, item) {
+  var self = this;
+
+  var artist = item.artist || 'undefined';
+  var album = item.album || 'undefined';
+  var track = item.title || 'undefined';
+
+  if (item.type !== 'song') {
+    return false;
+  }
+
+  if (artist.toLowerCase() ===  artistToSearch.toLowerCase()
+      && album.toLowerCase() === albumToSearch.toLowerCase()
+      && track.toLowerCase() === trackToSearch.toLowerCase()) {
+    return true;
+  }
 };
 
 CoreMusicLibrary.prototype.executeGlobalSearch = function (data) {
