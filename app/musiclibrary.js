@@ -878,6 +878,8 @@ CoreMusicLibrary.prototype.getPriorityWeightsToItems = function (service) {
   // Lower is higher priority: 0 highest priority, 10 lowest priority
   // This privileges quality sources to be selected first
   // TODO Make configurable?
+  // TODO Add different weights? like album, resolution, etc
+  // in this case make sorting descending
 
   switch (service) {
     case 'mpd':
