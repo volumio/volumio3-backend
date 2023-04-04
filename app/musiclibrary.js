@@ -716,10 +716,31 @@ CoreMusicLibrary.prototype.handleGlobalUriArtist = function (uri) {
 
 
   this.executeGlobalSearch({value:artistToSearch}).then(function(results){
-    defer.resolve(results)
+    for (var i in results) {
+      if (self.matchArtist(artistToSearch, results[i])) {
+        self.executeBrowseSource(results[i].uri).then((data)=>{
+          defer.resolve(data);
+          // Return
+          results.length = index + 1;
+        })
+      }
+    }
   })
   return defer.promise;
 };
+
+CoreMusicLibrary.prototype.matchArtist = function (artistToSearch, item) {
+  var self = this;
+
+  var artist = item.artist || item.title;
+  if (artistToSearch.toLowerCase() === artist.toLowerCase()) {
+    return true;
+  } else {
+    return false;
+  }
+
+};
+
 
 CoreMusicLibrary.prototype.handleGlobalUriAlbum = function (uri) {
   var self = this;
@@ -748,13 +769,10 @@ CoreMusicLibrary.prototype.executeGlobalSearch = function (data) {
   var searchableSources = self.getVisibleBrowseSources();
   for (var i = 0; i < searchableSources.length; i++) {
     var source = searchableSources[i];
-
     var key = source.plugin_type + '_' + source.plugin_name;
     if (executed.indexOf(key) == -1 && source.uri !== 'radio') {
       executed.push(key);
-
       var response;
-
       response = self.searchOnPlugin(source.plugin_type, source.plugin_name, query);
       if (response != undefined) {
         deferArray.push(response);
@@ -764,13 +782,16 @@ CoreMusicLibrary.prototype.executeGlobalSearch = function (data) {
   libQ.all(deferArray)
       .then(function (results) {
         self.logger.info('All search sources collected, pushing search results');
+        results = _.flatten(results.filter(items => items));
         for (var i = 0; i < results.length; i++) {
-          var resultBlock = results[i];
-          if (resultBlock && resultBlock.items && resultBlock.items.length) {
-            itemsList.concat(resultBlock.items);
+          var itemsService = results[i].items[0].service;
+          var priorityScore = self.getPriorityWeightsToItems(itemsService);
+          if (results[i] && results[i].items) {
+            results[i].items.forEach(item=>item.priorityScore=priorityScore);
+            itemsList = itemsList.concat(results[i].items);
           }
-          if (i+1 == results.length-1) {
-
+          if (i+1 == results.length) {
+            itemsList = _.sortBy(itemsList, 'priorityScore');
             defer.resolve(itemsList);
           }
         }
@@ -782,3 +803,28 @@ CoreMusicLibrary.prototype.executeGlobalSearch = function (data) {
   return defer.promise;
 };
 
+CoreMusicLibrary.prototype.getPriorityWeightsToItems = function (service) {
+  var self = this;
+
+  // This function provides a priority weight to results based on which service it is from
+  // Lower is higher priority: 0 highest priority, 10 lowest priority
+  // This privileges quality sources to be selected first
+  // TODO Make configurable?
+
+  switch (service) {
+    case 'mpd':
+      return 0;
+      break;
+    case 'tidal':
+      return 5;
+      break;
+    case 'qobuz':
+      return 4;
+      break;
+    case 'spop':
+      return 6;
+      break;
+    default:
+      return 10;
+  }
+};
