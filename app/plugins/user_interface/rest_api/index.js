@@ -29,6 +29,7 @@ function interfaceApi (context) {
   // Listings
   api.get('/browse', this.browse.browseListing.bind(this.browse));
   api.get('/search', this.browse.listingSearch.bind(this.browse));
+  api.get('/superSearch', this.browse.listingSuperSearch.bind(this.browse));
   api.get('/listplaylists', this.browse.listPlaylists.bind(this.browse));
   api.get('/collectionstats', this.browse.getCollectionStats.bind(this.browse));
   api.get('/getzones', this.browse.getZones.bind(this.browse));

@@ -389,7 +389,7 @@ CoreMusicLibrary.prototype.applyBrowseFilters = function (data, filters) {
 
 CoreMusicLibrary.prototype.search = function (data) {
   var self = this;
-
+  
   var query = {};
   var defer = libQ.defer();
   var deferArray = [];
@@ -907,4 +907,26 @@ CoreMusicLibrary.prototype.getPriorityWeightsToItems = function (service) {
     default:
       return 10;
   }
+};
+
+CoreMusicLibrary.prototype.superSearch = function (data) {
+  var self = this;
+  var defer = libQ.defer();
+
+  // WIP FUNCTION
+  // ONCE WE RECEIVE DATA FROM SUPERSEARCH
+  // WE PICK A RANDOM ONE
+  // WE MATCH THE TRACK, ADD IT TO QUEUE AND PLAY
+  // THEN WE ADD THE REST OF TRACKS TO THE QUEUE
+
+  var query = {};
+  if (data && data.value) {
+    self.commandRouter.executeOnPlugin('miscellanea', 'metavolumio', 'superSearch', data);
+  } else {
+    defer.reject('Query value missing');
+  }
+
+
+
+  return defer.promise;
 };

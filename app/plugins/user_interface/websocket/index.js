@@ -461,6 +461,15 @@ function InterfaceWebUI (context) {
       });
     });
 
+    connWebSocket.on('superSearch', function (data) {
+      var selfConnWebSocket = this;
+      var returnedData = self.musicLibrary.superSearch(data);
+      returnedData.then(function (result) {
+        self.lastPushedBrowseLibraryObject = result;
+        selfConnWebSocket.emit('pushBrowseLibrary', result);
+      });
+    });
+
     connWebSocket.on('goTo', function (data) {
       var selfConnWebSocket = this;
 
