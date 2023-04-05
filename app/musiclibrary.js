@@ -731,7 +731,8 @@ CoreMusicLibrary.prototype.matchArtist = function (artistToSearch, item) {
   var self = this;
 
   var artist = item.artist || item.title;
-  if (artistToSearch.toLowerCase() === artist.toLowerCase()) {
+
+  if (self.isEqualString(artistToSearch, artist)) {
     return true;
   } else {
     return false;
@@ -778,7 +779,7 @@ CoreMusicLibrary.prototype.matchAlbum = function (artistToSearch, albumToSearch,
     return false;
   }
 
-  if (artist.toLowerCase() ===  artistToSearch.toLowerCase() && album.toLowerCase() === albumToSearch.toLowerCase()) {
+  if (self.isEqualString(artist, artistToSearch) && self.isEqualString(album, albumToSearch)) {
     return true;
   }
 };
@@ -818,9 +819,18 @@ CoreMusicLibrary.prototype.matchTrack = function (artistToSearch, trackToSearch,
     return false;
   }
 
-  if (artist.toLowerCase() ===  artistToSearch.toLowerCase()
-      && track.toLowerCase() === trackToSearch.toLowerCase()) {
+  if (self.isEqualString(artist, artistToSearch) && self.isEqualString(track, trackToSearch)) {
     return true;
+  }
+};
+
+CoreMusicLibrary.prototype.isEqualString = function (a, b) {
+  var self = this;
+
+  if (a.toLowerCase().trim() === b.toLowerCase().trim()) {
+    return true;
+  } else {
+    return false;
   }
 };
 
