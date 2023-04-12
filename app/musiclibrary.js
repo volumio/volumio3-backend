@@ -913,20 +913,25 @@ CoreMusicLibrary.prototype.superSearch = function (data) {
   var self = this;
   var defer = libQ.defer();
 
-  // WIP FUNCTION
-  // ONCE WE RECEIVE DATA FROM SUPERSEARCH
-  // WE PICK A RANDOM ONE
-  // WE MATCH THE TRACK, ADD IT TO QUEUE AND PLAY
-  // THEN WE ADD THE REST OF TRACKS TO THE QUEUE
-
-  var query = {};
   if (data && data.value) {
-    self.commandRouter.executeOnPlugin('miscellanea', 'metavolumio', 'superSearch', data);
+    var search = self.commandRouter.executeOnPlugin('miscellanea', 'metavolumio', 'superSearch', data);
+    search.then((searchResult) => {
+      if (searchResult && searchResult.trackList) {
+        var trackList = [];
+        searchResult.trackList.forEach((track) => {
+          track['uri'] = "globalUriTrack/" +  track.artist + "/" + track.track;
+          track.title = track.track;
+          trackList.push(track);
+        }) 
+        
+        var result = {'navigation': {'lists': [{'availableListViews': ["list"], 'items': trackList}]}}
+        defer.resolve(result);
+      }
+      defer.reject('No results');
+    })
   } else {
     defer.reject('Query value missing');
   }
-
-
 
   return defer.promise;
 };
