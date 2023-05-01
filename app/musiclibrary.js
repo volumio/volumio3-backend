@@ -797,8 +797,13 @@ CoreMusicLibrary.prototype.handleGlobalUriTrack = function (uri) {
   this.executeGlobalSearch({value:searchString}).then(function(results){
     for (var i in results) {
       if (self.matchTrack(artistToSearch, trackToSearch, results[i])) {
-        found = true;
-        defer.resolve(results[i]);
+        found = true;    
+        self.commandRouter.replaceAndPlay(results[i])
+        .then(function () {
+          defer.resolve({});
+        }).fail(function (err) {
+          defer.reject(new Error(err));
+        });
         break;
       }
     }
@@ -917,6 +922,10 @@ CoreMusicLibrary.prototype.superSearch = function (data) {
     var search = self.commandRouter.executeOnPlugin('miscellanea', 'metavolumio', 'superSearch', data);
     search.then((searchResult) => {
       if (searchResult && searchResult.trackList) {
+        if (data.instantPlay) {
+          self.handleGlobalUriTrack("globalUriTrack/" +  searchResult.trackList[0].artist + "/" + searchResult.trackList[0].track);
+        } 
+
         var trackList = [];
         searchResult.trackList.forEach((track) => {
           track['uri'] = "globalUriTrack/" +  track.artist + "/" + track.track;
