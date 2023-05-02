@@ -930,6 +930,12 @@ CoreMusicLibrary.prototype.superSearch = function (data) {
         searchResult.trackList.forEach((track) => {
           track['uri'] = "globalUriTrack/" +  track.artist + "/" + track.track;
           track.title = track.track;
+          track.type = "song";
+          track.albumart = this.commandRouter.executeOnPlugin('miscellanea', 'albumart', 'getAlbumArt',
+	        {
+              artist: track.artist,
+              album: track.album
+	        });
           trackList.push(track);
         }) 
         
