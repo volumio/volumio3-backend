@@ -76,6 +76,27 @@ RESTApiBrowse.prototype.listingSearch = function (req, res) {
   });
 };
 
+RESTApiBrowse.prototype.listingSuperSearch = function (req, res) {
+  var query;
+  var searchUri = '/';
+
+  if (req.query && req.query.query) {
+    query = decodeURIComponent(req.query.query);
+    if (req.query.uri) {
+      searchUri = req.query.uri;
+    }
+  } else {
+    return res.json({'error': 'No search query provided'});
+  }
+
+  var searchQuery = this.commandRouter.musicLibrary.superSearch({'value': query, 'uri': searchUri});
+  searchQuery.then(function (result) {
+    res.json(result);
+  }).fail(function () {
+    res.json({'error': 'No Result'});
+  });
+};
+
 RESTApiBrowse.prototype.listPlaylists = function (req, res) {
   var self = this;
   var response = self.commandRouter.playListManager.listPlaylist();

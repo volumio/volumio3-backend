@@ -1526,10 +1526,15 @@ ControllerMpd.prototype.search = function (query) {
   var self = this;
   var defer = libQ.defer();
   var safeValue = query.value.replace(/"/g, '\\"');
+  var splittedSearch = safeValue.split(' ');
 
   var commandArtist = 'search artist ' + ' "' + safeValue + '"';
   var commandAlbum = 'search album ' + ' "' + safeValue + '"';
   var commandSong = 'search title ' + ' "' + safeValue + '"';
+  var commandAny = 'search';
+  for (var i in splittedSearch) {
+    commandAny = commandAny + ' any ' +  '"' + splittedSearch[i] + '"';
+  }
   var artistcount = 0;
   var albumcount = 0;
   var trackcount = 0;
@@ -1572,7 +1577,7 @@ ControllerMpd.prototype.search = function (query) {
   });
   // ALBUM
   self.mpdReady.then(function () {
-    self.clientMpd.sendCommand(cmd(commandAlbum, []), function (err, msg) {
+    self.clientMpd.sendCommand(cmd(commandAny, []), function (err, msg) {
       var subList = [];
 
       if (msg) {
@@ -1609,7 +1614,7 @@ ControllerMpd.prototype.search = function (query) {
   });
   // SONG
   self.mpdReady.then(function () {
-    self.clientMpd.sendCommand(cmd(commandSong, []), function (err, msg) {
+    self.clientMpd.sendCommand(cmd(commandAny, []), function (err, msg) {
       var subList = [];
       if (msg) {
         var lines = msg.split('\n');

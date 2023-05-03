@@ -340,6 +340,8 @@ CoreMusicLibrary.prototype.parseBrowseSource = function (curUri) {
     return self.commandRouter.executeOnPlugin('music_service', 'mpd', 'handleBrowseUri', curUri);
   } else if (curUri.startsWith('upnp')) {
     return self.commandRouter.executeOnPlugin('music_service', 'upnp_browser', 'handleBrowseUri', curUri);
+  } else if (curUri.startsWith('globalUri')) {
+    return this.handleGlobalUri(curUri);
   } else {
     for (var i in self.browseSources) {
       var source = self.browseSources[i];
@@ -387,7 +389,7 @@ CoreMusicLibrary.prototype.applyBrowseFilters = function (data, filters) {
 
 CoreMusicLibrary.prototype.search = function (data) {
   var self = this;
-
+  
   var query = {};
   var defer = libQ.defer();
   var deferArray = [];
@@ -674,6 +676,277 @@ CoreMusicLibrary.prototype.searchOnPlugin = function (plugin_type, plugin_name, 
       defer.resolve(null);
     }
   }, searchTimeoutMS);
+
+  return defer.promise;
+};
+
+CoreMusicLibrary.prototype.handleGlobalUri = function (uri) {
+  var self = this;
+
+  // Artist handling
+  if (uri.startsWith('globalUriArtist')) {
+    return self.handleGlobalUriArtist(uri);
+  }
+
+  // Album handling
+  if (uri.startsWith('globalUriAlbum')) {
+    return self.handleGlobalUriAlbum(uri);
+  }
+
+  // Track handling
+  if (uri.startsWith('globalUriTrack')) {
+    return self.handleGlobalUriTrack(uri);
+  }
+};
+
+
+CoreMusicLibrary.prototype.handleGlobalUriArtist = function (uri) {
+  var self = this;
+  var defer = libQ.defer();
+  var found = false;
+
+  // URI STRUCTURE: globalUriArtist/artist
+  var artistToSearch = uri.split('/')[1];
+
+  this.executeGlobalSearch({value:artistToSearch}).then(function(results){
+    for (var i in results) {
+      if (self.matchArtist(artistToSearch, results[i])) {
+        found = true;
+        self.executeBrowseSource(results[i].uri).then((data)=>{
+          defer.resolve(data);
+        })
+        if (found) {
+          break;
+        }
+      }
+    }
+    if (!found) {
+      defer.resolve({})
+    }
+  })
+  return defer.promise;
+};
+
+CoreMusicLibrary.prototype.matchArtist = function (artistToSearch, item) {
+  var self = this;
+
+  var artist = item.artist || item.title;
+
+  if (self.isEqualString(artistToSearch, artist)) {
+    return true;
+  } else {
+    return false;
+  }
+};
+
+
+CoreMusicLibrary.prototype.handleGlobalUriAlbum = function (uri) {
+  var self = this;
+  var defer = libQ.defer();
+  var found = false;
+
+  // URI STRUCTURE: globalUriArtist/artist/album
+  var artistToSearch = uri.split('/')[1];
+  var albumToSearch = uri.split('/')[2];
+  var searchString = artistToSearch + ' ' + albumToSearch;
+
+  this.executeGlobalSearch({value:searchString}).then(function(results){
+    for (var i in results) {
+      if (self.matchAlbum(artistToSearch, albumToSearch, results[i])) {
+        found = true;
+        self.executeBrowseSource(results[i].uri).then((data)=>{
+          defer.resolve(data);
+        })
+        if (found) {
+          break;
+        }
+      }
+    }
+    if (!found) {
+      defer.resolve({})
+    }
+  })
+  return defer.promise;
+};
+
+CoreMusicLibrary.prototype.matchAlbum = function (artistToSearch, albumToSearch, item) {
+  var self = this;
+
+  var artist = item.artist || 'undefined';
+  var album = item.album || item.title || 'undefined';
+
+  if (item.type === 'song') {
+    return false;
+  }
+
+  if (self.isEqualString(artist, artistToSearch) && self.isEqualString(album, albumToSearch)) {
+    return true;
+  }
+};
+
+CoreMusicLibrary.prototype.handleGlobalUriTrack = function (uri) {
+  var self = this;
+  var defer = libQ.defer();
+  var found = false;
+
+  // URI STRUCTURE: globalUriArtist/artist/track
+  var artistToSearch = uri.split('/')[1];
+  var trackToSearch = uri.split('/')[2];
+  var searchString = artistToSearch + ' ' + trackToSearch;
+
+  this.executeGlobalSearch({value:searchString}).then(function(results){
+    for (var i in results) {
+      if (self.matchTrack(artistToSearch, trackToSearch, results[i])) {
+        found = true;    
+        self.commandRouter.replaceAndPlay(results[i])
+        .then(function () {
+          defer.resolve({});
+        }).fail(function (err) {
+          defer.reject(new Error(err));
+        });
+        break;
+      }
+    }
+    if (!found) {
+      defer.resolve({});
+    }
+  })
+  return defer.promise;
+};
+
+CoreMusicLibrary.prototype.matchTrack = function (artistToSearch, trackToSearch, item) {
+  var self = this;
+
+  var artist = item.artist || 'undefined';
+  var track = item.title || 'undefined';
+
+  if (item.type !== 'song') {
+    return false;
+  }
+
+  if (self.isEqualString(artist, artistToSearch) && self.isEqualString(track, trackToSearch)) {
+    return true;
+  }
+};
+
+CoreMusicLibrary.prototype.isEqualString = function (a, b) {
+  var self = this;
+
+  if (a.toLowerCase().trim() === b.toLowerCase().trim()) {
+    return true;
+  } else {
+    return false;
+  }
+};
+
+CoreMusicLibrary.prototype.executeGlobalSearch = function (data) {
+  var self = this;
+  var defer = libQ.defer();
+
+  var query = {'value': data.value, 'uri': data.uri};
+
+  var deferArray = [];
+  var executed = [];
+  var itemsList = [];
+
+  var searchableSources = self.getVisibleBrowseSources();
+  for (var i = 0; i < searchableSources.length; i++) {
+    var source = searchableSources[i];
+    var key = source.plugin_type + '_' + source.plugin_name;
+    if (executed.indexOf(key) == -1 && source.uri !== 'radio') {
+      executed.push(key);
+      var response;
+      response = self.searchOnPlugin(source.plugin_type, source.plugin_name, query);
+      if (response != undefined) {
+        deferArray.push(response);
+      }
+    }
+  }
+  libQ.all(deferArray)
+      .then(function (results) {
+        self.logger.info('All search sources collected, pushing search results');
+        results = _.flatten(results.filter(items => items));
+        for (var i = 0; i < results.length; i++) {
+          var itemsService = results[i].items[0].service;
+          var priorityScore = self.getPriorityWeightsToItems(itemsService);
+          if (results[i] && results[i].items) {
+            results[i].items.forEach(item=>item.priorityScore=priorityScore);
+            itemsList = itemsList.concat(results[i].items);
+          }
+          if (i+1 == results.length) {
+            itemsList = _.sortBy(itemsList, 'priorityScore');
+            defer.resolve(itemsList);
+          }
+        }
+      }).fail(function (error) {
+        self.logger.error('Failed to execute global search: ' + error);
+        defer.reject(error);
+  });
+
+  return defer.promise;
+};
+
+CoreMusicLibrary.prototype.getPriorityWeightsToItems = function (service) {
+  var self = this;
+
+  // This function provides a priority weight to results based on which service it is from
+  // Lower is higher priority: 0 highest priority, 10 lowest priority
+  // This privileges quality sources to be selected first
+  // TODO Make configurable?
+  // TODO Add different weights? like album, resolution, etc
+  // in this case make sorting descending
+
+  switch (service) {
+    case 'mpd':
+      return 0;
+      break;
+    case 'tidal':
+      return 5;
+      break;
+    case 'qobuz':
+      return 4;
+      break;
+    case 'spop':
+      return 6;
+      break;
+    default:
+      return 10;
+  }
+};
+
+CoreMusicLibrary.prototype.superSearch = function (data) {
+  var self = this;
+  var defer = libQ.defer();
+
+  if (data && data.value) {
+    var search = self.commandRouter.executeOnPlugin('miscellanea', 'metavolumio', 'superSearch', data);
+    search.then((searchResult) => {
+      if (searchResult && searchResult.trackList) {
+        if (data.instantPlay) {
+          self.handleGlobalUriTrack("globalUriTrack/" +  searchResult.trackList[0].artist + "/" + searchResult.trackList[0].track);
+        } 
+
+        var trackList = [];
+        searchResult.trackList.forEach((track) => {
+          track['uri'] = "globalUriTrack/" +  track.artist + "/" + track.track;
+          track.title = track.track;
+          track.type = "song";
+          track.albumart = this.commandRouter.executeOnPlugin('miscellanea', 'albumart', 'getAlbumArt',
+	        {
+              artist: track.artist,
+              album: track.album
+	        });
+          trackList.push(track);
+        }) 
+        
+        var result = {'navigation': {'lists': [{'availableListViews': ["list"], 'items': trackList}]}}
+        defer.resolve(result);
+      }
+      defer.reject('No results');
+    })
+  } else {
+    defer.reject('Query value missing');
+  }
 
   return defer.promise;
 };
