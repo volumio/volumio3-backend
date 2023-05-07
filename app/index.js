@@ -2379,3 +2379,20 @@ CoreCommandRouter.prototype.addTracksForInfinityPlayback = function (currentLast
   } catch(e) {}
 };
 
+CoreCommandRouter.prototype.getInfinityPlayback = function () {
+  var self = this;
+
+  try {
+    var metaVolumioPlugin = self.pluginManager.getPlugin('miscellanea', 'metavolumio');
+    return metaVolumioPlugin.getInfinityPlayback();
+  } catch(e) {}
+};
+
+CoreCommandRouter.prototype.setInfinityPlayback = function (data) {
+  var self = this;
+
+  try {
+    var metaVolumioPlugin = self.pluginManager.getPlugin('miscellanea', 'metavolumio');
+    return metaVolumioPlugin.setInfinityPlayback(data);
+  } catch(e) {}
+};

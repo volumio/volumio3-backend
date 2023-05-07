@@ -23,6 +23,7 @@ var dsd_autovolume = false;
 var singleBrowse = false;
 var startup = true;
 var stickingMusicLibrary = false;
+var collectionStats = {};
 
 // Define the ControllerMpd class
 module.exports = ControllerMpd;
@@ -675,6 +676,7 @@ ControllerMpd.prototype.mpdEstablish = function () {
       startup = false;
       self.checkUSBDrives();
       self.listAlbums();
+      self.getMyCollectionStats();
     }
   });
 
@@ -737,6 +739,7 @@ ControllerMpd.prototype.mpdEstablish = function () {
     memoryCache.del('cacheAlbumList', function (err) {});
     // Store new AlbumList in cache
     self.listAlbums();
+    self.getMyCollectionStats();
     self.logger.info('MPD Database updated - AlbumList cache refreshed');
   });
 
@@ -2818,6 +2821,7 @@ ControllerMpd.prototype.getMyCollectionStats = function () {
               songs: songsCount,
               playtime: playTimeString
             };
+            collectionStats = response;
           }
 
           defer.resolve(response);
@@ -3936,6 +3940,14 @@ ControllerMpd.prototype.checkIfSoxCanBeMultithread = function () {
         return false;
       }
     }
+
+};
+
+ControllerMpd.prototype.getMyCollectionStatsObject = function () {
+  var self = this;
+
+  // This function is designed to retrieve collection stats immediately without the need for promise resolve
+  return collectionStats;
 
 };
 

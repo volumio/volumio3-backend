@@ -1941,6 +1941,21 @@ function InterfaceWebUI (context) {
 
       selfConnWebSocket.emit('pushBrowseLibrary', self.lastPushedBrowseLibraryObject);
     });
+
+    connWebSocket.on('getInfinityPlayback', function () {
+      var selfConnWebSocket = this;
+
+      var returnedData = self.commandRouter.executeOnPlugin('miscellanea', 'metavolumio', 'getInfinityPlayback', '');
+      selfConnWebSocket.emit('pushInfinityPlayback', returnedData);
+    });
+
+    connWebSocket.on('setInfinityPlayback', function (data) {
+      var selfConnWebSocket = this;
+
+      self.commandRouter.executeOnPlugin('miscellanea', 'metavolumio', 'setInfinityPlayback', data);
+      var returnedData = self.commandRouter.executeOnPlugin('miscellanea', 'metavolumio', 'getInfinityPlayback', '');
+      selfConnWebSocket.emit('pushInfinityPlayback', returnedData);
+    });
   });
 }
 
