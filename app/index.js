@@ -2369,3 +2369,13 @@ CoreCommandRouter.prototype.getDSPSignalPathElements = function () {
 
   return self.dspSignalPathElements;
 };
+
+CoreCommandRouter.prototype.addTracksForInfinityPlayback = function (currentLastTrack) {
+  var self = this;
+
+  try {
+    var metaVolumioPlugin = self.pluginManager.getPlugin('miscellanea', 'metavolumio');
+    return metaVolumioPlugin.addTracksForInfinityPlayback(currentLastTrack);
+  } catch(e) {}
+};
+

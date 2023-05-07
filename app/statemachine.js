@@ -366,15 +366,18 @@ CoreStateMachine.prototype.startPlaybackTimer = function (nStartTime) {
   this.playbackStart = Date.now();
 
   var trackBlock = this.getTrack(this.currentPosition);
-
   if (trackBlock) {
     this.currentSongDuration = trackBlock.duration * 1000;
 
     this.askedForPrefetch = false;
     this.simulateStopStartDone = false;
     this.prefetchDone = false;
-
     setTimeout(this.increasePlaybackTimer.bind(this), 250);
+
+    var isLastTrack = (this.playQueue.arrayQueue.length - 1) == this.currentPosition;
+    if (isLastTrack) {
+      this.commandRouter.addTracksForInfinityPlayback(trackBlock);
+    }
   }
   return libQ.resolve();
 };
