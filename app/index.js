@@ -1215,6 +1215,14 @@ CoreCommandRouter.prototype.broadcastMessage = function (msg, value) {
   );
 };
 
+CoreCommandRouter.prototype.emitMessageToSpecificClient = function (id, msg, value) {
+  var self = this;
+  this.pushConsoleMessage('CoreCommandRouter::emitMessageToSpecificClient ' + msg);
+
+  var plugin = this.pluginManager.getPlugin('user_interface', 'websocket');
+  plugin.emitMessageToSpecificClient(id, msg, value);
+};
+
 CoreCommandRouter.prototype.pushMultiroomDevices = function (data) {
   var self = this;
 

@@ -319,7 +319,7 @@ CoreMusicLibrary.prototype.executeBrowseSource = function (curUri, filters) {
           promise.reject(error);
         });
     } catch (e) {
-      self.logger.error('Failed to execute browseSource: ' + e);
+      self.logger.error('Failed to execute browseSource, failure: ' + e);
     }
   } else {
     promise.resolve({});
@@ -797,13 +797,8 @@ CoreMusicLibrary.prototype.handleGlobalUriTrack = function (uri) {
   this.executeGlobalSearch({value:searchString}).then(function(results){
     for (var i in results) {
       if (self.matchTrack(artistToSearch, trackToSearch, results[i])) {
-        found = true;    
-        self.commandRouter.replaceAndPlay(results[i])
-        .then(function () {
-          defer.resolve({});
-        }).fail(function (err) {
-          defer.reject(new Error(err));
-        });
+        found = true;
+        defer.resolve(results[i]);
         break;
       }
     }
@@ -917,36 +912,55 @@ CoreMusicLibrary.prototype.getPriorityWeightsToItems = function (service) {
 CoreMusicLibrary.prototype.superSearch = function (data) {
   var self = this;
   var defer = libQ.defer();
-
   if (data && data.value) {
     var search = self.commandRouter.executeOnPlugin('miscellanea', 'metavolumio', 'superSearch', data);
     search.then((searchResult) => {
-      if (searchResult && searchResult.trackList) {
-        if (data.instantPlay) {
-          self.handleGlobalUriTrack("globalUriTrack/" +  searchResult.trackList[0].artist + "/" + searchResult.trackList[0].track);
-        } 
-
+      if (searchResult && searchResult.length) {
         var trackList = [];
-        searchResult.trackList.forEach((track) => {
-          track['uri'] = "globalUriTrack/" +  track.artist + "/" + track.track;
-          track.title = track.track;
-          track.type = "song";
-          track.albumart = this.commandRouter.executeOnPlugin('miscellanea', 'albumart', 'getAlbumArt',
-	        {
-              artist: track.artist,
-              album: track.album
-	        });
-          trackList.push(track);
-        }) 
-        
-        var result = {'navigation': {'lists': [{'availableListViews': ["list"], 'items': trackList}]}}
-        defer.resolve(result);
+        var firstTrackPlayed = false;
+        var result = {'navigation': {'isSearchResult': true, 'lists': [{'availableListViews': ["list"], 'items': trackList}]}};
+        for (var i in searchResult) {
+          self.handleGlobalUriTrack(searchResult[i].uri).then((matchedTrack)=>{
+            if (matchedTrack && matchedTrack.uri) {
+              trackList.push(matchedTrack);
+              self.commandRouter.emitMessageToSpecificClient(data.socketId, 'pushBrowseLibrary', result);
+              if (data.instantPlay) {
+                if (firstTrackPlayed === false) {
+                  firstTrackPlayed = true;
+                  self.commandRouter.replaceAndPlay(matchedTrack);
+                } else {
+                  self.commandRouter.addQueueItems([matchedTrack]);
+                }
+              }
+            }
+          })
+        }
+      } else {
+        defer.reject('No results');
+        self.pushNullSearchResult(data);
       }
+    }).fail((error) => {
+      self.logger.error('Supersearch failed for query: ' + JSON.stringify(data));
       defer.reject('No results');
-    })
+      self.pushNullSearchResult(data);
+    });
   } else {
     defer.reject('Query value missing');
   }
 
   return defer.promise;
+};
+
+CoreMusicLibrary.prototype.pushNullSearchResult = function (data) {
+  var self = this;
+
+  var searchResult = {
+    'navigation': {
+      'isSearchResult': true,
+      'lists': []
+    }
+  };
+  var noResultTitle = {'type': 'title', 'title': self.commandRouter.getI18nString('COMMON.NO_RESULTS'), 'availableListViews': ['list'], 'items': []};
+  searchResult.navigation.lists[0] = noResultTitle;
+  self.commandRouter.emitMessageToSpecificClient(data.socketId, 'pushBrowseLibrary', searchResult);
 };

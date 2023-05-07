@@ -463,6 +463,9 @@ function InterfaceWebUI (context) {
 
     connWebSocket.on('superSearch', function (data) {
       var selfConnWebSocket = this;
+      if (connWebSocket.id) {
+        data.socketId = connWebSocket.id;
+      }
       var returnedData = self.musicLibrary.superSearch(data);
       returnedData.then(function (result) {
         self.lastPushedBrowseLibraryObject = result;
@@ -2088,6 +2091,11 @@ InterfaceWebUI.prototype.broadcastMessage = function (emit, payload) {
   } else {
     this.libSocketIO.sockets.emit(emit, payload);
   }
+};
+
+InterfaceWebUI.prototype.emitMessageToSpecificClient = function (id, emit, payload) {
+
+  this.libSocketIO.to(id).emit(emit, payload);
 };
 
 InterfaceWebUI.prototype.logClientConnection = function (client) {
