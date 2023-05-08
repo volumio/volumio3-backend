@@ -862,21 +862,20 @@ CoreMusicLibrary.prototype.executeGlobalSearch = function (data) {
         self.logger.info('All search sources collected, pushing search results');
         results = _.flatten(results.filter(items => items));
         for (var i = 0; i < results.length; i++) {
-          var itemsService = results[i].items[0].service;
-          var priorityScore = self.getPriorityWeightsToItems(itemsService);
-          if (results[i] && results[i].items) {
-            results[i].items.forEach(item=>item.priorityScore=priorityScore);
-            itemsList = itemsList.concat(results[i].items);
-          }
-          if (i+1 == results.length) {
-            itemsList = _.sortBy(itemsList, 'priorityScore');
-            defer.resolve(itemsList);
+          if (results[i] && results[i].items && results[i].items[0] && results[i].items[0].service) {
+            var itemsService = results[i].items[0].service;
+            var priorityScore = self.getPriorityWeightsToItems(itemsService);
+            if (results[i] && results[i].items) {
+              results[i].items.forEach(item=>item.priorityScore=priorityScore);
+              itemsList = itemsList.concat(results[i].items);
+            }
+            if (i+1 == results.length) {
+              itemsList = _.sortBy(itemsList, 'priorityScore');
+              defer.resolve(itemsList);
+            }
           }
         }
-      }).fail(function (error) {
-        self.logger.error('Failed to execute global search: ' + error);
-        defer.reject(error);
-  });
+      })
 
   return defer.promise;
 };
