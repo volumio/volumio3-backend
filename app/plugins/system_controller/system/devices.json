@@ -12,5 +12,7 @@
   {"name":"BBB", "cpuid":"GenericAM33XX(FlattenedDeviceTree)"},
   {"name":"Tinkerboard", "cpuid":"Rockchip(DeviceTree)"},
   {"name":"NanoPi NEO2", "cpuid":"Allwinnersun50iw2Family"},
+  {"name":"BananaPi M1", "cpuid":"Allwinner sun7i (A20) Family"},
+  {"name":"OrangePi", "cpuid":"Allwinner sun8i Family"},
   {"name":"Amlogic", "cpuid":"Amlogic"}
 ]}
