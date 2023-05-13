@@ -674,9 +674,11 @@ ControllerMpd.prototype.mpdEstablish = function () {
   self.mpdReady.then(function () {
     if (startup) {
       startup = false;
-      self.checkUSBDrives();
-      self.listAlbums();
-      self.getMyCollectionStats();
+      setTimeout(()=>{
+        self.checkUSBDrives();
+        self.listAlbums();
+        self.getMyCollectionStats();
+      }, 5000);
     }
   });
 
@@ -2773,7 +2775,6 @@ ControllerMpd.prototype.getMyCollectionStats = function () {
   var self = this;
 
   var defer = libQ.defer();
-
   try {
     var cmd = libMpd.cmd;
     self.clientMpd.sendCommand(cmd('count', ['group', 'artist']), function (err, msg) {
