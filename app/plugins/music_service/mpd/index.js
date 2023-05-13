@@ -3952,4 +3952,31 @@ ControllerMpd.prototype.getMyCollectionStatsObject = function () {
 
 };
 
+ControllerMpd.prototype.getRandomLocalTrack = function () {
+  var self = this;
+  var defer = libQ.defer();
 
+  var albumsList = self.listAlbums(true);
+  albumsList.then(function(data) {
+    if (data && data.navigation && data.navigation.lists[0] && data.navigation.lists[0].items && data.navigation.lists[0].items.length) {
+      var items = data.navigation.lists[0].items;
+      var randomIndex = Math.floor(Math.random() * items.length - 2);
+      var randomAlbum = items[randomIndex];
+      self.explodeUri(randomAlbum.uri).then(function (data) {
+        if (data && data.length) {
+          var tracks = data;
+          var randomTrackIndex = Math.floor(Math.random() * tracks.length - 2);
+          var randomTrack = tracks[randomTrackIndex];
+          defer.resolve(randomTrack);
+        } else {
+          defer.reject(null);
+        }
+      }).fail(function (e) {
+        defer.reject(null);
+      });
+    } else {
+      defer.reject(null);
+    }
+  })
+  return defer.promise;
+};
