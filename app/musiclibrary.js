@@ -861,19 +861,23 @@ CoreMusicLibrary.prototype.executeGlobalSearch = function (data) {
       .then(function (results) {
         self.logger.info('All search sources collected, pushing search results');
         results = _.flatten(results.filter(items => items));
-        for (var i = 0; i < results.length; i++) {
-          if (results[i] && results[i].items && results[i].items[0] && results[i].items[0].service) {
-            var itemsService = results[i].items[0].service;
-            var priorityScore = self.getPriorityWeightsToItems(itemsService);
-            if (results[i] && results[i].items) {
-              results[i].items.forEach(item=>item.priorityScore=priorityScore);
-              itemsList = itemsList.concat(results[i].items);
-            }
-            if (i+1 == results.length) {
-              itemsList = _.sortBy(itemsList, 'priorityScore');
-              defer.resolve(itemsList);
+        if (results && results.length) {
+          for (var i = 0; i < results.length; i++) {
+            if (results[i] && results[i].items && results[i].items[0] && results[i].items[0].service) {
+              var itemsService = results[i].items[0].service;
+              var priorityScore = self.getPriorityWeightsToItems(itemsService);
+              if (results[i] && results[i].items) {
+                results[i].items.forEach(item=>item.priorityScore=priorityScore);
+                itemsList = itemsList.concat(results[i].items);
+              }
+              if (i+1 == results.length) {
+                itemsList = _.sortBy(itemsList, 'priorityScore');
+                defer.resolve(itemsList);
+              }
             }
           }
+        } else {
+          defer.resolve([]);
         }
       })
 
