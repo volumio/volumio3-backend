@@ -781,6 +781,11 @@ CoreMusicLibrary.prototype.matchAlbum = function (artistToSearch, albumToSearch,
 
   if (self.isEqualString(artist, artistToSearch) && self.isEqualString(album, albumToSearch)) {
     return true;
+  } else if (item.uri.includes('tidal://album/') && self.isEqualString(album, albumToSearch)) {
+    // workaround for Tidal not returning artist name in search results, to fix in browse performer
+    return true;
+  } else {
+    return false;
   }
 };
 
