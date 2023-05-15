@@ -3965,16 +3965,23 @@ ControllerMpd.prototype.getRandomLocalTrack = function () {
       self.explodeUri(randomAlbum.uri).then(function (data) {
         if (data && data.length) {
           var tracks = data;
-          var randomTrackIndex = Math.floor(Math.random() * (tracks.length - 2));
-          var randomTrack = tracks[randomTrackIndex];
-          defer.resolve(randomTrack);
+          if (tracks.length === 1) {
+            defer.resolve(tracks[0]);
+          } else {
+            var randomTrackIndex = Math.floor(Math.random() * (tracks.length - 2));
+            var randomTrack = tracks[randomTrackIndex];
+            defer.resolve(randomTrack);
+          }
         } else {
+          self.logger.error('Failed to explode random album uri ' + randomAlbum.uri);
           defer.reject(null);
         }
       }).fail(function (e) {
+        self.logger.error('Failed to retrieve random track: with error ' + e);
         defer.reject(null);
       });
     } else {
+      self.logger.error('Failed to retrieve random track as no albums found');
       defer.reject(null);
     }
   })
