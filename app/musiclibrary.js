@@ -919,47 +919,10 @@ CoreMusicLibrary.prototype.getPriorityWeightsToItems = function (service) {
 
 CoreMusicLibrary.prototype.superSearch = function (data) {
   var self = this;
-  var defer = libQ.defer();
-  if (data && data.value) {
-    var search = self.commandRouter.executeOnPlugin('miscellanea', 'metavolumio', 'superSearch', data);
-    search.then((searchResult) => {
-      if (searchResult && searchResult.length) {
-        var trackList = [];
-        var firstTrackPlayed = false;
-        var result = {'navigation': {'isSearchResult': true, 'lists': [{'availableListViews': ["list"], 'items': trackList}]}};
-        for (var i in searchResult) {
-          self.handleGlobalUriTrack(searchResult[i].uri).then((matchedTrack)=>{
-            if (matchedTrack && matchedTrack.uri) {
-              trackList.push(matchedTrack);
-              self.commandRouter.emitMessageToSpecificClient(data.socketId, 'pushBrowseLibrary', result);
-              if (data.instantPlay) {
-                if (firstTrackPlayed === false) {
-                  firstTrackPlayed = true;
-                  self.commandRouter.replaceAndPlay(matchedTrack);
-                } else {
-                  self.commandRouter.addQueueItems([matchedTrack]);
-                }
-              }
-            }
-          })
-        }
-      } else {
-        defer.reject('No results');
-        self.pushNullSearchResult(data);
-      }
-    }).fail((error) => {
-      self.logger.error('Supersearch failed for query: ' + JSON.stringify(data));
-      defer.reject('No results');
-      self.pushNullSearchResult(data);
-    });
-  } else {
-    defer.reject('Query value missing');
-  }
-
-  return defer.promise;
+  return self.commandRouter.executeOnPlugin('miscellanea', 'metavolumio', 'superSearch', data);
 };
 
-CoreMusicLibrary.prototype.pushNullSearchResult = function (data) {
+CoreMusicLibrary.prototype.getNullSearchResult = function () {
   var self = this;
 
   var searchResult = {
@@ -968,7 +931,7 @@ CoreMusicLibrary.prototype.pushNullSearchResult = function (data) {
       'lists': []
     }
   };
-  var noResultTitle = {'type': 'title', 'title': self.commandRouter.getI18nString('COMMON.NO_RESULTS'), 'availableListViews': ['list'], 'items': []};
+  var noResultTitle = {'availableListViews': ['list'], 'items': []};
   searchResult.navigation.lists[0] = noResultTitle;
-  self.commandRouter.emitMessageToSpecificClient(data.socketId, 'pushBrowseLibrary', searchResult);
+  return searchResult;
 };
