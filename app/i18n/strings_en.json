@@ -131,7 +131,9 @@
         "WITH": "with",
         "PLEASE_WAIT": "Please wait",
         "SEARCH_RESULTS_TITLE": "Number of search results",
-        "SEARCH_RESULTS_DESC": "Desired Number of search results"
+        "ARTIST_NOT_FOUND_IN_YOUR_LIBRARY": "Artist not found in your library",
+        "ALBUM_NOT_FOUND_IN_YOUR_LIBRARY": "Album not found in your library"
+
     },
     "MAIN_MENU": {
         "ALARM": "Alarm",

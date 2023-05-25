@@ -721,6 +721,8 @@ CoreMusicLibrary.prototype.handleGlobalUriArtist = function (uri) {
       }
     }
     if (!found) {
+      self.commandRouter.pushToastMessage('error', self.commandRouter.getI18nString('COMMON.NO_RESULTS'),
+          self.commandRouter.getI18nString('COMMON.ARTIST_NOT_FOUND_IN_YOUR_LIBRARY'));
       defer.resolve({})
     }
   })
@@ -763,6 +765,8 @@ CoreMusicLibrary.prototype.handleGlobalUriAlbum = function (uri) {
       }
     }
     if (!found) {
+      self.commandRouter.pushToastMessage('error', self.commandRouter.getI18nString('COMMON.NO_RESULTS'),
+          self.commandRouter.getI18nString('COMMON.ALBUM_NOT_FOUND_IN_YOUR_LIBRARY'));
       defer.resolve({})
     }
   })
