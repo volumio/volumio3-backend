@@ -794,23 +794,84 @@ CoreMusicLibrary.prototype.handleGlobalUriTrack = function (uri) {
   var defer = libQ.defer();
   var found = false;
 
-  // URI STRUCTURE: globalUriArtist/artist/track
+  // URI STRUCTURE: globalUriTrack/artist/track
   var artistToSearch = uri.split('/')[1];
   var trackToSearch = uri.split('/')[2];
   var searchString = artistToSearch + ' ' + trackToSearch;
 
-  this.executeGlobalSearch({value:searchString}).then(function(results){
-    for (var i in results) {
-      if (self.matchTrack(artistToSearch, trackToSearch, results[i])) {
-        found = true;
-        defer.resolve(results[i]);
-        break;
-      }
+
+  self.matchTrackWithCache(uri).then((result) => {
+    if (result && result.uri) {
+        defer.resolve(result);
+    } else {
+      this.executeGlobalSearch({value:searchString}).then(function(results){
+        for (var i in results) {
+          if (self.matchTrack(artistToSearch, trackToSearch, results[i])) {
+            found = true;
+            var cachedUri = uri + '/' + results[i].service;
+            self.saveToCache(cachedUri, results[i]);
+            defer.resolve(results[i]);
+            break;
+          }
+        }
+        if (!found) {
+          defer.resolve({});
+        }
+      })
     }
-    if (!found) {
-      defer.resolve({});
+  });
+
+  return defer.promise;
+};
+
+CoreMusicLibrary.prototype.saveToCache = function (path, data) {
+  var self = this;
+
+  if (data && data.service && (data.service === 'tidal' || data.service === 'qobuz' || data.service === 'spotify' || data.service === 'spop')) {
+    self.commandRouter.setStreamingCacheValue(path, data);
+  }
+}
+
+CoreMusicLibrary.prototype.matchTrackWithCache = function (uri) {
+  var self = this;
+  var defer = libQ.defer();
+  var deferArray = [];
+
+  var searchableSources = self.getVisibleBrowseSources();
+  for (var i in searchableSources) {
+    var source = searchableSources[i];
+    if (source.uri === 'tidal://') {
+      deferArray.push(self.commandRouter.getStreamingCacheValue(uri + '/tidal'));
     }
-  })
+    if (source.uri === 'qobuz://') {
+      deferArray.push(self.commandRouter.getStreamingCacheValue(uri + '/qobuz'));
+    }
+    if (source.uri === 'spotify') {
+      deferArray.push(self.commandRouter.getStreamingCacheValue(uri + '/spop'));
+    }
+  }
+
+  libQ.all(deferArray)
+      .then(function (results) {
+        self.logger.info('All cached search sources collected');
+        if (results && results.length) {
+          var cachedItemsArray = [];
+          for (var i in results) {
+            if (results[i] && results[i].uri) {
+              cachedItemsArray.push(results[i]);
+            }
+          }
+          if (cachedItemsArray.length) {
+            cachedItemsArray = _.sortBy(cachedItemsArray, 'priorityScore');
+            defer.resolve(results[0]);
+          } else {
+            defer.resolve('');
+          }
+        } else {
+          defer.resolve('');
+        }
+      });
+
   return defer.promise;
 };
 

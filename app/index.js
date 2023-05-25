@@ -2396,3 +2396,25 @@ CoreCommandRouter.prototype.setInfinityPlayback = function (data) {
     return metaVolumioPlugin.setInfinityPlayback(data);
   } catch(e) {}
 };
+
+CoreCommandRouter.prototype.getStreamingCacheValue = function (path) {
+  var self = this;
+  var defer = libQ.defer();
+  var metaVolumioPlugin = self.pluginManager.getPlugin('miscellanea', 'metavolumio');
+
+  if (metaVolumioPlugin != undefined) {
+    return metaVolumioPlugin.retrieveFromKvStoreStreaming(path);
+  } else {
+    defer.resolve();
+  }
+  return defer.promise;
+};
+
+CoreCommandRouter.prototype.setStreamingCacheValue = function (path, data) {
+  var self = this;
+
+  var metaVolumioPlugin = self.pluginManager.getPlugin('miscellanea', 'metavolumio');
+  if (metaVolumioPlugin != undefined) {
+    return metaVolumioPlugin.saveToKvStoreStreaming(path, data);
+  }
+};
