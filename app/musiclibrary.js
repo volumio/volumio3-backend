@@ -802,28 +802,31 @@ CoreMusicLibrary.prototype.handleGlobalUriTrack = function (uri) {
   var artistToSearch = uri.split('/')[1];
   var trackToSearch = uri.split('/')[2];
   var searchString = artistToSearch + ' ' + trackToSearch;
-
-
-  self.matchTrackWithCache(uri).then((result) => {
-    if (result && result.uri) {
+  if (artistToSearch !== undefined && trackToSearch !== undefined ) {
+    self.matchTrackWithCache(uri).then((result) => {
+      if (result && result.uri) {
         defer.resolve(result);
-    } else {
-      this.executeGlobalSearch({value:searchString}).then(function(results){
-        for (var i in results) {
-          if (self.matchTrack(artistToSearch, trackToSearch, results[i])) {
-            found = true;
-            var cachedUri = uri + '/' + results[i].service;
-            self.saveToCache(cachedUri, results[i]);
-            defer.resolve(results[i]);
-            break;
+      } else {
+        this.executeGlobalSearch({value:searchString}).then(function(results){
+          for (var i in results) {
+            if (self.matchTrack(artistToSearch, trackToSearch, results[i])) {
+              found = true;
+              var cachedUri = uri + '/' + results[i].service;
+              self.saveToCache(cachedUri, results[i]);
+              defer.resolve(results[i]);
+              break;
+            }
           }
-        }
-        if (!found) {
-          defer.resolve({});
-        }
-      })
-    }
-  });
+          if (!found) {
+            defer.resolve({});
+          }
+        })
+      }
+    });
+  } else {
+    defer.resolve({});
+  }
+
 
   return defer.promise;
 };
