@@ -648,9 +648,12 @@ CoreMusicLibrary.prototype.applyBrowseLimit = function (data, limit) {
   }
 };
 
-CoreMusicLibrary.prototype.searchOnPlugin = function (plugin_type, plugin_name, query) {
+CoreMusicLibrary.prototype.searchOnPlugin = function (plugin_type, plugin_name, query, timeout) {
   var self = this;
   var searchTimeoutMS = 5000;
+  if (timeout !== undefined ) {
+    searchTimeoutMS = timeout;
+  }
   var alreadyResolved = false;
   var defer = libQ.defer();
 
@@ -910,6 +913,7 @@ CoreMusicLibrary.prototype.isEqualString = function (a, b) {
 CoreMusicLibrary.prototype.executeGlobalSearch = function (data) {
   var self = this;
   var defer = libQ.defer();
+  var globalSearchTimeout = 10000;
 
   var query = {'value': data.value, 'uri': data.uri};
 
@@ -924,7 +928,7 @@ CoreMusicLibrary.prototype.executeGlobalSearch = function (data) {
     if (executed.indexOf(key) == -1 && source.uri !== 'radio') {
       executed.push(key);
       var response;
-      response = self.searchOnPlugin(source.plugin_type, source.plugin_name, query);
+      response = self.searchOnPlugin(source.plugin_type, source.plugin_name, query, globalSearchTimeout);
       if (response != undefined) {
         deferArray.push(response);
       }
