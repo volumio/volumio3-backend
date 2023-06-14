@@ -915,7 +915,8 @@ CoreMusicLibrary.prototype.executeGlobalSearch = function (data) {
   var defer = libQ.defer();
   var globalSearchTimeout = 10000;
 
-  var query = {'value': data.value, 'uri': data.uri};
+  var safeQuery = data.value.toString().replace(/\n|\r\n|\r/g, '');
+  var query = {'value': safeQuery, 'uri': data.uri};
 
   var deferArray = [];
   var executed = [];
