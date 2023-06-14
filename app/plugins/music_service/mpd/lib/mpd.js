@@ -92,8 +92,7 @@ MpdClient.prototype.sendCommand = function (command, callback) {
   try {
     assert.ok(self.idling);
     self.send('noidle\n');
-    var safeCommand = command.toString().replace(/\n|\r\n|\r/g, '');
-    self.sendWithCallback(safeCommand, callback);
+    self.sendWithCallback(command, callback);
     self.sendWithCallback('idle', function (err, msg) {
       self.handleIdleResultsLoop(err, msg);
     });
