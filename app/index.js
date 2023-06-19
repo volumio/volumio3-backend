@@ -2418,3 +2418,14 @@ CoreCommandRouter.prototype.setStreamingCacheValue = function (path, data) {
     return metaVolumioPlugin.saveToKvStoreStreaming(path, data);
   }
 };
+
+CoreCommandRouter.prototype.reportBackendEvent = function (event, properties) {
+  var self = this;
+
+  var myVolumioPlugin = this.pluginManager.getPlugin('system_controller', 'my_volumio');
+  if (myVolumioPlugin != undefined && typeof myVolumioPlugin.reportBackendEvent === 'function') {
+    try {
+      return myVolumioPlugin.reportBackendEvent(event, properties);
+    } catch(e) {}
+  }
+};
