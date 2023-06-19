@@ -548,8 +548,14 @@ CoreMusicLibrary.prototype.translateDefaultBrowseSources = function () {
         case 'Last_100':
           self.browseSources[i].name = self.commandRouter.getI18nString('COMMON.LAST_100');
           break;
+        case 'inputs':
+          self.browseSources[i].name = self.commandRouter.getI18nString('MULTIDEVICE.INPUTS');
+          break;
+        case 'upnp':
+          self.browseSources[i].name = self.commandRouter.getI18nString('COMMON.MEDIA_SERVERS');
+          break;
         default:
-          console.log('Cannot find translation for source' + self.browseSources[i].name);
+          console.log('Cannot find translation for source ' + self.browseSources[i].name);
       }
     }
   }
