@@ -1954,7 +1954,7 @@ function InterfaceWebUI (context) {
 
       self.commandRouter.executeOnPlugin('miscellanea', 'metavolumio', 'setInfinityPlayback', data);
       var returnedData = self.commandRouter.executeOnPlugin('miscellanea', 'metavolumio', 'getInfinityPlayback', '');
-      selfConnWebSocket.emit('pushInfinityPlayback', returnedData);
+      self.broadcastMessage('pushInfinityPlayback', returnedData);
     });
   });
 }
