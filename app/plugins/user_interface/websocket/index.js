@@ -1954,6 +1954,10 @@ function InterfaceWebUI (context) {
 
       self.commandRouter.executeOnPlugin('miscellanea', 'metavolumio', 'setInfinityPlayback', data);
       var returnedData = self.commandRouter.executeOnPlugin('miscellanea', 'metavolumio', 'getInfinityPlayback', '');
+      if (returnedData && returnedData.enabled !== undefined)  {
+        let status = returnedData.enabled ? self.commandRouter.getI18nString('COMMON.ENABLED') : self.commandRouter.getI18nString('COMMON.DISABLED');
+        self.printToastMessage('success', self.commandRouter.getI18nString('TRACK_INFO_BAR.INFINITY_PLAY'), status);
+      }
       self.broadcastMessage('pushInfinityPlayback', returnedData);
     });
   });

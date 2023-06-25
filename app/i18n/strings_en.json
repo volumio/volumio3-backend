@@ -539,5 +539,8 @@
         "QOBUZ_LOGOUT_DESC": "This device is connected to QOBUZ. You can disconnect by clicking the Logout button.",
         "QOBUZ_FREE_TRIAL": "Free Trial",
         "QOBUZ_FREE_TRIAL_DESC": "Get 1 month free trial of QOBUZ HIFI (worth 19,99€)"
+    },
+    "TRACK_INFO_BAR": {
+        "INFINITY_PLAY": "Infinity play"
     }
 }
