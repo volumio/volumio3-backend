@@ -425,7 +425,10 @@
         "AUTOMATIC_UPDATES_START_TIME": "Automatic update window start time",
         "AUTOMATIC_UPDATES_START_TIME_DOC": "Automatic update window start time",
         "AUTOMATIC_UPDATES_STOP_TIME": "Automatic update window end time",
-        "AUTOMATIC_UPDATES_STOP_TIME_DOC": "Automatic update window end time"
+        "AUTOMATIC_UPDATES_STOP_TIME_DOC": "Automatic update window end time",
+        "HDMI_ARC_SETTINGS": "HDMI eARC/ARC Settings",
+        "HDMI_ARC_AUTOSWITCH": "HDMI eARC/ARC Auto Switch",
+        "HDMI_ARC_AUTOSWITCH_DOC": "If enabled, when the TV is turned on, the system will automatically switch to the HDMI eARC/ARC input. If disabled, the system will keep playing on the last selected input."
     },
     "UPDATER": {
         "CHECKING_FOR_UPDATES": "Checking for Updates",
