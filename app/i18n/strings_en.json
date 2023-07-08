@@ -132,8 +132,11 @@
         "PLEASE_WAIT": "Please wait",
         "SEARCH_RESULTS_TITLE": "Number of search results",
         "ARTIST_NOT_FOUND_IN_YOUR_LIBRARY": "Artist not found in your library",
-        "ALBUM_NOT_FOUND_IN_YOUR_LIBRARY": "Album not found in your library"
-
+        "ALBUM_NOT_FOUND_IN_YOUR_LIBRARY": "Album not found in your library",
+        "MINUTE": "Minute",
+        "MINUTES": "Minutes",
+        "HOUR": "Hour",
+        "HOURS": "Hours"
     },
     "MAIN_MENU": {
         "ALARM": "Alarm",
@@ -428,7 +431,16 @@
         "AUTOMATIC_UPDATES_STOP_TIME_DOC": "Automatic update window end time",
         "HDMI_ARC_SETTINGS": "HDMI eARC/ARC Settings",
         "HDMI_ARC_AUTOSWITCH": "HDMI eARC/ARC Auto Switch",
-        "HDMI_ARC_AUTOSWITCH_DOC": "If enabled, when the TV is turned on, the system will automatically switch to the HDMI eARC/ARC input. If disabled, the system will keep playing on the last selected input."
+        "HDMI_ARC_AUTOSWITCH_DOC": "If enabled, when the TV is turned on, the system will automatically switch to the HDMI eARC/ARC input. If disabled, the system will keep playing on the last selected input.",
+        "HARDWARE_SETTINGS": "Hardware Settings",
+        "LED_BRIGHTNESS": "LED Brightness",
+        "LED_BRIGHTNESS_DOC": "Set the brightness of the LED on the front panel",
+        "AUTO_STANDBY": "Auto Standby",
+        "AUTO_STANDBY_DOC": "Enable or disable the Auto Standby feature. When enabled, the system will automatically turn off after a period of inactivity",
+        "STANDBY_TIMEOUT": "Standby Timeout",
+        "STANDBY_TIMEOUT_DOC": "Set the time after which the system will automatically go into standby mode",
+        "AUTO_POWER_ON": "Auto Power On",
+        "AUTO_POWER_ON_DOC": "Enable or disable the Auto Power On feature. When enabled, the system will automatically turn on when power is applied or after a power failure"
     },
     "UPDATER": {
         "CHECKING_FOR_UPDATES": "Checking for Updates",

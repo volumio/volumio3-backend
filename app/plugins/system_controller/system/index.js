@@ -17,6 +17,7 @@ var hwVersion;
 const { v4: uuidv4 } = require('uuid');
 const e = require('express');
 var hwUuid;
+var additionalUISections = [];
 
 // Define the ControllerSystem class
 module.exports = ControllerSystem;
@@ -237,8 +238,18 @@ ControllerSystem.prototype.getUIConfig = function () {
         self.configManager.setUIConfigParam(uiconf, 'sections[8].content[0].value.value', uiValue);
         self.configManager.setUIConfigParam(uiconf, 'sections[8].content[0].value.label', uiLabel);
 
-        
-        defer.resolve(uiconf);
+        var additionalConfs = self.getAdditionalUISections();
+        additionalConfs.then((conf) => {
+          for (var i in conf) {
+            var additionalConf = conf[i];
+            if (additionalConf && additionalConf.section && additionalConf.position) {
+              uiconf.sections.splice(additionalConf.position, 0, additionalConf.section);
+            }
+          }
+          defer.resolve(uiconf);
+        }).fail(() => {
+          defer.resolve(uiconf);
+        });
       });
 
     })
@@ -2131,4 +2142,41 @@ ControllerSystem.prototype.updateVersionHistoryFile = function () {
   });
 }
 
-// Remember to send it via logs
+ControllerSystem.prototype.addAdditionalUISections = function (data) {
+  var self = this;
+
+  // Add additional UI Sections, must be = type/plugin
+  if (data) {
+    if (additionalUISections && additionalUISections.indexOf(data) === -1) {
+      self.logger.info('Additional UI Settings Added for plugin ' + data);
+      additionalUISections.push(data);
+    }
+  }
+};
+
+ControllerSystem.prototype.getAdditionalUISections = function () {
+  var self = this;
+  var defer = libQ.defer();
+
+  var uiSectionsDefer = [];
+
+  if (additionalUISections.length) {
+    for (var i in additionalUISections) {
+      var section = additionalUISections[i];
+      var pluginType = section.split('/')[0];
+      var pluginName = section.split('/')[1];
+      var additionalUISection = self.commandRouter.executeOnPlugin(pluginType, pluginName, 'getAdditionalUiSection');
+      uiSectionsDefer.push(additionalUISection);
+    }
+    libQ.all(uiSectionsDefer).then((uiSectionsResult) => {
+      defer.resolve(uiSectionsResult);
+    })
+        .fail(() => {
+          defer.resolve({});
+        });
+  } else {
+    defer.resolve({});
+  }
+
+  return defer.promise;
+};
