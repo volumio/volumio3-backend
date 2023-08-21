@@ -23,6 +23,7 @@ var dsd_autovolume = false;
 var singleBrowse = false;
 var startup = true;
 var stickingMusicLibrary = false;
+var collectionStats = {};
 
 // Define the ControllerMpd class
 module.exports = ControllerMpd;
@@ -673,15 +674,21 @@ ControllerMpd.prototype.mpdEstablish = function () {
   self.mpdReady.then(function () {
     if (startup) {
       startup = false;
-      self.checkUSBDrives();
-      self.listAlbums();
+      setTimeout(()=>{
+        self.checkIfMpdRequiresRescan();
+      }, 2500)
+      setTimeout(()=>{
+        self.checkUSBDrives();
+        self.listAlbums();
+        self.getMyCollectionStats();
+      }, 5000);
     }
   });
 
   // Catch and log errors
   self.clientMpd.on('error', function (err) {
     self.logger.error('MPD error: ' + err);
-    if (err === "{ [Error: This socket has been ended by the other party] code: 'EPIPE' }") {
+    if (err === "{ [Error: This socket has been ended by the other party] code: 'EPIPE' }" || err.toString().includes('ECONNRESET')) {
       // Wait 5 seconds before trying to reconnect
       setTimeout(function () {
         self.mpdEstablish();
@@ -737,6 +744,7 @@ ControllerMpd.prototype.mpdEstablish = function () {
     memoryCache.del('cacheAlbumList', function (err) {});
     // Store new AlbumList in cache
     self.listAlbums();
+    self.getMyCollectionStats();
     self.logger.info('MPD Database updated - AlbumList cache refreshed');
   });
 
@@ -2770,7 +2778,6 @@ ControllerMpd.prototype.getMyCollectionStats = function () {
   var self = this;
 
   var defer = libQ.defer();
-
   try {
     var cmd = libMpd.cmd;
     self.clientMpd.sendCommand(cmd('count', ['group', 'artist']), function (err, msg) {
@@ -2818,6 +2825,7 @@ ControllerMpd.prototype.getMyCollectionStats = function () {
               songs: songsCount,
               playtime: playTimeString
             };
+            collectionStats = response;
           }
 
           defer.resolve(response);
@@ -3939,4 +3947,67 @@ ControllerMpd.prototype.checkIfSoxCanBeMultithread = function () {
 
 };
 
+ControllerMpd.prototype.getMyCollectionStatsObject = function () {
+  var self = this;
 
+  // This function is designed to retrieve collection stats immediately without the need for promise resolve
+  return collectionStats;
+
+};
+
+ControllerMpd.prototype.getRandomLocalTrack = function () {
+  var self = this;
+  var defer = libQ.defer();
+
+  var albumsList = self.listAlbums(true);
+  albumsList.then(function(data) {
+    if (data && data.navigation && data.navigation.lists[0] && data.navigation.lists[0].items && data.navigation.lists[0].items.length) {
+      var items = data.navigation.lists[0].items;
+      var randomIndex = Math.floor(Math.random() * (items.length - 2));
+      var randomAlbum = items[randomIndex];
+      self.explodeUri(randomAlbum.uri).then(function (data) {
+        if (data && data.length) {
+          var tracks = data;
+          if (tracks.length === 1) {
+            defer.resolve(tracks[0]);
+          } else {
+            var randomTrackIndex = Math.floor(Math.random() * (tracks.length - 2));
+            var randomTrack = tracks[randomTrackIndex];
+            defer.resolve(randomTrack);
+          }
+        } else {
+          self.logger.error('Failed to explode random album uri ' + randomAlbum.uri);
+          defer.reject(null);
+        }
+      }).fail(function (e) {
+        self.logger.error('Failed to retrieve random track: with error ' + e);
+        defer.reject(null);
+      });
+    } else {
+      self.logger.error('Failed to retrieve random track as no albums found');
+      defer.reject(null);
+    }
+  })
+  return defer.promise;
+};
+
+ControllerMpd.prototype.checkIfMpdRequiresRescan = function () {
+  var self = this;
+
+  // This function checks if we have an empty db, if that's the case, it will trigger a rescan
+  // This is added to repopulate the db when we update from previous mpd versions or in case the mpd db gets corrupted
+  exec('/usr/bin/mpc list artist', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+    if (error) {
+      // Mpc is not started, we don't have anything to do
+    } else {
+      if (!stdout.length) {
+        self.logger.info('MPD Database is empty, triggering rescan');
+        try {
+          execSync('/usr/bin/mpc rescan', { uid: 1000, gid: 1000});
+        } catch(e) {
+          self.logger.error('Failed to trigger MPD rescan: ' + e);
+        }
+      }
+    }
+  });
+};

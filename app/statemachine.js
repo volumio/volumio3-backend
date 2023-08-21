@@ -366,15 +366,18 @@ CoreStateMachine.prototype.startPlaybackTimer = function (nStartTime) {
   this.playbackStart = Date.now();
 
   var trackBlock = this.getTrack(this.currentPosition);
-
   if (trackBlock) {
     this.currentSongDuration = trackBlock.duration * 1000;
 
     this.askedForPrefetch = false;
     this.simulateStopStartDone = false;
     this.prefetchDone = false;
-
     setTimeout(this.increasePlaybackTimer.bind(this), 250);
+
+    var isLastTrack = this.checkIfLastTrack();
+    if (isLastTrack) {
+      this.commandRouter.addTracksForInfinityPlayback(trackBlock);
+    }
   }
   return libQ.resolve();
 };
@@ -392,7 +395,7 @@ CoreStateMachine.prototype.stopPlaybackTimer = function () {
 CoreStateMachine.prototype.getNextIndex = function () {
   var nextIndex = this.currentPosition + 1;
 
-  var isLastTrack = (this.playQueue.arrayQueue.length - 1) == this.currentPosition;
+  var isLastTrack = this.checkIfLastTrack();
 
   // Check if Repeat mode is on and last track is played, note that Random and Consume overides Repeat
   if (this.currentRepeat) {
@@ -1573,3 +1576,15 @@ CoreStateMachine.prototype.reportCappedSamplerate = function (samplerate) {
     return samplerate;
   }
 };
+
+CoreStateMachine.prototype.checkIfLastTrack = function () {
+
+  var isLastTrack = (this.playQueue.arrayQueue.length - 1) == this.currentPosition;
+  return isLastTrack;
+};
+
+CoreStateMachine.prototype.triggerInfinityPlaybackAddition = function () {
+  var trackBlock = this.getTrack(this.currentPosition);
+  this.commandRouter.addTracksForInfinityPlayback(trackBlock);
+};
+

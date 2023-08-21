@@ -1215,6 +1215,14 @@ CoreCommandRouter.prototype.broadcastMessage = function (msg, value) {
   );
 };
 
+CoreCommandRouter.prototype.emitMessageToSpecificClient = function (id, msg, value) {
+  var self = this;
+  this.pushConsoleMessage('CoreCommandRouter::emitMessageToSpecificClient ' + msg);
+
+  var plugin = this.pluginManager.getPlugin('user_interface', 'websocket');
+  plugin.emitMessageToSpecificClient(id, msg, value);
+};
+
 CoreCommandRouter.prototype.pushMultiroomDevices = function (data) {
   var self = this;
 
@@ -1635,10 +1643,29 @@ CoreCommandRouter.prototype.getI18nString = function (key) {
 
   if (this.i18nStrings) {
     if (splitted.length == 1) {
-      if (this.i18nStrings[key] !== undefined && this.i18nStrings[key] !== '') { return this.i18nStrings[key]; } else return this.i18nStringsDefaults[key];
+      if (this.i18nStrings[key] !== undefined && this.i18nStrings[key] !== '') {
+        return this.i18nStrings[key];
+      } else {
+        if (this.i18nStringsDefaults[key] !== undefined && this.i18nStringsDefaults[key] !== '') {
+            return this.i18nStringsDefaults[key];
+        } else {
+            return key;
+        }
+      }
     } else {
       if (this.i18nStrings[splitted[0]] !== undefined &&
-                this.i18nStrings[splitted[0]][splitted[1]] !== undefined && this.i18nStrings[splitted[0]][splitted[1]] !== '') { return this.i18nStrings[splitted[0]][splitted[1]]; } else return this.i18nStringsDefaults[splitted[0]][splitted[1]];
+          this.i18nStrings[splitted[0]][splitted[1]] !== undefined &&
+          this.i18nStrings[splitted[0]][splitted[1]] !== '') {
+        return this.i18nStrings[splitted[0]][splitted[1]];
+      } else  {
+        if (this.i18nStringsDefaults[splitted[0]] !== undefined &&
+            this.i18nStringsDefaults[splitted[0]][splitted[1]] !== undefined &&
+            this.i18nStringsDefaults[splitted[0]][splitted[1]] !== '') {
+          return this.i18nStringsDefaults[splitted[0]][splitted[1]];
+        } else {
+          return key;
+        }
+      }
     }
   } else {
     	var emptyString = '';
@@ -2360,4 +2387,64 @@ CoreCommandRouter.prototype.getDSPSignalPathElements = function () {
   var self = this;
 
   return self.dspSignalPathElements;
+};
+
+CoreCommandRouter.prototype.addTracksForInfinityPlayback = function (currentLastTrack) {
+  var self = this;
+
+  try {
+    var metaVolumioPlugin = self.pluginManager.getPlugin('miscellanea', 'metavolumio');
+    return metaVolumioPlugin.addTracksForInfinityPlayback(currentLastTrack);
+  } catch(e) {}
+};
+
+CoreCommandRouter.prototype.getInfinityPlayback = function () {
+  var self = this;
+
+  try {
+    var metaVolumioPlugin = self.pluginManager.getPlugin('miscellanea', 'metavolumio');
+    return metaVolumioPlugin.getInfinityPlayback();
+  } catch(e) {}
+};
+
+CoreCommandRouter.prototype.setInfinityPlayback = function (data) {
+  var self = this;
+
+  try {
+    var metaVolumioPlugin = self.pluginManager.getPlugin('miscellanea', 'metavolumio');
+    return metaVolumioPlugin.setInfinityPlayback(data);
+  } catch(e) {}
+};
+
+CoreCommandRouter.prototype.getStreamingCacheValue = function (path) {
+  var self = this;
+  var defer = libQ.defer();
+  var metaVolumioPlugin = self.pluginManager.getPlugin('miscellanea', 'metavolumio');
+
+  if (metaVolumioPlugin != undefined) {
+    return metaVolumioPlugin.retrieveFromKvStoreStreaming(path);
+  } else {
+    defer.resolve();
+  }
+  return defer.promise;
+};
+
+CoreCommandRouter.prototype.setStreamingCacheValue = function (path, data) {
+  var self = this;
+
+  var metaVolumioPlugin = self.pluginManager.getPlugin('miscellanea', 'metavolumio');
+  if (metaVolumioPlugin != undefined) {
+    return metaVolumioPlugin.saveToKvStoreStreaming(path, data);
+  }
+};
+
+CoreCommandRouter.prototype.reportBackendEvent = function (event, properties) {
+  var self = this;
+
+  var myVolumioPlugin = this.pluginManager.getPlugin('system_controller', 'my_volumio');
+  if (myVolumioPlugin != undefined && typeof myVolumioPlugin.reportBackendEvent === 'function') {
+    try {
+      return myVolumioPlugin.reportBackendEvent(event, properties);
+    } catch(e) {}
+  }
 };

@@ -463,6 +463,9 @@ function InterfaceWebUI (context) {
 
     connWebSocket.on('superSearch', function (data) {
       var selfConnWebSocket = this;
+      if (connWebSocket.id) {
+        data.socketId = connWebSocket.id;
+      }
       var returnedData = self.musicLibrary.superSearch(data);
       returnedData.then(function (result) {
         self.lastPushedBrowseLibraryObject = result;
@@ -1938,6 +1941,25 @@ function InterfaceWebUI (context) {
 
       selfConnWebSocket.emit('pushBrowseLibrary', self.lastPushedBrowseLibraryObject);
     });
+
+    connWebSocket.on('getInfinityPlayback', function () {
+      var selfConnWebSocket = this;
+
+      var returnedData = self.commandRouter.executeOnPlugin('miscellanea', 'metavolumio', 'getInfinityPlayback', '');
+      selfConnWebSocket.emit('pushInfinityPlayback', returnedData);
+    });
+
+    connWebSocket.on('setInfinityPlayback', function (data) {
+      var selfConnWebSocket = this;
+
+      self.commandRouter.executeOnPlugin('miscellanea', 'metavolumio', 'setInfinityPlayback', data);
+      var returnedData = self.commandRouter.executeOnPlugin('miscellanea', 'metavolumio', 'getInfinityPlayback', '');
+      if (returnedData && returnedData.enabled !== undefined)  {
+        let status = returnedData.enabled ? self.commandRouter.getI18nString('COMMON.ENABLED') : self.commandRouter.getI18nString('COMMON.DISABLED');
+        self.printToastMessage('success', self.commandRouter.getI18nString('TRACK_INFO_BAR.INFINITY_PLAY'), status);
+      }
+      self.broadcastMessage('pushInfinityPlayback', returnedData);
+    });
   });
 }
 
@@ -2088,6 +2110,11 @@ InterfaceWebUI.prototype.broadcastMessage = function (emit, payload) {
   } else {
     this.libSocketIO.sockets.emit(emit, payload);
   }
+};
+
+InterfaceWebUI.prototype.emitMessageToSpecificClient = function (id, emit, payload) {
+
+  this.libSocketIO.to(id).emit(emit, payload);
 };
 
 InterfaceWebUI.prototype.logClientConnection = function (client) {

@@ -1278,6 +1278,7 @@ PluginManager.prototype.moveToCategory = function (folder) {
   var category = package_json.volumio_info.plugin_type;
 
   var newFolderName = self.pluginPath[1] + category;
+  self.coreCommand.reportBackendEvent("Plugin Installed", {plugin: name});
 
   fs.remove(newFolderName + '/' + name, function () {
     self.createFolder(newFolderName)

@@ -231,7 +231,7 @@ ControllerMyMusic.prototype.updateMusicLibraryBrowseSourcesVisibility = function
   for (var key in data) {
     var source = key;
     var enabled = data[key];
-    if (data[key] === false) {
+    if (!enabled) {
       if (disabledSourcesString.length) {
         disabledSourcesString = disabledSourcesString + '|';
       }
