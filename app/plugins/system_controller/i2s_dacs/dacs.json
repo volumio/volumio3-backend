@@ -46,6 +46,7 @@
     {"id":"merus-amp","name":"MERUS™ Amp piHAT ZW","overlay":"merus-amp","alsanum":"2","alsacard":"sndrpimerusamp","mixer":"","modules":"","script":"","needsreboot":"yes"},
     {"id":"nanosound-dac","name":"NanoSound DAC","overlay":"hifiberry-dacplus","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Digital","modules":"","script":"","needsreboot":"no"},
     {"id":"pecan-dac","name":"Orchard Audio PecanPi DAC","overlay":"rpi-dac","alsanum":"2","alsacard":"sndrpirpidac","mixer":"","modules":"","script":"","needsreboot":"yes"},
+    {"id":"pecan-plus-dac","name":"Orchard Audio PecanPi+ DAC","overlay":"hifiberry-dacplusdsp","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"","modules":"","script":"","needsreboot":"yes"},
     {"id":"osa-dacberry-one-plus","name":"OSA DACBerry ONE+","overlay":"hifiberry-dacplus","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Digital","modules":"","script":"","needsreboot":"no"},
     {"id":"osa-dacberry-pro","name":"OSA DACBerry PRO","overlay":"iqaudio-dacplus","alsanum":"2","alsacard":"IQaudIODAC","mixer":"Digital","modules":"","script":"","needsreboot":"no"},
     {"id":"502-dac","name":"PI 2 Design 502DAC","overlay":"hifiberry-dacplus","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Digital","modules":"","script":"","needsreboot":"yes"},
