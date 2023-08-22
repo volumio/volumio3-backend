@@ -14,7 +14,7 @@ var commandArray = [
   'netstat -natp',
   'cat /etc/asound.conf',
   'cat /var/log/mpd.log',
-  'cat /tmp/camilladsp.log'
+  'cat /tmp/camilladsp.log',
   'volumio plugin list',
   'cat /data/configuration/plugins.json',
   'cat /etc/mpd.conf',
