@@ -222,9 +222,6 @@ ControllerAlsa.prototype.getUIConfig = function () {
             label: 'HDMI Out'
           });
         } else {
-          if (cards[i].id == '5') {
-            cards[i].name = 'USB: ' + cards[i].name;
-          }
           self.configManager.pushUIConfigParam(uiconf, 'sections[0].content[0].options', {
             value: cards[i].id,
             label: cards[i].name
