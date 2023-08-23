@@ -440,7 +440,9 @@
         "STANDBY_TIMEOUT": "Standby Timeout",
         "STANDBY_TIMEOUT_DOC": "Set the time after which the system will automatically go into standby mode",
         "AUTO_POWER_ON": "Auto Power On",
-        "AUTO_POWER_ON_DOC": "Enable or disable the Auto Power On feature. When enabled, the system will automatically turn on when power is applied or after a power failure"
+        "AUTO_POWER_ON_DOC": "Enable or disable the Auto Power On feature. When enabled, the system will automatically turn on when power is applied or after a power failure",
+        "DISPLAY_BRIGHTNESS": "Display Brightness",
+        "DISPLAY_BRIGHTNESS_DOC": "Set the brightness of the display"
     },
     "UPDATER": {
         "CHECKING_FOR_UPDATES": "Checking for Updates",
