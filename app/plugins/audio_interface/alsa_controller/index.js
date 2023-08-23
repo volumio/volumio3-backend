@@ -232,7 +232,7 @@ ControllerAlsa.prototype.getUIConfig = function () {
         }
       }
 
-      if (i2soptions.length > 0) {
+      if (i2soptions.length > 0 && self.config.get('ignore_i2s', false) !== true) {
         if (i2sstatus.enabled) {
           self.configManager.setUIConfigParam(uiconf, 'sections[0].content[1].value', i2sstatus.enabled);
           self.configManager.setUIConfigParam(uiconf, 'sections[0].content[2].value', {
