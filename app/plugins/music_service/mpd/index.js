@@ -685,7 +685,7 @@ ControllerMpd.prototype.mpdEstablish = function () {
   // Catch and log errors
   self.clientMpd.on('error', function (err) {
     self.logger.error('MPD error: ' + err);
-    if (err === "{ [Error: This socket has been ended by the other party] code: 'EPIPE' }" || err.toString().includes('ECONNRESET')) {
+    if (err === "{ [Error: This socket has been ended by the other party] code: 'EPIPE' }") {
       // Wait 5 seconds before trying to reconnect
       setTimeout(function () {
         self.mpdEstablish();
