@@ -675,9 +675,6 @@ ControllerMpd.prototype.mpdEstablish = function () {
     if (startup) {
       startup = false;
       setTimeout(()=>{
-        self.checkIfMpdRequiresRescan();
-      }, 2500)
-      setTimeout(()=>{
         self.checkUSBDrives();
         self.listAlbums();
         self.getMyCollectionStats();
@@ -4008,25 +4005,4 @@ ControllerMpd.prototype.getRandomLocalTrack = function () {
     }
   })
   return defer.promise;
-};
-
-ControllerMpd.prototype.checkIfMpdRequiresRescan = function () {
-  var self = this;
-
-  // This function checks if we have an empty db, if that's the case, it will trigger a rescan
-  // This is added to repopulate the db when we update from previous mpd versions or in case the mpd db gets corrupted
-  exec('/usr/bin/mpc list artist', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
-    if (error) {
-      // Mpc is not started, we don't have anything to do
-    } else {
-      if (!stdout.length) {
-        self.logger.info('MPD Database is empty, triggering rescan');
-        try {
-          execSync('/usr/bin/mpc rescan', { uid: 1000, gid: 1000});
-        } catch(e) {
-          self.logger.error('Failed to trigger MPD rescan: ' + e);
-        }
-      }
-    }
-  });
 };
