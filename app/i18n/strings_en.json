@@ -56,7 +56,8 @@
         "WEB_ALBUMART_ENABLE": "Web Album art",
         "WEB_ALBUMART_ENABLE_DOC": "Enable retrieval of Album art from Web, if no image is found in the file folder",
         "WEB_ALBUMART_SIZE": "Web Album art Size",
-        "WEB_ALBUMART_SIZE_DOC": "Choose the size of Album art downloaded from web: higher quality requires longer load times. Lower values may improve load times."
+        "WEB_ALBUMART_SIZE_DOC": "Choose the size of Album art downloaded from web: higher quality requires longer load times. Lower values may improve load times.",
+        "SUPERSEARCH_INFINITY_SERVICES": "SuperSearch and Infinity Playback Enabled Services"
     },
     "COMMON": {
         "ADD_QUEUE_TEXT_1": "Added ",

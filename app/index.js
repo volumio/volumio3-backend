@@ -263,6 +263,11 @@ CoreCommandRouter.prototype.volumioUpdateToBrowseSources = function (name, data)
   return this.musicLibrary.updateBrowseSources(name, data);
 };
 
+CoreCommandRouter.prototype.updateGlobalSearchableBrowseSources = function (data) {
+  this.pushConsoleMessage('CoreCommandRouter::updateGlobalSearchableBrowseSources');
+  return this.musicLibrary.updateGlobalSearchableBrowseSources(data);
+};
+
 CoreCommandRouter.prototype.setSourceActive = function (data) {
   this.pushConsoleMessage('CoreCommandRouter::volumiosetSourceActive' + data);
   return this.musicLibrary.setSourceActive(data);

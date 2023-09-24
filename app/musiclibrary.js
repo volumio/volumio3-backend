@@ -114,6 +114,8 @@ function CoreMusicLibrary (commandRouter) {
     ];
   }
 
+  self.globalSearchableBrowseSources = [];
+
   // Start library promise as rejected, so requestors do not wait for it if not immediately available.
   // This is okay because no part of Volumio requires a populated library to function.
   // self.libraryReadyDeferred = null;
@@ -853,7 +855,7 @@ CoreMusicLibrary.prototype.matchTrackWithCache = function (uri) {
   var defer = libQ.defer();
   var deferArray = [];
 
-  var searchableSources = self.getVisibleBrowseSources();
+  var searchableSources = self.getGlobalSearchableBrowseSources();
   for (var i in searchableSources) {
     var source = searchableSources[i];
     if (source.uri === 'tidal://') {
@@ -928,7 +930,7 @@ CoreMusicLibrary.prototype.executeGlobalSearch = function (data) {
   var executed = [];
   var itemsList = [];
 
-  var searchableSources = self.getVisibleBrowseSources();
+  var searchableSources = self.getGlobalSearchableBrowseSources();
   for (var i = 0; i < searchableSources.length; i++) {
     var source = searchableSources[i];
     var key = source.plugin_type + '_' + source.plugin_name;
@@ -1013,4 +1015,21 @@ CoreMusicLibrary.prototype.getNullSearchResult = function () {
   var noResultTitle = {'availableListViews': ['list'], 'items': []};
   searchResult.navigation.lists[0] = noResultTitle;
   return searchResult;
+};
+
+CoreMusicLibrary.prototype.getGlobalSearchableBrowseSources = function (data) {
+  var self = this;
+
+  if (self.globalSearchableBrowseSources && self.globalSearchableBrowseSources.length) {
+    return self.globalSearchableBrowseSources;
+  } else {
+    self.globalSearchableBrowseSources = self.commandRouter.executeOnPlugin('miscellanea', 'my_music', 'getSuperSearchEnabledSourcesList', '');
+    return self.globalSearchableBrowseSources;
+  }
+
+};
+
+CoreMusicLibrary.prototype.updateGlobalSearchableBrowseSources = function (data) {
+  var self = this;
+  self.globalSearchableBrowseSources = data;
 };

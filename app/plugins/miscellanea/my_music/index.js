@@ -99,31 +99,8 @@ ControllerMyMusic.prototype.getUIConfig = function () {
         var ffmpeg = self.getAdditionalConf('music_service', 'mpd', 'ffmpegenable', false);
         self.configManager.setUIConfigParam(uiconf, 'sections[4].content[3].value', ffmpeg);
 
-        try {
-          var disabledSources = self.getDisabledSources();
-          var browseSources = self.commandRouter.volumioGetBrowseSources();
-          for (var i in browseSources) {
-            var source = browseSources[i];
-            var enabled = true;
-            uiconf.sections[5].saveButton.data.push(source.uri);
-            if (disabledSources && disabledSources.includes(source.uri)) {
-              enabled = false;
-            }
-            var sourceSetting = {
-              'id': source.uri,
-              'element': 'switch',
-              'label': source.name,
-              'value': enabled
-            };
-            uiconf.sections[5].content.push(sourceSetting);
-          }
-        } catch (e) {
-          self.logger.error('Could not retrieve disabled sources: ' + e);
-        }
-
-        if (process.env.HIDE_BROWSE_SOURCES_VISIBILITY_SELECTOR === 'true') {
-          uiconf.sections[5].hidden = true;
-        }
+        uiconf = self.populateEnabledSourcesUiConf(uiconf);
+        uiconf = self.populateSupersearchSourcesUiConf(uiconf);
 
         if (sconf) {
           var insertInto = 3;
@@ -254,4 +231,149 @@ ControllerMyMusic.prototype.getDisabledSources = function () {
   }
 
   return disabledSourcesArray;
+};
+
+ControllerMyMusic.prototype.populateEnabledSourcesUiConf = function (uiconf) {
+  var self = this;
+
+  try {
+    var disabledSources = self.getDisabledSources();
+    var browseSources = self.commandRouter.volumioGetBrowseSources();
+    for (var i in browseSources) {
+      var source = browseSources[i];
+      var enabled = true;
+      uiconf.sections[5].saveButton.data.push(source.uri);
+      if (disabledSources && disabledSources.includes(source.uri)) {
+        enabled = false;
+      }
+      var sourceSetting = {
+        'id': source.uri,
+        'element': 'switch',
+        'label': source.name,
+        'value': enabled
+      };
+      uiconf.sections[5].content.push(sourceSetting);
+    }
+  } catch (e) {
+    self.logger.error('Could not retrieve disabled sources: ' + e);
+  }
+
+  if (process.env.HIDE_BROWSE_SOURCES_VISIBILITY_SELECTOR === 'true') {
+    uiconf.sections[5].hidden = true;
+  }
+
+  return uiconf;
+};
+
+ControllerMyMusic.prototype.populateSupersearchSourcesUiConf = function (uiconf) {
+  var self = this;
+
+  try {
+    var superSearchSources = self.getSuperSearchSources();
+
+    for (var i in superSearchSources) {
+      var source = superSearchSources[i];
+      uiconf.sections[6].saveButton.data.push(source.uri);
+      var sourceSetting = {
+        'id': source.uri,
+        'element': 'switch',
+        'label': source.name,
+        'value': source.enabled
+      };
+      uiconf.sections[6].content.push(sourceSetting);
+    }
+  } catch (e) {
+    self.logger.error('Could not retrieve disabled sources: ' + e);
+  }
+
+  //TODO If supersearch is not enabled do not show
+  //uiconf.sections[6].hidden = true;
+
+  return uiconf;
+};
+
+ControllerMyMusic.prototype.getSuperSearchSources = function () {
+  var self = this;
+
+  var enabledSources = self.getSuperSearchEnabledSources();
+  var browseSources = self.getSuperSearchAvailableSources();
+  var superSearchSources = [];
+
+  for (var i in browseSources) {
+    var source = browseSources[i];
+    source.enabled = false;
+
+    if (enabledSources && enabledSources.includes(source.uri)) {
+      source.enabled = true;
+    }
+    superSearchSources.push(source);
+  }
+
+  return superSearchSources;
+};
+
+ControllerMyMusic.prototype.getSuperSearchEnabledSourcesList = function () {
+  var self = this;
+
+  var superSearchSources = self.getSuperSearchSources();
+  var superSearchEnabledSourcesList = [];
+
+  for (var i in superSearchSources) {
+    var source = superSearchSources[i];
+    if (source.enabled) {
+        superSearchEnabledSourcesList.push(source);
+    }
+  }
+
+  return superSearchEnabledSourcesList;
+};
+
+ControllerMyMusic.prototype.getSuperSearchAvailableSources = function () {
+  var self = this;
+
+  var availableSources = [];
+  var sourcesToFilter = ['favourites','playlists','artists://','albums://','genres://','upnp','Last_100','radio'];
+  var browseSources = self.commandRouter.volumioGetBrowseSources();
+  var availableSources = browseSources.filter(browseSources => !sourcesToFilter.includes(browseSources.uri));
+
+  return availableSources;
+};
+
+ControllerMyMusic.prototype.getSuperSearchEnabledSources = function () {
+  var self = this;
+  // Workaround to read arrays in v-conf
+
+  var superSearchSources = self.getSuperSearchAvailableSources();
+  var defaultSourcesEnabled = ['music-library','tidal://','qobuz://','spotify'];
+  var enabledSourcesArray = [];
+  for (var i in superSearchSources) {
+    var source = superSearchSources[i];
+    var configSetting = 'super_search_enable_' + source.uri;
+    var enabled = self.config.get(configSetting, 'unset');
+    if (enabled == 'unset') {
+      enabled = defaultSourcesEnabled.includes(source.uri);
+    } if (enabled == true) {
+      enabledSourcesArray.push(source.uri);
+    }
+  }
+
+  return enabledSourcesArray;
+};
+
+ControllerMyMusic.prototype.updateMusicLibrarySupersearchSources = function (data) {
+  var self = this;
+
+  // Workaround to save arrays in v-conf
+  for (var key in data) {
+    var source = key;
+    var enabled = data[key];
+    var configSetting = 'super_search_enable_' + source;
+    self.config.set(configSetting, enabled);
+  }
+  self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('COMMON.CONFIGURATION_UPDATE'), self.commandRouter.getI18nString('APPEARANCE.SUPERSEARCH_INFINITY_SERVICES'));
+  // TODO UPDATE SUPERSEARCH SOURCES
+  setTimeout(function () {
+    var sources = self.getSuperSearchEnabledSourcesList();
+    return self.commandRouter.updateGlobalSearchableBrowseSources(sources);
+  }, 500);
 };
