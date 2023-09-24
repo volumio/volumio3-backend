@@ -675,7 +675,7 @@ ControllerMpd.prototype.mpdEstablish = function () {
     if (startup) {
       startup = false;
       setTimeout(()=>{
-        self.checkIfMpdRequiresRescan();
+        //self.checkIfMpdRequiresRescan();
       }, 2500)
       setTimeout(()=>{
         self.checkUSBDrives();
