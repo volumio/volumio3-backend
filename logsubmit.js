@@ -8,6 +8,8 @@ var commandArray = [
   'ifconfig',
   'sudo iwconfig',
   'aplay -l',
+  'lsusb -t',
+  'lsusb -v',
   'ps -ef',
   'df -h',
   'mount',
