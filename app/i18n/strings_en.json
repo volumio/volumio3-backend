@@ -443,7 +443,10 @@
         "AUTO_POWER_ON": "Auto Power On",
         "AUTO_POWER_ON_DOC": "Enable or disable the Auto Power On feature. When enabled, the system will automatically turn on when power is applied or after a power failure",
         "DISPLAY_BRIGHTNESS": "Display Brightness",
-        "DISPLAY_BRIGHTNESS_DOC": "Set the brightness of the display"
+        "DISPLAY_BRIGHTNESS_DOC": "Set the brightness of the display",
+        "HDMI_I2S_MODE": "HDMI I2S Mode",
+        "HDMI_I2S_MODE_PROTOCOL": "HDMI I2S Mode Protocol",
+        "HDMI_I2S_MODE_DOC": "Set the HDMI I2S Protocol. This setting is only available for some some I2S DACs, if in doubt of what to choose, consult your DAC's manual or its manufacturer"
     },
     "UPDATER": {
         "CHECKING_FOR_UPDATES": "Checking for Updates",

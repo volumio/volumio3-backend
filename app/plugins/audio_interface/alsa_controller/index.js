@@ -532,7 +532,7 @@ ControllerAlsa.prototype.getAdditionalUISections = function () {
     		var section = additionalUISections[i];
     		var pluginType = section.split('/')[0];
     		var pluginName = section.split('/')[1];
-      var additionalUISection = self.commandRouter.executeOnPlugin(pluginType, pluginName, 'getAdditionalUiSection');
+      var additionalUISection = self.commandRouter.executeOnPlugin(pluginType, pluginName, 'getAdditionalUiSection', 'audio');
       uiSectionsDefer.push(additionalUISection);
     	}
     libQ.all(uiSectionsDefer).then((uiSectionsResult) => {
