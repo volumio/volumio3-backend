@@ -70,6 +70,10 @@ CoreStateMachine.prototype.getState = function () {
       this.volatileState.trackType = '';
     }
 
+    if (this.volatileState.codec === undefined) {
+      this.volatileState.codec = '';
+    }
+
     if (this.volatileState.albumart === undefined) {
       this.volatileState.albumart = '/albumart';
     }
@@ -86,6 +90,7 @@ CoreStateMachine.prototype.getState = function () {
       albumart: this.volatileState.albumart,
       uri: this.volatileState.uri,
       trackType: this.volatileState.trackType,
+      codec: this.volatileState.codec,
       seek: this.volatileState.seek,
       duration: this.volatileState.duration,
       samplerate: this.volatileState.samplerate,
@@ -103,7 +108,6 @@ CoreStateMachine.prototype.getState = function () {
       stream: this.volatileState.stream,
       updatedb: this.currentUpdate,
       volatile: true,
-      trackType: this.volatileState.trackType,
       disableUiControls: this.volatileState.disableUiControls,
       service: this.volatileState.service
     };
@@ -149,7 +153,6 @@ CoreStateMachine.prototype.getState = function () {
         stream: this.consumeState.stream,
         updatedb: this.currentUpdate,
         volatile: false,
-        trackType: this.consumeState.trackType,
         service: this.consumeState.service
       };
     } else {
@@ -174,6 +177,7 @@ CoreStateMachine.prototype.getState = function () {
         albumart: trackBlock.albumart,
         uri: trackBlock.uri,
         trackType: trackBlock.trackType,
+        codec: trackBlock.codec,
         seek: this.currentSeek,
         duration: trackBlock.duration,
         samplerate: trackBlock.samplerate,
@@ -339,6 +343,7 @@ CoreStateMachine.prototype.resetVolumioState = function () {
       self.currentTrackBlock = [];
       self.timeLastServiceStateUpdate = 0;
       self.currentTrackType = null;
+      self.currentCodec = null;
       self.timerPlayback = null;
       self.currentTitle = null;
       self.currentArtist = null;
@@ -748,6 +753,7 @@ CoreStateMachine.prototype.syncState = function (stateService, sService) {
       this.currentSeek = stateService.seek;
       this.currentDuration = stateService.duration;
       this.currentTrackType = null;
+      this.currentCodec = null;
       this.currentTitle = null;
       this.currentArtist = null;
       this.currentAlbum = null;
@@ -785,6 +791,7 @@ CoreStateMachine.prototype.syncState = function (stateService, sService) {
       this.currentSeek = stateService.seek;
       this.currentDuration = stateService.duration;
       this.currentTrackType = null;
+      this.currentCodec = null;
       this.currentTitle = null;
       this.currentArtist = null;
       this.currentAlbum = null;
