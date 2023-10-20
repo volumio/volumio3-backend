@@ -36,6 +36,10 @@
     {"id":"hifiberry-digi-pro","name":"HiFiBerry Digi+ Pro","overlay":"hifiberry-digi-pro","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"","modules":"","script":"","needsreboot":"no"},
     {"id":"hifibox-dac","name":"HiFiBox DAC","overlay":"hifiberry-dacplus","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Digital","modules":"","script":"","eeprom_name":["HiFiBox DAC HAT","HiFiBox DAC HAT V1","HiFiBox DAC HAT V 10"],"needsreboot":"no"},
     {"id":"melopero-daczero","name":"Melopero DAC ZERO","overlay":"hifiberry-dacplus","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Digital","modules":"","script":"","i2c_address":"4d","needsreboot":"yes"},
+    {"id":"innomaker-dac","name":"Innomaker Dac","overlay":"allo-boss-dac-pcm512x-audio","alsanum":"2","alsacard":"BossDAC","mixer":"Digital","modules":"","script":"","needsreboot":"yes"},
+    {"id":"innomaker-dac-pro","name":"Innomaker Dac Pro","overlay":"allo-katana-dac-audio","alsanum":"2","alsacard":"Katana","mixer":"Master","modules":"","script":"","needsreboot":"yes"},
+    {"id":"innomaker-amp","name":"Innomaker Amp","overlay":"hifiberry-amp","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Master","modules":"","script":"","needsreboot":"yes"},
+    {"id":"innomaker-amp-pro","name":"Innomaker Amp Pro","overlay":"merus-amp","alsanum":"2","alsacard":"sndrpimerusamp","mixer":"","modules":"","script":"","needsreboot":"yes"},
     {"id":"iqaudio-dacplus","name":"IQaudIO DAC Plus","overlay":"iqaudio-dacplus,unmute_amp ","alsanum":"2","alsacard":"IQaudIODAC","mixer":"Digital","modules":"","script":"iqamp-unmute.sh","i2c_address":"4c","needsreboot":"no"},
     {"id":"iqaudio-digiplus","name":"IQaudIO Pi-Digi+","overlay":"iqaudio-digi-wm8804-audio","alsanum":"2","mixer":"","modules":"","script":"","needsreboot":"yes"},
     {"id":"iqaudio-amp","name":"IQaudIO Pi-DigiAMP+","overlay":"iqaudio-dacplus,unmute_amp ","alsanum":"2","alsacard":"IQaudIODAC","mixer":"Digital","modules":"","script":"iqamp-unmute.sh","needsreboot":"yes"},
@@ -63,11 +67,7 @@
     {"id":"st400-dac-amp","name":"ST400 Dac (PCM5122) - Amp","overlay":"iqaudio-dacplus","alsanum":"2","alsacard":"IQaudIODAC","mixer":"Digital","modules":"","script":"","needsreboot":"yes"},
     {"id":"taudac","name":"TauDAC - DM101","overlay":"taudac","alsanum":"2","mixer":"","modules":"","script":"","eeprom_name":"TauDAC-DM101","needsreboot":"yes"},
     {"id":"terraberry-dac2","name":"Terra-Berry DAC 2/3","overlay":"i-sabre-q2m","alsanum":"2","alsacard":"DAC","mixer":"","modules":"","script":"","needsreboot":"yes"},
-    {"id":"wisdPi Hifi DAC","name":"wisdPi Hifi DAC","overlay":"hifiberry-dacplus","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Digital","modules":"","script":"","needsreboot":"yes"},
-    {"id":"innomaker-dac","name":"Innomaker Dac","overlay":"allo-boss-dac-pcm512x-audio","alsanum":"2","alsacard":"BossDAC","mixer":"Digital","modules":"","script":"","needsreboot":"yes"},
-    {"id":"innomaker-dac-pro","name":"Innomaker Dac Pro","overlay":"allo-katana-dac-audio","alsanum":"2","alsacard":"Katana","mixer":"Master","modules":"","script":"","needsreboot":"yes"},
-    {"id":"innomaker-amp","name":"Innomaker Amp","overlay":"hifiberry-amp","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Master","modules":"","script":"","needsreboot":"yes"},
-    {"id":"innomaker-amp-pro","name":"Innomaker Amp Pro","overlay":"merus-amp","alsanum":"2","alsacard":"sndrpimerusamp","mixer":"","modules":"","script":"","needsreboot":"yes"}
+    {"id":"wisdPi Hifi DAC","name":"wisdPi Hifi DAC","overlay":"hifiberry-dacplus","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Digital","modules":"","script":"","needsreboot":"yes"}
   ]},
   {"name":"Odroid C1+","data":[
     {"id":"odroid-hifi-shield","name":"HiFi Shield","overlay":"","alsanum":"2","mixer":"","modules":"","script":""}
