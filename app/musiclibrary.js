@@ -391,7 +391,7 @@ CoreMusicLibrary.prototype.applyBrowseFilters = function (data, filters) {
 
 CoreMusicLibrary.prototype.search = function (data) {
   var self = this;
-  
+
   var query = {};
   var defer = libQ.defer();
   var deferArray = [];
@@ -794,7 +794,7 @@ CoreMusicLibrary.prototype.matchAlbum = function (artistToSearch, albumToSearch,
     return false;
   }
 
-  if (self.isEqualString(artist, artistToSearch) && self.isEqualString(album, albumToSearch)) {
+  if (self.isEqualString(artist, artistToSearch) && (self.isEqualString(album, albumToSearch) || self.isStringIncluded(album, albumToSearch))) {
     return true;
   } else if (item.uri.includes('tidal://album/') && self.isEqualString(album, albumToSearch)) {
     // workaround for Tidal not returning artist name in search results, to fix in browse performer
@@ -914,6 +914,20 @@ CoreMusicLibrary.prototype.isEqualString = function (a, b) {
   if (a.toLowerCase().trim() === b.toLowerCase().trim()) {
     return true;
   } else {
+    return false;
+  }
+};
+
+CoreMusicLibrary.prototype.isStringIncluded = function (a, b) {
+  var self = this;
+
+  try {
+    if ( a.toLowerCase().trim().includes(b.toLowerCase().trim()) || b.toLowerCase().trim().includes(a.toLowerCase().trim()) ) {
+      return true;
+    } else {
+      return false;
+    }
+  } catch(e) {
     return false;
   }
 };
