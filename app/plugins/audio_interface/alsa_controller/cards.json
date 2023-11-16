@@ -39,6 +39,7 @@
     {"name": "HDA C-Media", "multidevice": true, "devices":[{"number":0, "prettyname": "C-Media Analog Out", "defaultmixer": ""},{"number":1, "prettyname": "C-Media SPDIF/Toslink", "defaultmixer": ""}]},
     {"name": "HD-Audio Generic", "multidevice": true, "devices":[{"number":0, "prettyname": "Analog Out", "defaultmixer": ""},{"number":1, "prettyname": "SPDIF", "defaultmixer": ""},{"number":3, "prettyname": "HDMI", "defaultmixer": ""}]},
     {"name": "HDA ATI SB", "multidevice": true, "devices":[{"number":0, "prettyname": "Analog Out", "defaultmixer": ""},{"number":1, "prettyname": "SPDIF", "defaultmixer": ""}]},
+    {"name": "HDA ATI HDMI", "multidevice": true, "devices":[{"number":3, "prettyname": "HDMI 0", "defaultmixer": ""},{"number":7, "prettyname": "HDMI 1", "defaultmixer": ""}],"type":"integrated"}, 
     {"name": "Intel ICH6", "multidevice": true, "devices":[{"number":0, "prettyname": "HDMI", "defaultmixer": ""},{"number":4, "prettyname": "SPDIF", "defaultmixer": ""}]},
     {"name": "bytcr-rt5640", "multidevice": false, "prettyname": "Headphone Jack/ Speaker", "defaultmixer": "DAC1","type":"integrated"},
     {"name": "bytcr-rt5651", "multidevice": false, "prettyname": "Headphone Jack", "defaultmixer": "HP","type":"integrated"},
@@ -51,6 +52,7 @@
     {"name": "AML-AUGESOUND-V1S", "multidevice": true, "devices":[{"number":0, "prettyname": "I2S", "defaultmixer": ""},{"number":2, "prettyname": "S/PDIF", "defaultmixer": "", "ignoreGenmixer": true}, {"number":2, "prettyname": "HDMI", "defaultmixer": "DAC Digital"}],"type":"integrated"},
     {"name": "AML-AUGESOUND-V", "multidevice": true, "devices":[{"number":0, "prettyname": "I2S + SPDIF + HDMI", "defaultmixer": "DAC Digital"}, {"number":1, "prettyname": "HDMI only", "defaultmixer": "DAC Digital"}, {"number":2, "prettyname": "SPDIF + HDMI", "defaultmixer": "DAC Digital"}],"type":"integrated"},
     {"name": "AML-MESONAUDIO", "multidevice": true, "devices":[{"number":0, "prettyname": "I2S+SPDIF+HDMI", "defaultmixer": "DAC Digital"}, {"number":1, "prettyname": "SPDIF+HDMI", "defaultmixer": "DAC Digital"}],"type":"integrated"},
-    {"name": "AML-M8AUDIO", "multidevice": true, "devices":[{"number":0, "prettyname": "I2S", "defaultmixer": "", "ignore": true}, {"number":1, "prettyname": "SPDIF", "defaultmixer": ""}, {"number":2, "prettyname": "PCM", "defaultmixer": "", "ignore": true}],"type":"integrated"}
+    {"name": "AML-M8AUDIO", "multidevice": true, "devices":[{"number":0, "prettyname": "I2S", "defaultmixer": "", "ignore": true}, {"number":1, "prettyname": "SPDIF", "defaultmixer": ""}, {"number":2, "prettyname": "PCM", "defaultmixer": "", "ignore": true}],"type":"integrated"},
+    {"name": "Xonar SoundCard", "multidevice": true, "devices":[{"number":0, "prettyname": "Xonar Headphone/ Analog out", "defaultmixer": ""},{"number":2, "prettyname": "Xonar S/DIF (optical) out", "defaultmixer": ""}],"type":"integrated"}
   ]
 }
