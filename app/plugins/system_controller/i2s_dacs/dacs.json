@@ -41,7 +41,7 @@
     {"id":"innomaker-amp","name":"Innomaker Amp","overlay":"hifiberry-amp","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Master","modules":"","script":"","needsreboot":"yes"},
     {"id":"innomaker-amp-pro","name":"Innomaker Amp Pro","overlay":"merus-amp","alsanum":"2","alsacard":"sndrpimerusamp","mixer":"","modules":"","script":"","needsreboot":"yes"},
     {"id":"iqaudio-dacplus","name":"IQaudIO DAC Plus","overlay":"iqaudio-dacplus,unmute_amp ","alsanum":"2","alsacard":"IQaudIODAC","mixer":"Digital","modules":"","script":"iqamp-unmute.sh","i2c_address":"4c","needsreboot":"no"},
-    {"id":"iqaudio-digiplus","name":"IQaudIO Pi-Digi+","overlay":"iqaudio-digi-wm8804-audio","alsanum":"2","mixer":"","modules":"","script":"","needsreboot":"yes"},
+    {"id":"iqaudio-digiplus","name":"IQaudIO Pi-Digi+","overlay":"iqaudio-digi-wm8804-audio","alsanum":"2","alsacard":"IQAudIODigi","mixer":"","modules":"","script":"","needsreboot":"yes"},
     {"id":"iqaudio-amp","name":"IQaudIO Pi-DigiAMP+","overlay":"iqaudio-dacplus,unmute_amp ","alsanum":"2","alsacard":"IQaudIODAC","mixer":"Digital","modules":"","script":"iqamp-unmute.sh","needsreboot":"yes"},
     {"id":"justboom-amp","name":"JustBoom Amp Boards","overlay":"justboom-dac","alsanum":"2","alsacard":"sndrpijustboomd","mixer":"Digital","modules":"","script":"","eeprom_name":["JustBoom DAC HAT","JustBoom DAC HAT v1.1"],"needsreboot":"yes"},
     {"id":"justboom-dac","name":"JustBoom DAC Boards","overlay":"justboom-dac","alsanum":"2","alsacard":"sndrpijustboomd","mixer":"Digital","modules":"","script":"","eeprom_name":["JustBoom DAC HAT","JustBoom DAC HAT v1.1"],"needsreboot":"yes"},
