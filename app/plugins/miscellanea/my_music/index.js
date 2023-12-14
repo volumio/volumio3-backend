@@ -306,7 +306,10 @@ ControllerMyMusic.prototype.getSuperSearchSources = function () {
     if (enabledSources && enabledSources.includes(source.uri)) {
       source.enabled = true;
     }
-    superSearchSources.push(source);
+    // Do not add input sources
+    if (!source.uri.includes('input')) {
+      superSearchSources.push(source);
+    }
   }
 
   return superSearchSources;
