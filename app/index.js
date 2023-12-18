@@ -64,9 +64,10 @@ function CoreCommandRouter (server) {
   this.platformspecific = new (require(__dirname + '/platformSpecific.js'))(this);
 
   // Wait for plugin startup to complete before playing the startup sound as the
-  // plugins may need to be fully active before sound can play properly 
-  pluginPromise.then(() => {	  
+  // plugins may need to be fully active before sound can play properly
+  pluginPromise.then(() => {
 	  this.pushConsoleMessage('BOOT COMPLETED');
+      process.env.VOLUMIO_SYSTEM_STATUS = 'ready';
 	  metrics.log('CommandRouter');
 	  this.setStartupVolume();
 	  this.startupSound();
@@ -2305,7 +2306,7 @@ CoreCommandRouter.prototype.refreshCachedPAddresses = function () {
 
 CoreCommandRouter.prototype.rebuildALSAConfiguration = function () {
   var self = this;
-	
+
   if (process.env.MODULAR_ALSA_PIPELINE === 'true') {
     var alsaPlugin = this.pluginManager.getPlugin('audio_interface', 'alsa_controller');
     return alsaPlugin.updateALSAConfigFile();

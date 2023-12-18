@@ -15,6 +15,7 @@ var plugin = express();
 var background = express();
 var stream = express();
 var partnerlogo = express();
+var status = express();
 /* eslint-disable */
 var plugindir = '/tmp/plugins';
 var backgrounddir = '/data/backgrounds';
@@ -23,8 +24,8 @@ var volumioManifestUIFlagFile = '/data/manifestUI';
 var volumioWizardFlagFile = '/data/wizard';
 var volumioManifestUIDisabledFile = '/data/disableManifestUI';
 var volumio3UIFolderPath = '/volumio/http/www3';
-
 var volumioManifestUIDir = '/volumio/http/www4';
+process.env.VOLUMIO_SYSTEM_STATUS = 'starting';
 
 var allowCrossDomain = function (req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
@@ -78,7 +79,7 @@ app.use(function (req, res, next) {
         staticMiddlewareUI3(req, res, next);
       }
     }
-  }  
+  }
 });
 
 app.use(busboy({ immediate: true }));
@@ -102,6 +103,14 @@ partnerlogo.use(express.static('/volumio/partnerlogo.png', { maxAge: 0 }));
 partnerlogo.use(function (req, res, next) {
   res.status(404);
   res.send("Not found");
+});
+
+// System Status API
+app.use('/status', status);
+
+status.use(function (req, res, next) {
+
+  res.send(process.env.VOLUMIO_SYSTEM_STATUS);
 });
 
 // catch 404 and forward to error handler
