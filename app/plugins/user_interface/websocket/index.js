@@ -28,7 +28,7 @@ function InterfaceWebUI (context) {
   self.libSocketIO.on('connection', function (connWebSocket) {
 
     self.logClientConnection(connWebSocket);
-    
+
     // Closing all modals when clients connect
     connWebSocket.emit('closeAllModals', '');
 
@@ -373,7 +373,7 @@ function InterfaceWebUI (context) {
       response = self.musicLibrary.executeBrowseSource(curUri);
 
       if (response != undefined) {
-        response.then(function (result) {   
+        response.then(function (result) {
           if (data.ref) {
             result.ref = data.ref;
           }
@@ -381,7 +381,7 @@ function InterfaceWebUI (context) {
           selfConnWebSocket.emit('pushBrowseLibrary', result);
 
           if (result.navigation != undefined && result.navigation.lists != undefined) {
-            result.navigation.lists.forEach(list => {              
+            result.navigation.lists.forEach(list => {
               if (list.items != undefined)
                 try {
                   setTimeout(function(){ self.commandRouter.preLoadItems(list.items) }, 50)
@@ -550,7 +550,7 @@ function InterfaceWebUI (context) {
 
     connWebSocket.on('createPlaylist', function (data) {
       var selfConnWebSocket = this;
-	  
+
       var returnedData = self.commandRouter.playListManager.createPlaylist(data.name);
       returnedData.then(function (data) {
         selfConnWebSocket.emit('pushCreatePlaylist', data);
@@ -857,7 +857,7 @@ function InterfaceWebUI (context) {
       var wirelessNetworksCache = self.commandRouter.executeOnPlugin('system_controller', 'network', 'getWirelessNetworksScanCache', '');
       if (wirelessNetworksCache) {
         selfConnWebSocket.emit('pushWirelessNetworksCache', wirelessNetworksCache);
-      }      
+      }
     });
 
     connWebSocket.on('saveWirelessNetworkSettings', function (data) {
@@ -895,7 +895,7 @@ function InterfaceWebUI (context) {
     });
 
     connWebSocket.on('updateCheckCache', function () {
-      var selfConnWebSocket = this;      
+      var selfConnWebSocket = this;
       self.sendUpdateReady = false;
 
       var autoUpdateCheckCloudEnabled = self.commandRouter.executeOnPlugin('system_controller', 'my_volumio', 'getAutoUpdateCheckEnabled');
@@ -909,7 +909,7 @@ function InterfaceWebUI (context) {
         .fail(function () {
           defer.resolve();
         });
-      } 
+      }
     });
 
     connWebSocket.on('ClientUpdateReady', function (message) {
@@ -925,7 +925,7 @@ function InterfaceWebUI (context) {
       } catch (e) {
                 	self.logger.error('Cannot translate update title: ' + e);
       }
-      
+
       if (updateMessage && updateMessage.updateavailable === true) {
          // Always use a loose parse as Volumio versions aren't properly semver.
          // For example 3.054 isn't valid due to the leading '0'.
@@ -1630,8 +1630,10 @@ function InterfaceWebUI (context) {
 
     connWebSocket.on('setDeviceName', function (data) {
       var selfConnWebSocket = this;
-      var options = {'player_name': data.name};
-      var name = self.commandRouter.executeOnPlugin('system_controller', 'system', 'saveGeneralSettings', options);
+      if (data && data.name && data.name.length) {
+        var options = {'player_name': data.name};
+        var name = self.commandRouter.executeOnPlugin('system_controller', 'system', 'saveGeneralSettings', options);
+      }
     });
 
     connWebSocket.on('getOutputDevices', function () {
