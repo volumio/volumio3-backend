@@ -67,7 +67,7 @@
     {"id":"st400-dac-amp","name":"ST400 Dac (PCM5122) - Amp","overlay":"iqaudio-dacplus","alsanum":"2","alsacard":"IQaudIODAC","mixer":"Digital","modules":"","script":"","needsreboot":"yes"},
     {"id":"taudac","name":"TauDAC - DM101","overlay":"taudac","alsanum":"2","alsacard":"TauDACDM101","mixer":"","modules":"","script":"","eeprom_name":"TauDAC-DM101","needsreboot":"yes"},
     {"id":"terraberry-dac2","name":"Terra-Berry DAC 2/3","overlay":"i-sabre-q2m","alsanum":"2","alsacard":"DAC","mixer":"","modules":"","script":"","needsreboot":"yes"},
-    {"id":"wisdPi Hifi DAC","name":"wisdPi Hifi DAC","overlay":"hifiberry-dacplus","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Digital","modules":"","script":"","needsreboot":"yes"}
+    {"id":"wisdPi Hifi DAC","name":"wisdPi Hifi DAC","overlay":"hifiberry-dacplus,slave","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Digital","modules":"","script":"","needsreboot":"yes"}
   ]},
   {"name":"Odroid C1+","data":[
     {"id":"odroid-hifi-shield","name":"HiFi Shield","overlay":"","alsanum":"2","mixer":"","modules":"","script":""}
