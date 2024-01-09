@@ -115,7 +115,6 @@ ControllerSystem.prototype.getUIConfig = function () {
   var showLanguageSelector = self.getAdditionalConf('miscellanea', 'appearance', 'language_on_system_page', false);
   var device = self.config.get('device', '');
   var showDiskInstaller = self.config.get('show_disk_installer', true);
-  var HDMIEnabled = self.config.get('hdmi_enabled', false);
   self.commandRouter.i18nJson(__dirname + '/../../../i18n/strings_' + lang_code + '.json',
     __dirname + '/../../../i18n/strings_en.json',
     __dirname + '/UIConfig.json')
@@ -129,7 +128,14 @@ ControllerSystem.prototype.getUIConfig = function () {
         self.configManager.setUIConfigParam(uiconf, 'sections[0].content[3].hidden', false);
       }
 
+      var HDMIEnabled = self.config.get('hdmi_enabled', false);
       self.configManager.setUIConfigParam(uiconf, 'sections[1].content[0].value', HDMIEnabled);
+      try {
+        var cursorEnabled = !fs.readFileSync('/data/kioskargs', 'utf8').includes('nocursor');
+      } catch(e) {
+        var cursorEnabled = true;
+      }
+      self.configManager.setUIConfigParam(uiconf, 'sections[1].content[1].value', cursorEnabled);
 
       if (device != undefined && device.length > 0 && (device === 'Tinkerboard' || device === 'x86') && showDiskInstaller) {
         var hwdevice = device;
@@ -1078,26 +1084,28 @@ ControllerSystem.prototype.notifyInstallToDiskStatus = function (data) {
 ControllerSystem.prototype.saveHDMISettings = function (data) {
   var self = this;
 
-  var currentConf = self.config.get('hdmi_enabled', false);
-  if (currentConf |= data['hdmi_enabled']) {
-    self.config.set('hdmi_enabled', data['hdmi_enabled']);
-
-    var action = 'enable';
-    var immediate = 'start';
-    if (!data['hdmi_enabled']) {
-      action = 'disable';
-      immediate = 'stop';
-    }
-
-    exec('/usr/bin/sudo /bin/systemctl ' + immediate + ' volumio-kiosk.service && /usr/bin/sudo /bin/systemctl ' + action + ' volumio-kiosk.service', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
-      if (error !== null) {
-        self.logger.error('Cannot ' + action + ' volumio-kiosk service: ' + error);
-      } else {
-        self.logger.info(action + ' volumio-kiosk service success');
-        self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('SYSTEM.HDMI_UI'), self.commandRouter.getI18nString('SYSTEM.SYSTEM_CONFIGURATION_UPDATE_SUCCESS'));
-      }
-    });
+  self.config.set('hdmi_enabled', data['hdmi_enabled']);
+  var kioskArgs = '-- -nocursor';
+  if (data.show_mouse_pointer === true) {
+    kioskArgs = '';
   }
+  execSync('/bin/echo ' + kioskArgs + ' > /data/kioskargs', { uid: 1000, gid: 1000, encoding: 'utf8'});
+
+  var action = 'enable';
+  var immediate = 'restart';
+  if (!data['hdmi_enabled']) {
+    action = 'disable';
+    immediate = 'stop';
+  }
+
+  exec('/usr/bin/sudo /bin/systemctl ' + immediate + ' volumio-kiosk.service && /usr/bin/sudo /bin/systemctl ' + action + ' volumio-kiosk.service', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+    if (error !== null) {
+      self.logger.error('Cannot ' + action + ' volumio-kiosk service: ' + error);
+    } else {
+      self.logger.info(action + ' volumio-kiosk service success');
+      self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('SYSTEM.HDMI_UI'), self.commandRouter.getI18nString('SYSTEM.SYSTEM_CONFIGURATION_UPDATE_SUCCESS'));
+    }
+  });
 };
 
 ControllerSystem.prototype.saveUpdateSettings = function (data) {
