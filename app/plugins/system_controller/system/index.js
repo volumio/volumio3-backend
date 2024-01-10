@@ -82,7 +82,7 @@ ControllerSystem.prototype.onStart = function () {
   self.callHome();
   self.initializeFirstStart();
   self.loadDefaultAdditionalDeviceVolumioProperties();
-  
+
   defer.resolve('OK')
   return defer.promise;
 };
@@ -161,7 +161,7 @@ ControllerSystem.prototype.getUIConfig = function () {
             });
         }
       }
-            
+
       var autoUpdate = self.config.get('autoUpdate', false);
       uiconf.sections[3].content[2].value = autoUpdate;
 
@@ -213,7 +213,7 @@ ControllerSystem.prototype.getUIConfig = function () {
             label: languagesdata.languages[n].name
           });
         }
-        
+
         self.getAvailableTimezones().forEach((timeZone) => {
           self.configManager.pushUIConfigParam(uiconf, 'sections[0].content[1].options', {
             value: timeZone,
@@ -240,10 +240,12 @@ ControllerSystem.prototype.getUIConfig = function () {
         } else if (fs.existsSync("/data/volumio2ui")) {
           uiValue = "CLASSIC";
           uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CLASSIC');
-        } 
+        }
         self.configManager.setUIConfigParam(uiconf, 'sections[8].content[0].value.value', uiValue);
         self.configManager.setUIConfigParam(uiconf, 'sections[8].content[0].value.label', uiLabel);
-
+        if (uiValue === "CLASSIC" || uiValue === "CONTEMPORARY") {
+          uiconf.sections[9] = {"coreSection": "ui-settings"};
+        }
         var additionalConfs = self.getAdditionalUISections();
         additionalConfs.then((conf) => {
           for (var i in conf) {
@@ -1442,13 +1444,13 @@ ControllerSystem.prototype.setTimezone = function (data) {
     execSync('/usr/bin/sudo /usr/bin/unlink /etc/localtime', { uid: 1000, gid: 1000, encoding: 'utf8'});
     execSync('/usr/bin/sudo /bin/ln -s /usr/share/zoneinfo/' + data + ' /etc/localtime', { uid: 1000, gid: 1000, encoding: 'utf8'});
     execSync('/usr/bin/sudo /bin/chmod 777 /etc/localtime', { uid: 1000, gid: 1000, encoding: 'utf8'});
-    process.env.TZ = data;    
+    process.env.TZ = data;
     self.config.set('timezone', data);
   } catch (e) {
       self.logger.error('Could not set timezone: ' + e);
   }
   try {
-    execSync('/usr/bin/sudo /usr/bin/timedatectl set-timezone \'' + data + '\'', { uid: 1000, gid: 1000, encoding: 'utf8'});    
+    execSync('/usr/bin/sudo /usr/bin/timedatectl set-timezone \'' + data + '\'', { uid: 1000, gid: 1000, encoding: 'utf8'});
   } catch (e) {
     try {
       self.logger.info('Could not set timezone, retrying');
@@ -1460,13 +1462,13 @@ ControllerSystem.prototype.setTimezone = function (data) {
     }
   }
   setTimeout(() => {
-    self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'clearUpdateSchedule');  
+    self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'clearUpdateSchedule');
   }, 30000);
 }
 
 ControllerSystem.prototype.setLanguageTimezone = function (data) {
   var self = this;
-  
+
   if (data && data.timezone && data.timezone.value) {
     self.setTimezone(data.timezone.value);
   }
@@ -1480,9 +1482,9 @@ ControllerSystem.prototype.setLanguageTimezone = function (data) {
 }
 
 ControllerSystem.prototype.getCurrentTimezone = function () {
-  return this.config.get('timezone', "UTC");  
+  return this.config.get('timezone', "UTC");
 }
-  
+
 
 ControllerSystem.prototype.getAvailableTimezones = function () {
   return [
