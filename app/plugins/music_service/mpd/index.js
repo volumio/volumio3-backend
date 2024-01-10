@@ -341,7 +341,7 @@ ControllerMpd.prototype.sendMpdCommand = function (sCommand, arrayParameters) {
       }
       const stop=Date.now()
       self.logger.info("sendMpdCommand "+sCommand+" took "+(stop-start)+" milliseconds")
-            
+
       return libQ.resolve(respobject);
     });
 };
@@ -602,7 +602,14 @@ ControllerMpd.prototype.onVolumioStart = function () {
   self.loadLibrarySettings();
   dsd_autovolume = self.config.get('dsd_autovolume', false);
   self.getPlaybackMode();
-  
+
+  return libQ.resolve();
+};
+
+ControllerMpd.prototype.onStart = function () {
+  var self = this;
+
+  self.logger.info('ControllerMpd::onStart: Initializing MPD');
   return self.mpdInit();
 };
 
@@ -973,7 +980,7 @@ ControllerMpd.prototype.createMPDFile = function (callback) {
 
       var mixerdev = '';
       var mixerstrings = '';
-      
+
       if (process.env.MODULAR_ALSA_PIPELINE === 'true') {
         var realDev = outdev;
         outdev = self.commandRouter.sharedVars.get('alsa.outputdevice');
@@ -986,7 +993,7 @@ ControllerMpd.prototype.createMPDFile = function (callback) {
             mixerdev = 'hw:' + realDev + ',0';
           }
         }
-      
+
       } else {
         if (outdev != 'softvolume') {
           var realDev = outdev;
