@@ -141,7 +141,7 @@ volumioAppearance.prototype.getUIConfig = function () {
         self.configManager.setUIConfigParam(uiconf, 'sections[2].hidden', false);
       }
 
-      
+
       defer.resolve(uiconf);
     })
     .fail(function (e) {
@@ -205,16 +205,16 @@ volumioAppearance.prototype.capitalize = function () {
 
 volumioAppearance.prototype.generateThumbnails = function () {
   var self = this;
-  
+
   return libQ.nfcall(fs.readdir, backgroundPath)
     .then((files) => {
       var defers = [];
       var map = {};
-    
+
       for(var i = 0; i < files.length; i++) {
         map[files[i]] = true;
       }
-      
+
       for(var i = 0; i < files.length; i++) {
         if(files[i].indexOf('thumbnail-') !== 0 && !map['thumbnail-' + files[i]]) {
           var f = files[i];
@@ -251,11 +251,11 @@ volumioAppearance.prototype.setDefaultBackground = function () {
 
 volumioAppearance.prototype.createThumbnailPath = function () {
   var self = this;
-  
+
   // Node.JS recommends creating a directory and handling the "already exists"
   // rather than doing a stat check.
   return libQ.nfcall(fs.mkdir, backgroundPath)
-    .fail(function (e) { 
+    .fail(function (e) {
       if(e.code === 'EEXIST') {
         return null;
       } else {
@@ -266,7 +266,7 @@ volumioAppearance.prototype.createThumbnailPath = function () {
       // Only copy backgrounds to the data folder if the backgrounds aren't there
       var pluginFolder = libQ.nfcall(fs.readdir, __dirname + '/backgrounds');
       var dataFolder = libQ.nfcall(fs.readdir, backgroundPath);
-      
+
       return dataFolder.then(function(dataFiles) {
         pluginFolder.then(function(pluginFiles) {
           if(pluginFiles.every(function(f) { return dataFiles.includes(f); })) {
@@ -447,9 +447,11 @@ volumioAppearance.prototype.setVolumio3UI = function (data) {
       self.logger.error(e);
     }
     process.env.VOLUMIO_3_UI = 'true';
-    self.commandRouter.reloadUi();
+    setTimeout(()=> {
+      self.commandRouter.reloadUi();
+    }, 2000);
   } else if (data && data.volumio3_ui.value === "MANIFEST") {
-    try {      
+    try {
       execSync('/usr/bin/touch /data/manifestUI');
       execSync('/bin/rm -f  /data/volumio2ui');
       execSync('/bin/rm -f  /data/disableManifestUI');
@@ -457,7 +459,9 @@ volumioAppearance.prototype.setVolumio3UI = function (data) {
       self.logger.error(e);
     }
     process.env.VOLUMIO_3_UI = 'false';
-    self.commandRouter.reloadUi();
+    setTimeout(()=> {
+      self.commandRouter.reloadUi();
+    }, 2000);
   } else if (data && data.volumio3_ui.value === "CLASSIC") {
     try {
       if (fs.existsSync('/data/manifestUI')) {
@@ -470,7 +474,9 @@ volumioAppearance.prototype.setVolumio3UI = function (data) {
       self.logger.error(e);
     }
     process.env.VOLUMIO_3_UI = 'false';
-    self.commandRouter.reloadUi();
+    setTimeout(()=> {
+        self.commandRouter.reloadUi();
+    }, 2000);
   }
 };
 
