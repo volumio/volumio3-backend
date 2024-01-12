@@ -661,7 +661,7 @@ ControllerSystem.prototype.deviceDetect = function (data) {
       self.deviceCheck(device);
       defer.resolve(device);
     } else {
-      exec('cat /proc/cpuinfo | grep Hardware', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+      exec('cat /proc/cpuinfo | grep Hardware || cat /proc/cpuinfo | grep Model', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
         if (error !== null) {
           self.logger.info('Cannot read proc/cpuinfo: ' + error);
           defer.resolve('unknown');
@@ -672,15 +672,21 @@ ControllerSystem.prototype.deviceDetect = function (data) {
           { encoding: 'utf8', throws: false },
           function (err, deviceslist) {
             if(deviceslist && deviceslist.devices) {
-              for (var i = 0; i < deviceslist.devices.length; i++) {
-                if (deviceslist.devices[i].cpuid == cpuidparam) {
-                  device = deviceslist.devices[i].name;
-                  self.deviceCheck(device);
-                  defer.resolve(device);
-                  return;
+              if (cpuidparam.indexOf('Raspberry') >= 0) {
+                var device = 'Raspberry PI';
+                self.deviceCheck(device);
+                defer.resolve(device);
+              } else {
+                for (var i = 0; i < deviceslist.devices.length; i++) {
+                  if (deviceslist.devices[i].cpuid == cpuidparam) {
+                    device = deviceslist.devices[i].name;
+                    self.deviceCheck(device);
+                    defer.resolve(device);
+                    return;
+                  }
                 }
+                defer.resolve('unknown');
               }
-              defer.resolve('unknown');
             } else {
               defer.resolve('unknown');
             }
