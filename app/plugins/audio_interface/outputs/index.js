@@ -231,16 +231,19 @@ outputs.prototype.enableAudioOutput = function (data) {
 
       let name = path.split('/')[1];
 
-      self.commandRouter.executeOnPlugin(type, name, 'enableAudioOutput', data)
-        .then(function () {
-        })
-        .fail(function () {
-          self.commandRouter.pushToastMessage('error',
-            'plugin output failure', 'Failed to enable audio output: ' + data.id);
-        });
+      var enableOutput = self.commandRouter.executeOnPlugin(type, name, 'enableAudioOutput', data);
+      if (enableOutput !== undefined) {
+          enableOutput.then(function () {
+            self.logger.info('Enabled audio output: ' + data.id);
+          }).fail(function () {
+              self.commandRouter.pushToastMessage('error', 'plugin output failure', 'Failed to enable audio output: ' + data.id);
+            });
+      } else {
+        self.logger.error('Could not enable audio output: Device not found or multiroom not enabled');
+        self.commandRouter.pushToastMessage('error', 'plugin output failure', 'Could not enable audio output: Device not found or multiroom not enabled');
+      }
     } else {
-      self.logger.error('Could not enable audio output: ' + data.id +
-				' device not found');
+      self.logger.error('Could not enable audio output: ' + data.id + ' device not found');
     }
   } else {
     self.logger.error('Could not enable audio output: missing data or id field');
