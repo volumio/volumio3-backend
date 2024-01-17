@@ -84,6 +84,6 @@
     {"id":"iqaudio-dacplus","name":"IQaudIO DAC Plus","overlay":"iqaudio-dacplus","alsanum":"0","mixer":"Digital","modules":"","script":"iqamp-unmute.sh","needsreboot":"yes"},
     {"id":"rpi-dac","name":"R-PI DAC","overlay":"rpi-dac","alsanum":"0","mixer":"Digital","modules":"","script":"","needsreboot":"yes"},
     {"id":"wisdPi Hifi DAC","name":"wisdPi Hifi DAC","overlay":"hifiberry-dacplus","alsanum":"0","mixer":"Digital","modules":"","script":"","needsreboot":"yes"},
-    {"id":"52Pi NVDAC","name":"52Pi NVDAC","overlay":"hifiberry-dacplus,slave","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Digital","modules":"","script":"","needsreboot":"yes"} 
+    {"id":"52Pi NVDAC","name":"52Pi NVDAC","overlay":"hifiberry-dacplus","alsanum":"0","mixer":"Digital","modules":"","script":"","needsreboot":"yes"} 
   ]}
 ]}
