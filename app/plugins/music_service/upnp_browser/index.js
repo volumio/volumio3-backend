@@ -31,7 +31,7 @@ ControllerUPNPBrowser.prototype.getConfigurationFiles = function () {
 };
 
 ControllerUPNPBrowser.prototype.addToBrowseSources = function () {
-  var data = {name: 'Media Servers', uri: 'upnp', plugin_type: 'music_service', plugin_name: 'upnp_browser', 'albumart': '/albumart?sourceicon=music_service/upnp_browser/dlnaicon.png'};
+  var data = { name: this.commandRouter.getI18nString('COMMON.MEDIA_SERVERS'), uri: 'upnp', plugin_type: 'music_service', plugin_name: 'upnp_browser', 'albumart': '/albumart?sourceicon=music_service/upnp_browser/dlnaicon.png'};
   this.commandRouter.volumioAddToBrowseSources(data);
 };
 
@@ -143,7 +143,7 @@ ControllerUPNPBrowser.prototype.onStart = function () {
 ControllerUPNPBrowser.prototype.onStop = function () {
   var self = this;
 
-  this.commandRouter.volumioRemoveToBrowseSources('Media Servers');
+  this.commandRouter.volumioRemoveToBrowseSources(this.commandRouter.getI18nString('COMMON.MEDIA_SERVERS'));
   client.stop();
 
   return libQ.resolve();
@@ -516,7 +516,7 @@ ControllerUPNPBrowser.prototype.search = function (query) {
 
   var defer = libQ.defer();
   var list = {
-    'title': 'Media Servers',
+    'title': self.commandRouter.getI18nString('COMMON.MEDIA_SERVERS'),
     'icon': 'fa icon',
     'availableListViews': [
       'grid', 'list'
@@ -618,8 +618,8 @@ function xmlToJson (url, callback) {
       }
     });
   } catch (e) {
-    callback('error', null);    
-  }  
+    callback('error', null);
+  }
 }
 
 ControllerUPNPBrowser.prototype.log = function (message) {
