@@ -647,7 +647,7 @@ function InterfaceWebUI (context) {
       var selfConnWebSocket = this;
       // console.log(data);
 
-      var returnedData = self.commandRouter.playListManager.addToFavourites(data.service, data.uri, data.title);
+      var returnedData = self.commandRouter.playListManager.addToFavourites(data);
       returnedData.then(function (data) {
         if (data !== undefined) {
           selfConnWebSocket.emit('urifavourites', data);
