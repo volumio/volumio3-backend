@@ -266,7 +266,11 @@ ControllerUPNPBrowser.prototype.listUPNP = function (data) {
                     	title = data.container[i].title;
           }
           var path = address + '@' + data.container[i].id;
-          var albumart = self.getAlbumArt({artist: artist, album: title}, path, self.getAlbumartClass(data.container[i].class));
+          if (data.container[i].class && data.container[i].class == 'object.container.person.musicArtist' && data.container[i].title && data.container[i].title.length > 0) {
+            var albumart = self.getAlbumArt({artist: data.container[i].title}, path, self.getAlbumartClass(data.container[i].class));
+          } else {
+            var albumart = self.getAlbumArt({artist: artist, album: title}, path, self.getAlbumartClass(data.container[i].class));
+          }
 
           obj.navigation.lists[0].items.push({
             'service': 'upnp_browser',
@@ -282,11 +286,13 @@ ControllerUPNPBrowser.prototype.listUPNP = function (data) {
     }
     if (data.item) {
       obj.navigation.lists[0].availableListViews = ['list'];
+      var artistsList = [];
+      var albumsList = [];
       for (var i = 0; i < data.item.length; i++) {
         if (data.item[i].class == 'object.item.audioItem.musicTrack') {
+
           var item = data.item[i];
           var path = address + '@' + item.id;
-
           var albumart = self.getAlbumArt({artist: item.artist, album: item.album}, path, 'music');
           if (item.image != undefined && item.image.length > 0) {
             albumart = item.image;
@@ -300,6 +306,8 @@ ControllerUPNPBrowser.prototype.listUPNP = function (data) {
             'album': item.album,
             'albumart': albumart
           };
+          artistsList.push(item.artist);
+          albumsList.push(item.album);
           obj.navigation.lists[0].items.push(track);
         }
       }
@@ -321,19 +329,25 @@ ControllerUPNPBrowser.prototype.listUPNP = function (data) {
         obj.navigation.prev.uri = 'upnp';
       }
       if (info) {
+        if (obj.navigation.lists[0].items && obj.navigation.lists[0].items.length > 0 && obj.navigation.lists[0].items[0].albumart) {
+            albumart = obj.navigation.lists[0].items[0].albumart;
+        }
         obj.navigation.info = {
           'uri': curUri,
           'service': 'upnp_browser',
           'type': 'song',
-            		'albumart': albumart
-        		};
-        if (artist && artist.length) {
+          'albumart': albumart
+        };
+        if (artistsList.length === 1 && albumsList.length === 1) {
+          obj.navigation.info.album = albumsList[0];
+          obj.navigation.info.artist = artistsList[0];
+        } else if (artist && artist.length) {
           obj.navigation.info.album = title;
           obj.navigation.info.artist = artist;
         } else {
           obj.navigation.info.title = title;
         }
-    		}
+      }
       defer.resolve(obj);
     });
   });
