@@ -661,13 +661,17 @@ ControllerSystem.prototype.deviceDetect = function (data) {
       self.deviceCheck(device);
       defer.resolve(device);
     } else {
-      exec('cat /proc/cpuinfo | grep Hardware || cat /proc/cpuinfo | grep Model', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+      exec('cat /proc/cpuinfo | grep Hardware || cat /proc/cpuinfo | grep Model || cat /etc/os-release | grep ^VOLUMIO_HARDWARE | tr -d VOLUMIO_HARDWARE= | tr -d "\\042"', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
         if (error !== null) {
           self.logger.info('Cannot read proc/cpuinfo: ' + error);
           defer.resolve('unknown');
         } else {
           var hardwareLine = stdout.split(':');
-          var cpuidparam = hardwareLine[1].replace(/\s/g, '');
+          if (hardwareLine[1] !== undefined) {
+            var cpuidparam = hardwareLine[1].replace(/\s/g, '');
+          } else {
+            var cpuidparam = stdout.replace(/\s/g, '');
+          }
           var deviceslist = fs.readJson(('/volumio/app/plugins/system_controller/system/devices.json'),
           { encoding: 'utf8', throws: false },
           function (err, deviceslist) {
