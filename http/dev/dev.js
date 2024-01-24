@@ -17,6 +17,9 @@ document.getElementById('button-sshdisable').onclick = function () { socket.emit
 document.getElementById('button-livelog-enable').onclick = function () { socket.emit('callMethod', {endpoint: 'system_controller/system', method: 'enableLiveLog', data: 'true'}); };
 document.getElementById('button-livelog-disable').onclick = function () { socket.emit('callMethod', {endpoint: 'system_controller/system', method: 'enableLiveLog', data: 'false'}); };
 document.getElementById('button-clearconsole').onclick = function() { clearConsole()};
+document.getElementById('button-serial-monitor-enable').onclick = function () { socket.emit('callMethod', {endpoint: 'music_service/inputs', method: 'serialMonitorAction', data: {action: 'start'}}); };
+document.getElementById('button-serial-monitor-disable').onclick = function () { socket.emit('callMethod', {endpoint: 'music_service/inputs', method: 'serialMonitorAction', data: {action: 'start'}}); };
+document.getElementById('button-clearserialconsole').onclick = function() { clearSerialConsole()};
 
 // Create listeners for websocket events--------------------------------
 socket.on('connect', function () {
@@ -31,6 +34,9 @@ socket.on('connect', function () {
 
   // Get the HW UUID
   socket.emit('getDeviceHWUUID', '');
+
+  // Get if serial communication is active on the system
+  socket.emit('callMethod', {endpoint: 'music_service/inputs', method: 'serialMonitorAction', data: {action: 'get'}});
 
   // Request the music library root
   // emitEvent('getLibraryFilters', 'root');
@@ -93,6 +99,15 @@ socket.on('LLogDone',data => {
   document.getElementById('console').innerHTML += data.message;
 })
 
+socket.on('pushSerialConsole',data => {
+  if (data === 'enabled') {
+    showSerialConsole();
+    clearSerialConsole();
+  } else {
+    document.getElementById('div-serial-monitor').innerHTML += data + '<br>';
+  }
+})
+
 // Define internal functions ----------------------------------------------
 function clearConsole () {
   var nodeConsole = document.getElementById('console');
@@ -100,6 +115,15 @@ function clearConsole () {
   // while (nodeConsole.firstChild) {
   //   nodeConsole.removeChild(nodeConsole.firstChild);
   // }
+}
+
+function clearSerialConsole () {
+  var serialConsole = document.getElementById('div-serial-monitor');
+  serialConsole.innerHTML = '';
+}
+
+function showSerialConsole () {
+  document.getElementById('div-serial-monitor-container').style.display = "block";
 }
 
 function enableControls () {
@@ -214,6 +238,18 @@ document.querySelector('form.bug-form').addEventListener('submit', function (e) 
   };
   socket.emit('callMethod', {endpoint: 'system_controller/system', method: 'sendBugReport', data: obj});
   document.getElementById('bug-form-description').value = 'Sending log report, please wait';
+});
+
+document.querySelector('form.serial-form').addEventListener('submit', function (e) {
+  // prevent the normal submission of the form
+  var serialMessageToSend = document.getElementById('form-serial-message');
+  e.preventDefault();
+  // Emit first and second input value
+  var obj = {
+    action: 'sendMessage',
+    message: serialMessageToSend.value
+  };
+  socket.emit('callMethod', {endpoint: 'music_service/inputs', method: 'serialMonitorAction', data: obj});
 });
 
 var clipboardDemos = new Clipboard('[data-clipboard-demo]');

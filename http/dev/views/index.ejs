@@ -4,7 +4,7 @@
 		<script src="./assets/clipboard.min.js"></script>
 		<title><%= title %></title>
 		<style>
-			#div-console {
+			#div-console, #div-serial-monitor {
 				border: 1px solid black;
 				overflow-y: auto;
 				height: 98%;
@@ -23,6 +23,9 @@
 				background-color: #f5f5f5;
 				border: 1px solid #ccc;
 				border-radius: 4px;
+			}
+			#div-serial-monitor-container {
+				display: none;
 			}
 			/* #div-console ul {
 				list-style-type: none;
@@ -57,7 +60,6 @@
 		<h3>Plugins Test Mode</h3>
 		<button id='button-plugintesttrue' class='control-websocket' disabled>TRUE</button>
 		<button id='button-plugintestfalse' class='control-websocket' disabled>FALSE</button>
-		</div>
 
 		<h3>SSH</h3>
 		<button id='button-sshenable' class='control-websocket' disabled>ENABLE</button>
@@ -85,15 +87,33 @@
 		<h3>Play Queue</h3>
 		<ol id='div-playqueue' start='0'></ol>
 
-		<h3>Live Log</hr>
+		<h3>Live Log</h3>
 		<button id='button-clearconsole'>Clear</button>
 		<button id='console-copy-button' type="button" data-clipboard-demo data-clipboard-target="#console">Copy</button>
-		<div id='div-console' style='div-console'>
+		<div id='div-console'>
 			<pre id='console'></pre>
 		</div>
 		<button id='button-livelog-enable' class='control-websocket' disabled>ENABLE</button>
 		<button id='button-livelog-disable' class='control-websocket' disabled>DISABLE</button>
 
+		<div id='div-serial-monitor-container'>
+		<h3>Send Serial Message</h3>
+		<span id="log-message"></span>
+		<form class="serial-form">
+			<input id="form-serial-message" type="text"  style="border: 1px solid black; width: 600px;"/>
+			<button id="bug-form-button" type="bug-form-submit">Send</button>
+		</form>
+
+		<h3>Serial Monitor</h3>
+		<button id='button-clearserialconsole'>Clear</button>
+		<div id='div-serial-monitor'>
+			<pre id='serial-monitor'></pre>
+		</div>
+		<button id='button-serial-monitor-enable' class='control-websocket' disabled>ENABLE</button>
+		<button id='button-serial-monitor-disable' class='control-websocket' disabled>DISABLE</button>
+
+
+		</div>
 		<script src="./assets/socket.io-2.0.3.js"></script>
 		<script src="./dev.js"></script>
 
