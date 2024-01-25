@@ -161,7 +161,7 @@ volumioWizard.prototype.getWizardSteps = function () {
       if ((step.name === 'login' || step.name === 'streamingservices') && process.env.NEW_WIZARD === 'true') {
         step.show = true;
         stepsArray.push(step);
-      } 
+      }
     }
   }
   return stepsArray;
@@ -186,7 +186,7 @@ volumioWizard.prototype.connectWirelessNetwork = function (data) {
     var ethinfo = self.commandRouter.executeOnPlugin('system_controller', 'network', 'getWiredInfo', '');
 
     ethinfo.then(function (ethdata) {
-      if (ethdata.connected) {
+      if (ethdata.connected || data.isOnKiosk) {
         if (data.ssid != undefined) {
           self.commandRouter.executeOnPlugin('system_controller', 'network', 'saveWirelessNetworkSettings', data);
           var translatedMessage = self.commandRouter.getI18nString('NETWORK.WIRELESS_NETWORK_CONNECTING_TO')+ ' ' + data.ssid + '... ' + self.commandRouter.getI18nString('COMMON.PLEASE_WAIT')
