@@ -137,7 +137,7 @@ ControllerSystem.prototype.getUIConfig = function () {
       }
       self.configManager.setUIConfigParam(uiconf, 'sections[1].content[1].value', cursorEnabled);
 
-      if (device != undefined && device.length > 0 && (device === 'Tinkerboard' || device === 'x86') && showDiskInstaller) {
+      if (device != undefined && device.length > 0 && (device === 'Tinkerboard' || device === 'x86' || device === 'Raspberry PI CM4'  || device === 'Raspberry PI 5') && showDiskInstaller) {
         var hwdevice = device;
         var disks = self.getDisks();
         if (disks != undefined) {
@@ -661,7 +661,7 @@ ControllerSystem.prototype.deviceDetect = function (data) {
       self.deviceCheck(device);
       defer.resolve(device);
     } else {
-      exec('cat /proc/cpuinfo | grep Hardware || cat /proc/cpuinfo | grep Model || cat /etc/os-release | grep ^VOLUMIO_HARDWARE | tr -d VOLUMIO_HARDWARE= | tr -d "\\042"', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+      exec('cat /proc/cpuinfo | grep Hardware || cat /proc/cpuinfo | grep Model || cat /proc/cpuinfo | grep Revision || cat /etc/os-release | grep ^VOLUMIO_HARDWARE | tr -d VOLUMIO_HARDWARE= | tr -d "\\042"', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
         if (error !== null) {
           self.logger.info('Cannot read proc/cpuinfo: ' + error);
           defer.resolve('unknown');
@@ -929,7 +929,7 @@ ControllerSystem.prototype.installToDisk = function (data) {
 
   var hwdevice = data.hwdevice;
 
-  if (hwdevice !== 'x86') {
+  if (hwdevice !== 'x86' || hwdevice !== 'Raspberry PI') {
     // Tinker processing
     self.notifyInstallToDiskStatus({'progress': 0, 'status': 'started'});
     var ddsizeRaw = execSync('/bin/lsblk -b | grep -w ' + data.from + " | awk '{print $4}' | head -n1", { uid: 1000, gid: 1000, encoding: 'utf8'});
@@ -1021,8 +1021,13 @@ ControllerSystem.prototype.installToDisk = function (data) {
     execSync('/bin/echo "0" > /tmp/install_progress', { uid: 1000, gid: 1000, encoding: 'utf8'});
 
     try {
-      var fastinstall = exec('/usr/bin/sudo /usr/local/bin/x86Installer.sh ' + target + ' ' + boot_type + ' ' + boot_start + ' ' + boot_end + ' ' + volumio_end + ' ' + boot_part + ' ' + volumio_part + ' ' + data_part, { uid: 1000, gid: 1000, encoding: 'utf8'});
-    } catch (e) {
+      if (hwdevice == 'x86') {
+        var fastinstall = exec('/usr/bin/sudo /usr/local/bin/x86Installer.sh ' + target + ' ' + boot_type + ' ' + boot_start + ' ' + boot_end + ' ' + volumio_end + ' ' + boot_part + ' ' + volumio_part + ' ' + data_part, { uid: 1000, gid: 1000, encoding: 'utf8'});
+        }
+      if (hwdevice == 'Raspberry PI') {
+        var fastinstall = exec('/usr/bin/sudo /usr/local/bin/PiInstaller.sh ' + target + ' ' + boot_type + ' ' + boot_start + ' ' + boot_end + ' ' + volumio_end + ' ' + boot_part + ' ' + volumio_part + ' ' + data_part, { uid: 1000, gid: 1000, encoding: 'utf8'});
+        }
+      } catch (e) {
         error = true;
         self.logger.info('Install to disk failed');
         self.notifyInstallToDiskStatus({'progress': 0, 'status': 'error', 'error': 'Cannot install on new Disk'});
