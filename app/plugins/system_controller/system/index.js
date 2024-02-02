@@ -929,7 +929,7 @@ ControllerSystem.prototype.installToDisk = function (data) {
 
   var hwdevice = data.hwdevice;
 
-  if (hwdevice !== 'x86' || hwdevice !== 'Raspberry PI') {
+  if (hwdevice !== 'x86' && hwdevice !== 'Raspberry PI') {
     // Tinker processing
     self.notifyInstallToDiskStatus({'progress': 0, 'status': 'started'});
     var ddsizeRaw = execSync('/bin/lsblk -b | grep -w ' + data.from + " | awk '{print $4}' | head -n1", { uid: 1000, gid: 1000, encoding: 'utf8'});
@@ -1020,19 +1020,26 @@ ControllerSystem.prototype.installToDisk = function (data) {
     self.notifyInstallToDiskStatus({'progress': 0, 'status': 'started'});
     execSync('/bin/echo "0" > /tmp/install_progress', { uid: 1000, gid: 1000, encoding: 'utf8'});
 
-    try {
-      if (hwdevice === 'x86') {
+    if (hwdevice === 'x86') {
+      try {
         var fastinstall = exec('/usr/bin/sudo /usr/local/bin/x86Installer.sh ' + target + ' ' + boot_type + ' ' + boot_start + ' ' + boot_end + ' ' + volumio_end + ' ' + boot_part + ' ' + volumio_part + ' ' + data_part, { uid: 1000, gid: 1000, encoding: 'utf8'});
-        }
-      if (hwdevice === 'Raspberry PI') {
-        var fastinstall = exec('/usr/bin/sudo /usr/local/bin/PiInstaller.sh ' + target + ' ' + boot_type + ' ' + boot_start + ' ' + boot_end + ' ' + volumio_end + ' ' + boot_part + ' ' + volumio_part + ' ' + data_part, { uid: 1000, gid: 1000, encoding: 'utf8'});
-        }
       } catch (e) {
-        error = true;
-        self.logger.info('Install to disk failed');
-        self.notifyInstallToDiskStatus({'progress': 0, 'status': 'error', 'error': 'Cannot install on new Disk'});
+          error = true;
+          self.logger.info('Install to disk failed');
+          self.notifyInstallToDiskStatus({'progress': 0, 'status': 'error', 'error': 'Cannot install on new Disk'});
+      }
     }
 
+    if (hwdevice === 'Raspberry PI') {
+      try {
+        var fastinstall = exec('/usr/bin/sudo /usr/local/bin/PiInstaller.sh ' + target + ' ' + boot_type + ' ' + boot_start + ' ' + boot_end + ' ' + volumio_end + ' ' + boot_part + ' ' + volumio_part + ' ' + data_part, { uid: 1000, gid: 1000, encoding: 'utf8'});
+      } catch (e) {
+          error = true;
+          self.logger.info('Install to disk failed');
+          self.notifyInstallToDiskStatus({'progress': 0, 'status': 'error', 'error': 'Cannot install on new Disk'});
+      }
+    }
+  
     var installProgress = exec('usr/bin/tail -f /tmp/install_progress');
 
     installProgress.stdout.on('data', function (data) {
