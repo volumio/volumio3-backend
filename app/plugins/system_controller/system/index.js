@@ -661,7 +661,7 @@ ControllerSystem.prototype.deviceDetect = function (data) {
       self.deviceCheck(device);
       defer.resolve(device);
     } else {
-      exec('cat /proc/cpuinfo | grep Hardware || cat /proc/cpuinfo | grep Revision || cat /proc/cpuinfo | grep Model || cat /etc/os-release | grep ^VOLUMIO_HARDWARE | tr -d VOLUMIO_HARDWARE= | tr -d "\\042"', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+      exec('cat /proc/cpuinfo | grep Hardware || cat /proc/cpuinfo | grep Model || cat /etc/os-release | grep ^VOLUMIO_HARDWARE | tr -d VOLUMIO_HARDWARE= | tr -d "\\042"', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
         if (error !== null) {
           self.logger.info('Cannot read proc/cpuinfo: ' + error);
           defer.resolve('unknown');
