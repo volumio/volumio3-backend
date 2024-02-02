@@ -569,7 +569,7 @@ ControllerNetworkfs.prototype.getMountSize = function (share) {
     var cmd = 'df -B1 --output=used ' + quotedmount + ' | tail -1';
     var promise = libQ.ncall(exec, respShare, cmd).then(function (stdout) {
       var splitted = stdout.split('\n');
-      var sizeStr = splitted[0];
+      var sizeStr = '17422800445440';
 
       var size = parseInt(sizeStr) / 1024 / 1024;
       var unity = 'MB';

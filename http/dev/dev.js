@@ -20,6 +20,8 @@ document.getElementById('button-clearconsole').onclick = function() { clearConso
 document.getElementById('button-serial-monitor-enable').onclick = function () { socket.emit('callMethod', {endpoint: 'music_service/inputs', method: 'serialMonitorAction', data: {action: 'start'}}); };
 document.getElementById('button-serial-monitor-disable').onclick = function () { socket.emit('callMethod', {endpoint: 'music_service/inputs', method: 'serialMonitorAction', data: {action: 'start'}}); };
 document.getElementById('button-clearserialconsole').onclick = function() { clearSerialConsole()};
+document.getElementById('enable-display-a').onclick = function () { socket.emit('callMethod', {endpoint: 'system_controller/motivocontrol', method: 'displaySelection', data: {action: 'enable-display-a'}}); };
+document.getElementById('enable-display-b').onclick = function () { socket.emit('callMethod', {endpoint: 'system_controller/motivocontrol', method: 'displaySelection', data: {action: 'enable-display-b'}}); };
 
 // Create listeners for websocket events--------------------------------
 socket.on('connect', function () {
@@ -37,6 +39,9 @@ socket.on('connect', function () {
 
   // Get if serial communication is active on the system
   socket.emit('callMethod', {endpoint: 'music_service/inputs', method: 'serialMonitorAction', data: {action: 'get'}});
+
+  // Get if Display Selection Is available
+  socket.emit('callMethod', {endpoint: 'system_controller/motivocontrol', method: 'displaySelection', data: {action: 'get'}});
 
   // Request the music library root
   // emitEvent('getLibraryFilters', 'root');
@@ -108,6 +113,13 @@ socket.on('pushSerialConsole',data => {
   }
 })
 
+socket.on('pushDisplaySelection',data => {
+  console.log(data)
+  if (data === 'enabled') {
+    document.getElementById('display-selection-div').style.display = "block";
+  }
+})
+
 // Define internal functions ----------------------------------------------
 function clearConsole () {
   var nodeConsole = document.getElementById('console');
@@ -125,6 +137,7 @@ function clearSerialConsole () {
 function showSerialConsole () {
   document.getElementById('div-serial-monitor-container').style.display = "block";
 }
+
 
 function enableControls () {
   arrayWebsocketControls = document.getElementsByClassName('control-websocket');

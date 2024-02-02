@@ -27,6 +27,10 @@
 			#div-serial-monitor-container {
 				display: none;
 			}
+
+			#display-selection-div {
+				display: none;
+			}
 			/* #div-console ul {
 				list-style-type: none;
 				padding: 0px;
@@ -64,6 +68,12 @@
 		<h3>SSH</h3>
 		<button id='button-sshenable' class='control-websocket' disabled>ENABLE</button>
 		<button id='button-sshdisable' class='control-websocket' disabled>DISABLE</button>
+
+		<div id="display-selection-div">
+		<h3>MOTIVO DISPLAY</h3>
+		<button id='enable-display-a' class='control-websocket' disabled>ENABLE DISPLAY A</button>
+		<button id='enable-display-b' class='control-websocket' disabled>ENABLE DISPLAY B</button>
+		</div>
 
 		<h3>Send Log or bug report</h3>
 		<span id="log-message"></span>
