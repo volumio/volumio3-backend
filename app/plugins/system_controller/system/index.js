@@ -145,6 +145,10 @@ ControllerSystem.prototype.getUIConfig = function () {
             if (result.available.length > 0) {
               uiconf.sections[4].hidden = false;
               var disklist = result.available;
+              if (hwdevice === 'Raspberry PI') {
+                var disksToRemove = disklist.filter(x => x.name === 'eMMC/SD');
+                disksToRemove.forEach(x => disklist.splice(disklist.findIndex(n => n === x), 1));
+              }
               for (var i in disklist) {
                 var device = disklist[i];
                 var label = self.commandRouter.getI18nString('SYSTEM.INSTALL_TO_DISK') + ' ' + device.name;
