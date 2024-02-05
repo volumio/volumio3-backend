@@ -306,6 +306,7 @@ volumioWizard.prototype.setCloseWizard = function () {
   self.commandRouter.executeOnPlugin('system_controller', 'system', 'setShowWizard', false);
   self.logger.info('Wizard terminated Successfully');
   self.commandRouter.broadcastMessage('closeWizard', '');
+  self.commandRouter.setStartupVolume();
 
   if (I2Sreboot) {
     self.logger.info('Player Reboot required after I2S DAC has been enabled in wizard');
