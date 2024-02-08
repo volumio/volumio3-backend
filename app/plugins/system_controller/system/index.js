@@ -150,25 +150,20 @@ ControllerSystem.prototype.getUIConfig = function () {
               // Check if the device has boot from USB capability
               if (usbbootdevice === '') {
                 uiconf.sections[4].hidden = true;
-                self.logger.warn('USB boot device : Empty - not doing anything');
               } else if (usbbootdevice === 'bootusb') {
                 // Prevent listing devices other than NVMe as a target.
                 // var disksToRemove = disklist.filter(x => x.name === 'eMMC/SD');
                 var disksToRemove = disklist.filter(x => x.name !== 'NVMe');
                 disksToRemove.forEach(x => disklist.splice(disklist.findIndex(n => n === x), 1));
-                self.logger.warn('USB boot device : Disks filtered');
                 console.log('Disk list : ', disklist);
                 if (disklist.length > 0 ) {
                 uiconf.sections[4].hidden = false;
-                self.logger.warn('USB boot device : Showing Disk Install section. ');
               } else {
                 // Installer should not be offered for cloning
                 uiconf.sections[4].hidden = true;
-                self.logger.warn('USB boot device : Hiding Disk Install section. ');
               }
             } else {
               uiconf.sections[4].hidden = false;
-              self.logger.warn('USB boot device : Everything else');
             }
               for (var i in disklist) {
                 var device = disklist[i];

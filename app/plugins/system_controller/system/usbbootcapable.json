@@ -1,4 +1,5 @@
 {"usbboot":[
+    {"name":"EmptyExample", "permitted":"", "revision":"123456"},
     {"name":"Raspberry PI", "permitted":"bootusb", "revision":"a22042"},
     {"name":"Raspberry PI", "permitted":"bootusb", "revision":"a22082"},
     {"name":"Raspberry PI", "permitted":"bootusb", "revision":"a220a0"},
