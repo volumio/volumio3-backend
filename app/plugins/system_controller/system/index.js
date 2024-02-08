@@ -72,7 +72,7 @@ ControllerSystem.prototype.onVolumioStart = function () {
     self.updateVersionHistoryFile();
   }, 30000);
 
-  return libQ.all(self.deviceDetect());
+  return libQ.all([self.deviceDetect(), self.getUSBBootCapable()]);
 };
 
 ControllerSystem.prototype.onStart = function () {
@@ -111,12 +111,10 @@ ControllerSystem.prototype.getUIConfig = function () {
   var self = this;
   var defer = libQ.defer();
 
-  var usbboot = self.getUSBBootCapable();
-  var usbboot = self.config.get('usbboot');
-
   var lang_code = self.commandRouter.sharedVars.get('language_code');
   var showLanguageSelector = self.getAdditionalConf('miscellanea', 'appearance', 'language_on_system_page', false);
   var device = self.config.get('device', '');
+  var usbdevice = self.config.get('usbboot', '');
   var showDiskInstaller = self.config.get('show_disk_installer', true);
   self.commandRouter.i18nJson(__dirname + '/../../../i18n/strings_' + lang_code + '.json',
     __dirname + '/../../../i18n/strings_en.json',
@@ -142,20 +140,36 @@ ControllerSystem.prototype.getUIConfig = function () {
 
       if (device != undefined && device.length > 0 && (device === 'Tinkerboard' || device === 'x86' || device === 'Raspberry PI') && showDiskInstaller) {
         var hwdevice = device;
+        var usbbootdevice = usbdevice;
         var disks = self.getDisks();
         if (disks != undefined) {
           disks.then(function (result) {
             if (result.available.length > 0) {
-              uiconf.sections[4].hidden = false;
               var disklist = result.available;
-//              if (hwdevice === 'Raspberry PI') {
-              self.logger.info('USB Boot :', usbboot);
-              if (usbboot != undefined) {
-                var disksToRemove = disklist.filter(x => x.name === 'eMMC/SD');
-//                var disksToRemove = disklist.filter(x => x.name !== 'NVMe');
-//                var disksToRemove = disklist.filter(x => x.name !== 'test');
+              var blacklisted = ('1sda', '1sdb', '1sdc', '1sdd');
+              // Check if the device has boot from USB capability
+              if (usbbootdevice === '') {
+                uiconf.sections[4].hidden = true;
+                self.logger.warn('USB boot device : Empty - not doing anything');
+              } else if (usbbootdevice === 'bootusb') {
+                // Prevent listing devices other than NVMe as a target.
+                // var disksToRemove = disklist.filter(x => x.name === 'eMMC/SD');
+                var disksToRemove = disklist.filter(x => x.name !== 'NVMe');
                 disksToRemove.forEach(x => disklist.splice(disklist.findIndex(n => n === x), 1));
+                self.logger.warn('USB boot device : Disks filtered');
+                console.log('Disk list : ', disklist);
+                if (disklist.length > 0 ) {
+                uiconf.sections[4].hidden = false;
+                self.logger.warn('USB boot device : Showing Disk Install section. ');
+              } else {
+                // Installer should not be offered for cloning
+                uiconf.sections[4].hidden = true;
+                self.logger.warn('USB boot device : Hiding Disk Install section. ');
               }
+            } else {
+              uiconf.sections[4].hidden = false;
+              self.logger.warn('USB boot device : Everything else');
+            }
               for (var i in disklist) {
                 var device = disklist[i];
                 var label = self.commandRouter.getI18nString('SYSTEM.INSTALL_TO_DISK') + ' ' + device.name;
@@ -278,6 +292,62 @@ ControllerSystem.prototype.getUIConfig = function () {
     });
 
   return defer.promise;
+};
+
+
+ControllerSystem.prototype.getUSBBootCapable = function (data) {
+  var self = this;
+  var defer = libQ.defer();
+  var usbboot = '';
+  var usbbootSBCname = '';
+     exec('cat /proc/cpuinfo | grep Revision', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+      if (error !== null) {
+          self.logger.info('Cannot read proc/cpuinfo: ' + error);
+          defer.resolve('unknown');
+        } else {
+          var revisionLine = stdout.split(':');
+          if (revisionLine[1] !== undefined) {
+            var revisionparam = revisionLine[1].replace(/\s/g, '');
+          } else {
+            var revisionparam = stdout.replace(/\s/g, '');
+          }
+          var usbbootlist = fs.readJson(('/volumio/app/plugins/system_controller/system/usbbootcapable.json'),
+          { encoding: 'utf8', throws: false },
+          function (err, usbbootlist) {
+            if(usbbootlist && usbbootlist.usbboot) {
+                for (var i = 0; i < usbbootlist.usbboot.length; i++) {
+                  if (usbbootlist.usbboot[i].revision == revisionparam) {
+                    usbboot = usbbootlist.usbboot[i].permitted;
+                    // usbbootSBCname is used only by self.logger.info
+                    usbbootSBCname = usbbootlist.usbboot[i].name;
+                    self.USBBootCheck(usbboot);
+                    defer.resolve(usbboot);
+                    self.logger.info('USB Boot Capable - System SBC Revision found in cpuinfo:  ' + revisionparam);
+                    self.logger.info('USB Boot Capable - Found matching device in SBC capable list: ' + usbbootSBCname);
+                    return;
+                  }
+                }
+            } else {
+              defer.resolve('unknown');
+            }
+          });
+          //self.logger.info('USB Boot ::'+revisionparam+'::');
+        }
+    });
+  return defer.promise;
+};
+
+ControllerSystem.prototype.USBBootCheck = function (data) {
+  var self = this;
+  var usbboot = config.get('usbboot');
+
+  if (usbboot == undefined) {
+    self.logger.info('USB Boot Capable - Checking Install to Disk functions for: ' + data);
+    self.config.set('usbboot', data);
+  } else if (usbboot != data) {
+    self.logger.info('USB Boot Capable change detected - Checking Install to Disk functions for: ' + data);
+    self.config.set('usbboot', data);
+  }
 };
 
 ControllerSystem.prototype.capitalize = function () {
@@ -487,59 +557,6 @@ ControllerSystem.prototype.registerCallback = function (callback) {
   self.callbacks.push(callback);
 };
 
-ControllerSystem.prototype.getUSBBootCapable = function (data) {
-  var self = this;
-  var defer = libQ.defer();
-  var usbboot = '';
-     exec('cat /proc/cpuinfo | grep Revision', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
-      if (error !== null) {
-          self.logger.info('Cannot read proc/cpuinfo: ' + error);
-          defer.resolve('unknown');
-        } else {
-          var revisionLine = stdout.split(':');
-          if (revisionLine[1] !== undefined) {
-            var revisionparam = revisionLine[1].replace(/\s/g, '');
-          } else {
-            var revisionparam = stdout.replace(/\s/g, '');
-          }
-          var usbbootlist = fs.readJson(('/volumio/app/plugins/system_controller/system/usbbootcapable.json'),
-          { encoding: 'utf8', throws: false },
-          function (err, usbbootlist) {
-            if(usbbootlist && usbbootlist.usbboot) {
-                for (var i = 0; i < usbbootlist.usbboot.length; i++) {
-                  if (usbbootlist.usbboot[i].revision == revisionparam) {
-                    usbboot = usbbootlist.usbboot[i].revision;
-                    self.USBBootCheck(usbboot);
-                    defer.resolve(usbboot);
-                    self.logger.info('USB Boot Capable - System SBC Revision found in cpuinfo:  ' + revisionparam);
-                    self.logger.info('USB Boot Capable - Found matching device in capable list: ' + usbboot);
-                    return;
-                  }
-                }
-            } else {
-              defer.resolve('unknown');
-            }
-          });
-          //self.logger.info('USB Boot ::'+revisionparam+'::');
-        }
-    });
-  return defer.promise;
-};
-
-ControllerSystem.prototype.USBBootCheck = function (data) {
-  var self = this;
-  var usbboot = config.get('usbboot');
-
-  if (usbboot == undefined) {
-    self.logger.info('USB Boot Capable - Enabling Install to Disk function for: ' + data);
-    self.config.set('usbboot', data);
-  } else if (usbboot != data) {
-    self.logger.info('USB Boot Capable change detected - Enabling Install to Disk function for: ' + data);
-    self.config.set('usbboot', data);
-  }
-};
-
-
 ControllerSystem.prototype.getSystemVersion = function () {
   var self = this;
   var defer = libQ.defer();
@@ -725,7 +742,7 @@ ControllerSystem.prototype.deviceDetect = function (data) {
       self.deviceCheck(device);
       defer.resolve(device);
     } else {
-     exec('cat /proc/cpuinfo | grep Hardware || cat /proc/cpuinfo | grep Model || cat /etc/os-release | grep ^VOLUMIO_HARDWARE | tr -d VOLUMIO_HARDWARE= | tr -d "\\042"', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+      exec('cat /proc/cpuinfo | grep Hardware || cat /proc/cpuinfo | grep Model || cat /etc/os-release | grep ^VOLUMIO_HARDWARE | tr -d VOLUMIO_HARDWARE= | tr -d "\\042"', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
         if (error !== null) {
           self.logger.info('Cannot read proc/cpuinfo: ' + error);
           defer.resolve('unknown');
