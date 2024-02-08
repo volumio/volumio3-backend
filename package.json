@@ -9,7 +9,8 @@
   "scripts": {
     "preinstall": "",
     "start": "nodejs ./index.js",
-    "lint": "semistandard \"./**/*.js\" --fix --verbose",
+    "format": "npm run lint -- --fix",
+    "lint": "semistandard \"./**/*.js\" --verbose",
     "lint-staged": "lint-staged",
     "lint-JSON": "jsonlint -qD ./app/plugins",
     "test": "npm install --only=dev --no-package-lock && ./node_modules/.bin/mocha --reporter spec",
