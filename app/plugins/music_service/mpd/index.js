@@ -12,6 +12,8 @@ var parser = require('cue-parser');
 var mm = require('music-metadata');
 var os = require('os');
 var execSync = require('child_process').execSync;
+const {parseUri} = require('./app/routes');
+
 var ignoreupdate = false;
 // tracknumbers variable below adds track numbers to titles if set to true. Set to false for normal behavour.
 var tracknumbers = false;
@@ -1167,21 +1169,15 @@ ControllerMpd.prototype.setConfigParam = function (data) {
   self.config.set(data.key, data.value);
 };
 
-ControllerMpd.prototype.listPlaylists = function (uri) {
+ControllerMpd.prototype.listPlaylists = function () {
   var self = this;
-
   var defer = libQ.defer();
-
   var response = {
     navigation: {
       lists: [
         {
-          availableListViews: [
-            'list'
-          ],
-          items: [
-
-          ]
+          availableListViews: ['list'],
+          items: []
         }
       ]
     }
@@ -1209,22 +1205,15 @@ ControllerMpd.prototype.listPlaylists = function (uri) {
   return defer.promise;
 };
 
-ControllerMpd.prototype.browsePlaylist = function (uri) {
+ControllerMpd.prototype.browsePlaylist = function ({name}) {
   var self = this;
-
   var defer = libQ.defer();
-  var name = uri.split('/')[1];
-
   var response = {
     navigation: {
       lists: [
         {
-          availableListViews: [
-            'list'
-          ],
-          items: [
-
-          ]
+          availableListViews: ['list'],
+          items: []
         }
       ],
       info: {
@@ -1240,8 +1229,6 @@ ControllerMpd.prototype.browsePlaylist = function (uri) {
       }
     }
   };
-
-  var name = uri.split('/')[1];
 
   var promise = self.commandRouter.playListManager.getPlaylistContent(name);
   promise.then(function (data) {
@@ -2900,93 +2887,46 @@ ControllerMpd.prototype.syncGroupVolume = function (data) {
   var self = this;
 };
 
-ControllerMpd.prototype.handleBrowseUri = function (curUri, previous) {
-  var self = this;
-  var response;
-
-  self.logger.info('CURURI: ' + curUri);
-  var splitted = curUri.split('/');
-
-  // music-library
-  if (curUri.startsWith('music-library')) {
-    response = self.lsInfo(curUri);
+ControllerMpd.prototype.handleBrowseUri = function (curUri) {
+  const [route, payload] = parseUri(curUri);
+  this.logger.info('CURURI: ' + JSON.stringify({curUri, route, payload}, null, 2));
+  switch (route) {
+  case 'PLAYLISTS_ROOT':
+    return this.listPlaylists();
+  case 'PLAYLIST_CONTENT':
+    return this.browsePlaylist(payload);
+  case 'GENRES_ROOT':
+    return this.listGenres();
+  case 'ARTISTS_ROOT':
+    return this.listArtists();
+  case 'ALBUMS_ROOT':
+    return this.listAlbums(true);
+  case 'GENRE_CONTENT':
+    return this.listGenre(payload);
+  case 'ARTIST_CONTENT':
+    return this.listArtist(payload);
+  case 'ALBUM_CONTENT':
+    return this.listAlbumSongs(payload);
+  default:
+    return this.lsInfo(curUri);
   }
-
-  // playlist
-  else if (curUri.startsWith('playlists')) {
-    if (curUri == 'playlists') {
-      response = self.listPlaylists(curUri);
-    } else {
-      response = self.browsePlaylist(curUri);
-    }
-  }
-
-  // albums
-  else if (curUri.startsWith('albums://')) {
-    if (curUri == 'albums://') {			// Just list albums
-      response = self.listAlbums(curUri);
-    } else {
-      if (splitted.length == 3) {
-        response = self.listAlbumSongs(curUri, 2, 'albums://');
-      } else {
-        response = self.listAlbumSongs(curUri, 3, 'albums://');
-      }
-    }
-  }
-
-  // artists
-  else if (curUri.startsWith('artists://')) {
-    if (curUri == 'artists://') {
-      response = self.listArtists(curUri);
-    } else {
-      if (splitted.length == 3) { // No album name
-        response = self.listArtist(curUri, 2, 'artists://', 'artists://'); // Pass back to listArtist
-      } else { // Has album name
-        response = self.listAlbumSongs(curUri, 3, 'artists://' + splitted[2]); // Pass to listAlbumSongs with artist and album name
-      }
-    }
-  }
-
-  // genres
-  else if (curUri.startsWith('genres://')) {
-    if (curUri == 'genres://') {
-      response = self.listGenres(curUri);
-    } else {
-      if (splitted.length == 3) {
-        response = self.listGenre(curUri);
-      } else if (splitted.length == 4) {
-        response = self.listArtist(curUri, 3, 'genres://' + splitted[2], 'genres://');
-      } else if (splitted.length == 5) {
-        response = self.listAlbumSongs(curUri, 4, 'genres://' + splitted[2]);
-      } else if (splitted.length == 6) {
-        response = self.listAlbumSongs(curUri, 4, 'genres://' + splitted[4] + '/' + splitted[5]);
-      }
-    }
-  }
-
-  return response;
 };
 
 /**
  *
  * list album
  */
-ControllerMpd.prototype.listAlbums = function (ui) {
+ControllerMpd.prototype.listAlbums = function (needResolve) {
   var self = this;
-
   var defer = libQ.defer();
-  var response = memoryCache.get('cacheAlbumList', function (err, response) {
+  memoryCache.get('cacheAlbumList', function (err, response) {
     if (response == undefined) {
       response = {
         navigation: {
           lists: [
             {
-              availableListViews: [
-                'list',
-                'grid'
-              ],
-              items: [
-              ]
+              availableListViews: ['list', 'grid'],
+              items: []
             }
           ]
         }
@@ -3038,14 +2978,14 @@ ControllerMpd.prototype.listAlbums = function (ui) {
           }
           // Save response in albumList cache for future use
           memoryCache.set('cacheAlbumList', response);
-          if (ui) {
+          if (needResolve) {
             defer.resolve(response);
           }
         }
       });
     } else {
       self.logger.info('listAlbums - loading Albums from cache');
-      if (ui) {
+      if (needResolve) {
         defer.resolve(response);
       }
     }
@@ -3057,42 +2997,31 @@ ControllerMpd.prototype.listAlbums = function (ui) {
  *
  * list album songs
  */
-ControllerMpd.prototype.listAlbumSongs = function (uri, index, previous) {
-  var self = this;
-  var defer = libQ.defer();
-  var splitted = uri.split('/');
+ControllerMpd.prototype.listAlbumSongs = function ({uri, artist, album, isOrphanAlbum, genre, previous}) {
+  const self = this;
+  const defer = libQ.defer();
+  let findstring;
 
-  if (splitted[0] == 'genres:') { // genre
-    var genreString = uri.replace('genres://', '');
-    var genre = decodeURIComponent(splitted[2]);
-    var artist = decodeURIComponent(splitted[3]);
-    var albumName = decodeURIComponent(splitted[4]);
-    var safeGenre = genre.replace(/"/g, '\\"');
-    var safeArtist = artist.replace(/"/g, '\\"');
-    var safeAlbumName = albumName.replace(/"/g, '\\"');
+  if (genre) {
+    const safeGenre = genre.replace(/"/g, '\\"');
+    const safeArtist = artist.replace(/"/g, '\\"');
+    const safeAlbum = album.replace(/"/g, '\\"');
 
     if (compilation.indexOf(artist) > -1) {
-      var findstring = 'find album "' + safeAlbumName + '" genre "' + safeGenre + '" ';
+      findstring = 'find album "' + safeAlbum + '" genre "' + safeGenre + '" ';
     } else if (artistsort) {
-      var findstring = 'find album "' + safeAlbumName + '" albumartist "' + safeArtist + '" genre "' + safeGenre + '" ';
+      findstring = 'find album "' + safeAlbum + '" albumartist "' + safeArtist + '" genre "' + safeGenre + '" ';
     } else {
-      var findstring = 'find album "' + safeAlbumName + '" artist "' + safeArtist + '" genre "' + safeGenre + '" ';
+      findstring = 'find album "' + safeAlbum + '" artist "' + safeArtist + '" genre "' + safeGenre + '" ';
     }
-  } else if (splitted[0] == 'albums:') { // album
-    var artist = decodeURIComponent(splitted[2]);
-    var albumName = decodeURIComponent(splitted[3]);
-    var safeArtist = artist.replace(/"/g, '\\"');
-    var safeAlbumName = albumName.replace(/"/g, '\\"');
-
-    var isOrphanAlbum = uri === 'albums://*/';
-    var artistSubQuery = isOrphanAlbum ? '' : ' albumartist "' + safeArtist + '" ';
-
-    var findstring = 'find album "' + safeAlbumName + '"' + artistSubQuery;
-  } else { // artist
-    var artist = decodeURIComponent(splitted[2]);
-    var albumName = decodeURIComponent(splitted[3]);
-    var safeArtist = artist.replace(/"/g, '\\"');
-    var safeAlbumName = albumName.replace(/"/g, '\\"');
+  } else if (album || isOrphanAlbum) {
+    const safeArtist = artist.replace(/"/g, '\\"');
+    const safeAlbum = album.replace(/"/g, '\\"');
+    const artistSubQuery = isOrphanAlbum ? '' : ' albumartist "' + safeArtist + '" ';
+    findstring = 'find album "' + safeAlbum + '"' + artistSubQuery;
+  } else {
+    const safeArtist = artist.replace(/"/g, '\\"');
+    const safeAlbum = album.replace(/"/g, '\\"');
 
     /* This section is commented because we should use albumartist: if albumartist tag does not exist, it will fallback to artist
 		 if (compilation.indexOf(artist)>-1) {       //artist is in compilation array so use albumartist
@@ -3102,8 +3031,8 @@ ControllerMpd.prototype.listAlbumSongs = function (uri, index, previous) {
 		 var typeofartist = 'artist';
 		 }
 		 */
-    var typeofartist = 'albumartist';
-    var findstring = 'find album "' + safeAlbumName + '" ' + typeofartist + ' "' + safeArtist + '" ';
+    const typeofartist = 'albumartist';
+    findstring = 'find album "' + safeAlbum + '" ' + typeofartist + ' "' + safeArtist + '" ';
   }
   var response = {
     navigation: {
@@ -3119,12 +3048,8 @@ ControllerMpd.prototype.listAlbumSongs = function (uri, index, previous) {
       },
       lists: [
         {
-          availableListViews: [
-            'list'
-          ],
-          items: [
-
-          ]
+          availableListViews: ['list'],
+          items: []
         }
       ],
       prev: {
@@ -3195,7 +3120,6 @@ ControllerMpd.prototype.listAlbumSongs = function (uri, index, previous) {
         }
         duration = durationminutes + ':' + durationseconds;
       }
-      var isOrphanAlbum = uri === 'albums://*/';
       duration =
                 response.navigation.info = {
                   uri: uri,
@@ -3223,19 +3147,12 @@ ControllerMpd.prototype.listAlbumSongs = function (uri, index, previous) {
  */
 ControllerMpd.prototype.listArtists = function () {
   var self = this;
-
   var defer = libQ.defer();
-
   var response = {
     navigation: {
       lists: [{
-        availableListViews: [
-          'list',
-          'grid'
-        ],
-        items: [
-
-        ]
+        availableListViews: ['list', 'grid'],
+        items: []
       }]
     }
   };
@@ -3287,43 +3204,31 @@ ControllerMpd.prototype.listArtists = function () {
  *
  * list artist
  */
-ControllerMpd.prototype.listArtist = function (curUri, index, previous, uriBegin) {
+ControllerMpd.prototype.listArtist = function ({uri, artist, genre, previous, uriBegin}) {
   var self = this;
-
   var defer = libQ.defer();
-
-  var splitted = curUri.split('/');
-  var albumart = self.getAlbumArt({artist: decodeURIComponent(splitted[index])}, undefined, 'users');
+  var albumart = self.getAlbumArt({artist}, undefined, 'users');
 
   var response = {
     navigation: {
       lists: [{
-        title: self.commandRouter.getI18nString('COMMON.ALBUMS') + ' (' + decodeURIComponent(splitted[index]) + ')',
+        title: self.commandRouter.getI18nString('COMMON.ALBUMS') + ` (${artist})`,
         icon: 'fa icon',
-        availableListViews: [
-          'list',
-          'grid'
-        ],
-        items: [
-
-        ]
+        availableListViews: ['list', 'grid'],
+        items: []
       },
       {
-        title: self.commandRouter.getI18nString('COMMON.TRACKS') + ' (' + decodeURIComponent(splitted[index]) + ')',
+        title: self.commandRouter.getI18nString('COMMON.TRACKS') + ` (${artist})`,
         icon: 'fa icon',
-        availableListViews: [
-          'list'
-        ],
-        items: [
-
-        ]
+        availableListViews: ['list'],
+        items: []
       }],
       prev: {
         uri: previous
       },
       info: {
-        uri: curUri,
-        title: decodeURIComponent(splitted[index]),
+        uri,
+        title: artist,
         service: 'mpd',
         type: 'artist',
         albumart: albumart
@@ -3333,21 +3238,12 @@ ControllerMpd.prototype.listArtist = function (curUri, index, previous, uriBegin
 
   self.mpdReady
     .then(function () {
-      var artist = decodeURIComponent(splitted[index]);
       var VA = 0;
       var cmd = libMpd.cmd;
       var safeArtist = artist.replace(/"/g, '\\"');
 
-      if (uriBegin === 'genres://') {
-        try {
-          var genreString = curUri.replace('genres://', '');
-          var genre = decodeURIComponent(genreString.split('/')[0]);
-          var safeGenre = genre.replace(/"/g, '\\"');
-          var artist = decodeURIComponent(genreString.split('/')[1]);
-          safeArtist = artist.replace(/"/g, '\\"');
-        } catch (e) {
-          self.logger.error('Cannot browse genre: ' + e);
-        }
+      if (genre) {
+        const safeGenre = genre.replace(/"/g, '\\"');
         if (artistsort) {
           var findartist = 'find albumartist "' + safeArtist + '" genre "' + safeGenre + '" ';
         } else {
@@ -3487,12 +3383,8 @@ ControllerMpd.prototype.listGenres = function () {
     navigation: {
       lists: [
         {
-          availableListViews: [
-            'list'
-          ],
-          items: [
-
-          ]
+          availableListViews: ['list'],
+          items: []
         }
       ]
     }
@@ -3530,33 +3422,22 @@ ControllerMpd.prototype.listGenres = function () {
  *
  * list genre
  */
-ControllerMpd.prototype.listGenre = function (curUri) {
+ControllerMpd.prototype.listGenre = function ({genre}) {
   var self = this;
   var defer = libQ.defer();
-  var splitted = curUri.split('/');
-  var genreName = decodeURIComponent(splitted[2]);
-  var genreArtist = decodeURIComponent(splitted[3]);
-  var safeGenreName = genreName.replace(/"/g, '\\"');
-  var safeGenreArtist = genreArtist.replace(/"/g, '\\"');
   var response = {
     navigation: {
       lists: [
         {
-          title: genreName + ' ' + self.commandRouter.getI18nString('COMMON.ALBUMS'),
+          title: genre + ' ' + self.commandRouter.getI18nString('COMMON.ALBUMS'),
           icon: 'fa icon',
-          availableListViews: [
-            'list',
-            'grid'
-          ],
+          availableListViews: ['list', 'grid'],
           items: []
         },
         {
-          title: genreName + ' ' + self.commandRouter.getI18nString('COMMON.ARTISTS'),
+          title: genre + ' ' + self.commandRouter.getI18nString('COMMON.ARTISTS'),
           icon: 'fa icon',
-          availableListViews: [
-            'list',
-            'grid'
-          ],
+          availableListViews: [ 'list', 'grid'],
           items: []
         }
       ],
@@ -3569,21 +3450,13 @@ ControllerMpd.prototype.listGenre = function (curUri) {
   self.mpdReady
     .then(function () {
       var cmd = libMpd.cmd;
-      if (genreArtist != 'undefined') {
-        if (artistsort) {
-          var findString = 'find genre "' + safeGenreName + '" albumartist "' + safeGenreArtist + '" ';
-        } else {
-          var findString = 'find genre "' + safeGenreName + '" artist "' + safeGenreArtist + '" ';
-        }
-      } else {
-        var findString = 'find genre "' + safeGenreName + '"';
-      }
+      var safeGenre = genre.replace(/"/g, '\\"');
+      var findString = 'find genre "' + safeGenre + '"';
       self.clientMpd.sendCommand(cmd(findString, []), function (err, msg) {
         var albums = [];
         var albumsArt = [];
         var artists = [];
         var artistArt = [];
-        var list = [];
 
         if (msg) {
           var path;
@@ -3628,7 +3501,7 @@ ControllerMpd.prototype.listGenre = function (curUri) {
                       title: album,
                       artist: artist,
                       albumart: albumart,
-                      uri: 'genres://' + encodeURIComponent(genreName) + '/' + encodeURIComponent(artist) + '/' + encodeURIComponent(album)});
+                      uri: 'genres://' + encodeURIComponent(genre) + '/' + encodeURIComponent(artist) + '/' + encodeURIComponent(album)});
                   }
                 }
 
@@ -3642,7 +3515,7 @@ ControllerMpd.prototype.listGenre = function (curUri) {
                       type: 'folder',
                       title: artist,
                       albumart: self.getAlbumArt({artist: artist}, undefined, 'users'),
-                      uri: 'genres://' + encodeURIComponent(genreName) + '/' + encodeURIComponent(artist)
+                      uri: 'genres://' + encodeURIComponent(genre) + '/' + encodeURIComponent(artist)
                     });
                   }
                 }
@@ -3658,7 +3531,7 @@ ControllerMpd.prototype.listGenre = function (curUri) {
                       title: album,
                       artist: artist,
                       albumart: albumart,
-                      uri: 'genres://' + encodeURIComponent(genreName) + '/' + encodeURIComponent(artist) + '/' + encodeURIComponent(album)});
+                      uri: 'genres://' + encodeURIComponent(genre) + '/' + encodeURIComponent(artist) + '/' + encodeURIComponent(album)});
                   }
                 }
 
@@ -3672,7 +3545,7 @@ ControllerMpd.prototype.listGenre = function (curUri) {
                       type: 'folder',
                       title: artist,
                       albumart: self.getAlbumArt({artist: artist}, undefined, 'users'),
-                      uri: 'genres://' + encodeURIComponent(genreName) + '/' + encodeURIComponent(artist)});
+                      uri: 'genres://' + encodeURIComponent(genre) + '/' + encodeURIComponent(artist)});
                   }
                 }
               }
