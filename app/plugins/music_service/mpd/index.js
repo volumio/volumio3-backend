@@ -207,17 +207,17 @@ ControllerMpd.prototype.parseListAllInfoResult = function (sInput) {
 
     if (arrayLineParts[0] === 'file') {
       curEntry = {
-        'name': '',
-        'service': this.servicename,
-        'uri': arrayLineParts[1],
-        'browsepath': [this.displayname].concat(arrayLineParts[1].split('/').slice(0, -1)),
-        'artists': [],
-        'album': '',
-        'genres': [],
-        'performers': [],
-        'tracknumber': 0,
-        'year': '',
-        'duration': 0
+        name: '',
+        service: this.servicename,
+        uri: arrayLineParts[1],
+        browsepath: [this.displayname].concat(arrayLineParts[1].split('/').slice(0, -1)),
+        artists: [],
+        album: '',
+        genres: [],
+        performers: [],
+        tracknumber: 0,
+        year: '',
+        duration: 0
       };
       objReturn.tracks.push(curEntry);
     } else if (arrayLineParts[0] === 'playlist') {
@@ -326,7 +326,7 @@ ControllerMpd.prototype.sendMpdCommand = function (sCommand, arrayParameters) {
   var self = this;
   self.logger.verbose('ControllerMpd::sendMpdCommand ' + sCommand);
 
-  const start=Date.now()
+  const start = Date.now();
   return self.mpdReady
     .then(function () {
       return libQ.nfcall(self.clientMpd.sendCommand.bind(self.clientMpd), libMpd.cmd(sCommand, arrayParameters));
@@ -339,8 +339,8 @@ ControllerMpd.prototype.sendMpdCommand = function (sCommand, arrayParameters) {
 
         self.sendMpdCommand('clearerror', []);
       }
-      const stop=Date.now()
-      self.logger.info("sendMpdCommand "+sCommand+" took "+(stop-start)+" milliseconds")
+      const stop = Date.now();
+      self.logger.info('sendMpdCommand ' + sCommand + ' took ' + (stop - start) + ' milliseconds');
 
       return libQ.resolve(respobject);
     });
@@ -615,7 +615,7 @@ ControllerMpd.prototype.onStart = function () {
 
 ControllerMpd.prototype.mpdInit = function () {
   var self = this;
-  var defer = libQ.defer()
+  var defer = libQ.defer();
 
   if (process.env.WRITE_MPD_CONFIGURATION_ON_STARTUP === 'true') {
     self.logger.info('Creating MPD Configuration file');
@@ -642,7 +642,7 @@ ControllerMpd.prototype.mpdInit = function () {
 
 ControllerMpd.prototype.initializeMpdConnection = function () {
   var self = this;
-  var defer = libQ.defer()
+  var defer = libQ.defer();
 
   // Connect to MPD only if process MPD is running
   exec('/bin/pidof mpd', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
@@ -683,7 +683,7 @@ ControllerMpd.prototype.mpdEstablish = function () {
       startup = false;
       setTimeout(()=>{
         //self.checkIfMpdRequiresRescan();
-      }, 2500)
+      }, 2500);
       setTimeout(()=>{
         self.checkUSBDrives();
         self.listAlbums();
@@ -825,7 +825,7 @@ ControllerMpd.prototype.savePlaybackOptions = function (data) {
 
   var playbackModeNew = data['playback_mode_list'].value;
   if (playbackModeNew !== process.env.PLAYBACK_MODE) {
-      self.setPlaybackMode(playbackModeNew);
+    self.setPlaybackMode(playbackModeNew);
   }
 
 
@@ -923,7 +923,9 @@ ControllerMpd.prototype.saveResampleOptions = function (data) {
         } else
         // self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('mpd_player_restart'), self.commandRouter.getI18nString('mpd_player_restart_success'));
 
-        { defer.resolve({}); }
+        {
+          defer.resolve({});
+        }
       });
     }
   });
@@ -984,7 +986,7 @@ ControllerMpd.prototype.createMPDFile = function (callback) {
       if (process.env.MODULAR_ALSA_PIPELINE === 'true') {
         var realDev = outdev;
         outdev = self.commandRouter.sharedVars.get('alsa.outputdevice');
-        if(self.getAdditionalConf('audio_interface', 'alsa_controller', 'softvolume')) {
+        if (self.getAdditionalConf('audio_interface', 'alsa_controller', 'softvolume')) {
           mixerdev = 'SoftMaster';
         } else {
           if (realDev.indexOf(',') >= 0) {
@@ -993,7 +995,6 @@ ControllerMpd.prototype.createMPDFile = function (callback) {
             mixerdev = 'hw:' + realDev + ',0';
           }
         }
-
       } else {
         if (outdev != 'softvolume') {
           var realDev = outdev;
@@ -1130,7 +1131,7 @@ ControllerMpd.prototype.isAlsaDebugEnabled = function () {
     } else {
       return false;
     }
-  } catch(e) {
+  } catch (e) {
     return false;
   }
 };
@@ -1172,13 +1173,13 @@ ControllerMpd.prototype.listPlaylists = function (uri) {
   var defer = libQ.defer();
 
   var response = {
-    'navigation': {
-      'lists': [
+    navigation: {
+      lists: [
         {
-          'availableListViews': [
+          availableListViews: [
             'list'
           ],
-          'items': [
+          items: [
 
           ]
         }
@@ -1186,18 +1187,18 @@ ControllerMpd.prototype.listPlaylists = function (uri) {
     }
   };
   if (singleBrowse) {
-    response.navigation.prev = {'uri': 'music-library'};
+    response.navigation.prev = {uri: 'music-library'};
   }
   var promise = self.commandRouter.playListManager.listPlaylist();
   promise.then(function (data) {
     for (var i in data) {
       var ithdata = data[i];
       var playlist = {
-        'service': 'mpd',
-        'type': 'playlist',
-        'title': ithdata,
-        'icon': 'fa fa-list-ol',
-        'uri': 'playlists/' + ithdata
+        service: 'mpd',
+        type: 'playlist',
+        title: ithdata,
+        icon: 'fa fa-list-ol',
+        uri: 'playlists/' + ithdata
       };
       response.navigation.lists[0].items.push(playlist);
     }
@@ -1215,27 +1216,27 @@ ControllerMpd.prototype.browsePlaylist = function (uri) {
   var name = uri.split('/')[1];
 
   var response = {
-    'navigation': {
-      'lists': [
+    navigation: {
+      lists: [
         {
-          'availableListViews': [
+          availableListViews: [
             'list'
           ],
-          'items': [
+          items: [
 
           ]
         }
       ],
-      'info': {
-        'uri': 'playlists/favourites',
-        'title': name,
-        'name': name,
-        'service': 'mpd',
-        'type': 'play-playlist',
-        'albumart': '/albumart?sourceicon=music_service/mpd/playlisticon.png'
+      info: {
+        uri: 'playlists/favourites',
+        title: name,
+        name: name,
+        service: 'mpd',
+        type: 'play-playlist',
+        albumart: '/albumart?sourceicon=music_service/mpd/playlisticon.png'
       },
-      'prev': {
-        'uri': 'playlists'
+      prev: {
+        uri: 'playlists'
       }
     }
   };
@@ -1336,17 +1337,17 @@ ControllerMpd.prototype.lsInfo = function (uri) {
 
               if (uri === 'music-library') {
                 switch (path) {
-                  case 'INTERNAL':
-                    var albumart = self.getAlbumArt('', '', 'microchip');
-                    break;
-                  case 'NAS':
-                    var albumart = self.getAlbumArt('', '', 'server');
-                    break;
-                  case 'USB':
-                    var albumart = self.getAlbumArt('', '', 'usb');
-                    break;
-                  default:
-                    var albumart = self.getAlbumArt('', '/mnt/' + path, 'folder-o');
+                case 'INTERNAL':
+                  var albumart = self.getAlbumArt('', '', 'microchip');
+                  break;
+                case 'NAS':
+                  var albumart = self.getAlbumArt('', '', 'server');
+                  break;
+                case 'USB':
+                  var albumart = self.getAlbumArt('', '', 'usb');
+                  break;
+                default:
+                  var albumart = self.getAlbumArt('', '/mnt/' + path, 'folder-o');
                 }
               } else {
                 var albumart = self.getAlbumArt('', '/mnt/' + path, 'folder-o');
@@ -1567,7 +1568,7 @@ ControllerMpd.prototype.search = function (query) {
   var commandSong = 'search title ' + ' "' + safeValue + '"';
   var commandAny = 'search';
   for (var i in splittedSearch) {
-    commandAny = commandAny + ' any ' +  '"' + splittedSearch[i] + '"';
+    commandAny = commandAny + ' any ' + '"' + splittedSearch[i] + '"';
   }
   var artistcount = 0;
   var albumcount = 0;
@@ -1701,12 +1702,12 @@ ControllerMpd.prototype.search = function (query) {
       if (artistcount > 1) artistdesc = self.commandRouter.getI18nString('COMMON.ARTISTS');
       list = [
         {
-          'title': self.commandRouter.getI18nString('COMMON.FOUND') + ' ' + artistcount + ' ' + artistdesc + " '" + query.value + "'",
-          'availableListViews': [
+          title: self.commandRouter.getI18nString('COMMON.FOUND') + ' ' + artistcount + ' ' + artistdesc + " '" + query.value + "'",
+          availableListViews: [
             'list',
             'grid'
           ],
-          'items': []
+          items: []
         }];
 
       list[0].items = list[0].items.concat(values[0]);
@@ -1717,12 +1718,12 @@ ControllerMpd.prototype.search = function (query) {
       if (albumcount > 1) albumdesc = self.commandRouter.getI18nString('COMMON.ALBUMS');
       var albList =
                 {
-                  'title': self.commandRouter.getI18nString('COMMON.FOUND') + ' ' + albumcount + ' ' + albumdesc + " '" + query.value + "'",
-                  'availableListViews': [
+                  title: self.commandRouter.getI18nString('COMMON.FOUND') + ' ' + albumcount + ' ' + albumdesc + " '" + query.value + "'",
+                  availableListViews: [
                     'list',
                     'grid'
                   ],
-                  'items': []
+                  items: []
                 };
       albList.items = values[1];
 
@@ -1734,18 +1735,20 @@ ControllerMpd.prototype.search = function (query) {
       if (trackcount > 1) var trackdesc = self.commandRouter.getI18nString('COMMON.TRACKS');
       var songList =
                 {
-                  'title': self.commandRouter.getI18nString('COMMON.FOUND') + ' ' + trackcount + ' ' + trackdesc + " '" + query.value + "'",
-                  'availableListViews': [
+                  title: self.commandRouter.getI18nString('COMMON.FOUND') + ' ' + trackcount + ' ' + trackdesc + " '" + query.value + "'",
+                  availableListViews: [
                     'list'
                   ],
-                  'items': []
+                  items: []
                 };
       songList.items = values[2];
 
       list.push(songList);
     }
 
-    list = list.filter(function (v) { return !!(v) == true; });
+    list = list.filter(function (v) {
+      return !!v == true;
+    });
 
     defer.resolve(list);
   }).fail(function (err) {
@@ -1764,7 +1767,13 @@ ControllerMpd.prototype.searchFor = function (lines, startFrom, beginning) {
     var line = lines[i];
 
     if (line !== undefined) {
-      if (line.indexOf(beginning) === 0) { return line.slice(beginning.length).trimLeft(); } else if (line.indexOf('file:') === 0) { return ''; } else if (line.indexOf('directory:') === 0) { return ''; }
+      if (line.indexOf(beginning) === 0) {
+        return line.slice(beginning.length).trimLeft();
+      } else if (line.indexOf('file:') === 0) {
+        return '';
+      } else if (line.indexOf('directory:') === 0) {
+        return '';
+      }
     }
 
     i++;
@@ -1844,7 +1853,9 @@ ControllerMpd.prototype.getAlbumArt = function (data, path, icon) {
     this.albumArtPlugin = this.commandRouter.pluginManager.getPlugin('miscellanea', 'albumart');
   }
 
-  if (this.albumArtPlugin) { return this.albumArtPlugin.getAlbumArt(data, path, icon); } else {
+  if (this.albumArtPlugin) {
+    return this.albumArtPlugin.getAlbumArt(data, path, icon);
+  } else {
     return '/albumart';
   }
 };
@@ -2479,9 +2490,9 @@ ControllerMpd.prototype.scanFolder = function (uri) {
   var uris = [];
   var isofile = false;
 
-  if ((uri.indexOf('.iso') >= 0) || (uri.indexOf('.ISO') >= 0)) {
+  if (uri.indexOf('.iso') >= 0 || uri.indexOf('.ISO') >= 0) {
     var uri2 = uri.substr(0, uri.lastIndexOf('/'));
-    if ((uri2.indexOf('.iso') >= 0) || (uri2.indexOf('.ISO') >= 0)) {
+    if (uri2.indexOf('.iso') >= 0 || uri2.indexOf('.ISO') >= 0) {
     } else {
       isofile = true;
     }
@@ -2494,7 +2505,7 @@ ControllerMpd.prototype.scanFolder = function (uri) {
     }
   }
 
-  if (((uri.indexOf('.iso') < 0) && (uri.indexOf('.ISO') < 0)) && (stat != undefined && stat.isDirectory())) {
+  if (uri.indexOf('.iso') < 0 && uri.indexOf('.ISO') < 0 && (stat != undefined && stat.isDirectory())) {
     try {
       var files = libFsExtra.readdirSync(uri);
       for (var i in files) {
@@ -2582,7 +2593,9 @@ ControllerMpd.prototype.scanFolder = function (uri) {
             }
           }
 
-          if (isSolved === false) { defer.resolve({}); }
+          if (isSolved === false) {
+            defer.resolve({});
+          }
         } else defer.resolve({});
       });
     });
@@ -2828,8 +2841,8 @@ ControllerMpd.prototype.getMyCollectionStats = function () {
 
         try {
           var hours = Math.floor(playtimesCount / 3600);
-          var minutes = Math.floor(playtimesCount / 60) - (hours * 60);
-          var seconds = Math.floor(playtimesCount - (hours * 3600) - (minutes * 60));
+          var minutes = Math.floor(playtimesCount / 60) - hours * 60;
+          var seconds = Math.floor(playtimesCount - hours * 3600 - minutes * 60);
           var playTimeString = hours + ':' + minutes + ':' + seconds;
         } catch (e) {
           var playTimeString = '0:0:0';
@@ -2965,21 +2978,21 @@ ControllerMpd.prototype.listAlbums = function (ui) {
   var response = memoryCache.get('cacheAlbumList', function (err, response) {
     if (response == undefined) {
       response = {
-        'navigation': {
-          'lists': [
+        navigation: {
+          lists: [
             {
-              'availableListViews': [
+              availableListViews: [
                 'list',
                 'grid'
               ],
-              'items': [
+              items: [
               ]
             }
           ]
         }
       };
       if (singleBrowse) {
-        response.navigation.prev = {'uri': 'music-library'};
+        response.navigation.prev = {uri: 'music-library'};
       }
       var cmd = libMpd.cmd;
 
@@ -3071,7 +3084,7 @@ ControllerMpd.prototype.listAlbumSongs = function (uri, index, previous) {
     var safeArtist = artist.replace(/"/g, '\\"');
     var safeAlbumName = albumName.replace(/"/g, '\\"');
 
-    var isOrphanAlbum = (uri === 'albums://*/');
+    var isOrphanAlbum = uri === 'albums://*/';
     var artistSubQuery = isOrphanAlbum ? '' : ' albumartist "' + safeArtist + '" ';
 
     var findstring = 'find album "' + safeAlbumName + '"' + artistSubQuery;
@@ -3093,29 +3106,29 @@ ControllerMpd.prototype.listAlbumSongs = function (uri, index, previous) {
     var findstring = 'find album "' + safeAlbumName + '" ' + typeofartist + ' "' + safeArtist + '" ';
   }
   var response = {
-    'navigation': {
-      'info': {
-        'uri': 'music-library/',
-        'service': 'mpd',
-        'title': 'title',
-        'artist': 'artist',
-        'album': 'album',
-        'type': 'song',
-        'albumart': 'albumart',
-        'duration': 'time'
+    navigation: {
+      info: {
+        uri: 'music-library/',
+        service: 'mpd',
+        title: 'title',
+        artist: 'artist',
+        album: 'album',
+        type: 'song',
+        albumart: 'albumart',
+        duration: 'time'
       },
-      'lists': [
+      lists: [
         {
-          'availableListViews': [
+          availableListViews: [
             'list'
           ],
-          'items': [
+          items: [
 
           ]
         }
       ],
-      'prev': {
-        'uri': previous
+      prev: {
+        uri: previous
       }
     }
   };
@@ -3176,13 +3189,13 @@ ControllerMpd.prototype.listAlbumSongs = function (uri, index, previous) {
       }
       if (duration != undefined && duration > 0) {
         var durationminutes = Math.floor(duration / 60);
-        var durationseconds = duration - (durationminutes * 60);
+        var durationseconds = duration - durationminutes * 60;
         if (durationseconds < 10) {
           durationseconds = '0' + durationseconds;
         }
         duration = durationminutes + ':' + durationseconds;
       }
-      var isOrphanAlbum = (uri === 'albums://*/');
+      var isOrphanAlbum = uri === 'albums://*/';
       duration =
                 response.navigation.info = {
                   uri: uri,
@@ -3214,20 +3227,20 @@ ControllerMpd.prototype.listArtists = function () {
   var defer = libQ.defer();
 
   var response = {
-    'navigation': {
-      'lists': [{
-        'availableListViews': [
+    navigation: {
+      lists: [{
+        availableListViews: [
           'list',
           'grid'
         ],
-        'items': [
+        items: [
 
         ]
       }]
     }
   };
   if (singleBrowse) {
-    response.navigation.prev = {'uri': 'music-library'};
+    response.navigation.prev = {uri: 'music-library'};
   }
 
   var cmd = libMpd.cmd;
@@ -3240,7 +3253,9 @@ ControllerMpd.prototype.listArtists = function () {
   }
 
   self.clientMpd.sendCommand(cmd('list', [artistlist]), function (err, msg) { // List artists
-    if (err) { defer.reject(new Error('Cannot list artist')); } else {
+    if (err) {
+      defer.reject(new Error('Cannot list artist'));
+    } else {
       var splitted = msg.split('\n');
 
       for (var i in splitted) {
@@ -3281,30 +3296,30 @@ ControllerMpd.prototype.listArtist = function (curUri, index, previous, uriBegin
   var albumart = self.getAlbumArt({artist: decodeURIComponent(splitted[index])}, undefined, 'users');
 
   var response = {
-    'navigation': {
-      'lists': [{
-        'title': self.commandRouter.getI18nString('COMMON.ALBUMS') + ' (' + decodeURIComponent(splitted[index]) + ')',
-        'icon': 'fa icon',
-        'availableListViews': [
+    navigation: {
+      lists: [{
+        title: self.commandRouter.getI18nString('COMMON.ALBUMS') + ' (' + decodeURIComponent(splitted[index]) + ')',
+        icon: 'fa icon',
+        availableListViews: [
           'list',
           'grid'
         ],
-        'items': [
+        items: [
 
         ]
       },
       {
-        'title': self.commandRouter.getI18nString('COMMON.TRACKS') + ' (' + decodeURIComponent(splitted[index]) + ')',
-        'icon': 'fa icon',
-        'availableListViews': [
+        title: self.commandRouter.getI18nString('COMMON.TRACKS') + ' (' + decodeURIComponent(splitted[index]) + ')',
+        icon: 'fa icon',
+        availableListViews: [
           'list'
         ],
-        'items': [
+        items: [
 
         ]
       }],
-      'prev': {
-        'uri': previous
+      prev: {
+        uri: previous
       },
       info: {
         uri: curUri,
@@ -3330,7 +3345,7 @@ ControllerMpd.prototype.listArtist = function (curUri, index, previous, uriBegin
           var safeGenre = genre.replace(/"/g, '\\"');
           var artist = decodeURIComponent(genreString.split('/')[1]);
           safeArtist = artist.replace(/"/g, '\\"');
-        } catch(e) {
+        } catch (e) {
           self.logger.error('Cannot browse genre: ' + e);
         }
         if (artistsort) {
@@ -3469,13 +3484,13 @@ ControllerMpd.prototype.listGenres = function () {
   var self = this;
   var defer = libQ.defer();
   var response = {
-    'navigation': {
-      'lists': [
+    navigation: {
+      lists: [
         {
-          'availableListViews': [
+          availableListViews: [
             'list'
           ],
-          'items': [
+          items: [
 
           ]
         }
@@ -3483,12 +3498,14 @@ ControllerMpd.prototype.listGenres = function () {
     }
   };
   if (singleBrowse) {
-    response.navigation.prev = {'uri': 'music-library'};
+    response.navigation.prev = {uri: 'music-library'};
   }
 
   var cmd = libMpd.cmd;
   self.clientMpd.sendCommand(cmd('list', ['genre']), function (err, msg) {
-    if (err) { defer.reject(new Error('Cannot list genres')); } else {
+    if (err) {
+      defer.reject(new Error('Cannot list genres'));
+    } else {
       var splitted = msg.split('\n');
 
       for (var i in splitted) {
@@ -3522,29 +3539,29 @@ ControllerMpd.prototype.listGenre = function (curUri) {
   var safeGenreName = genreName.replace(/"/g, '\\"');
   var safeGenreArtist = genreArtist.replace(/"/g, '\\"');
   var response = {
-    'navigation': {
-      'lists': [
+    navigation: {
+      lists: [
         {
-          'title': genreName + ' ' + self.commandRouter.getI18nString('COMMON.ALBUMS'),
-          'icon': 'fa icon',
-          'availableListViews': [
+          title: genreName + ' ' + self.commandRouter.getI18nString('COMMON.ALBUMS'),
+          icon: 'fa icon',
+          availableListViews: [
             'list',
             'grid'
           ],
-          'items': []
+          items: []
         },
         {
-          'title': genreName + ' ' + self.commandRouter.getI18nString('COMMON.ARTISTS') ,
-          'icon': 'fa icon',
-          'availableListViews': [
+          title: genreName + ' ' + self.commandRouter.getI18nString('COMMON.ARTISTS'),
+          icon: 'fa icon',
+          availableListViews: [
             'list',
             'grid'
           ],
-          'items': []
+          items: []
         }
       ],
-      'prev': {
-        'uri': 'genres://'
+      prev: {
+        uri: 'genres://'
       }
     }
   };
@@ -3600,7 +3617,6 @@ ControllerMpd.prototype.listGenre = function (curUri) {
               }
 
               if (artistsort) { // for albumArtist
-
                 if (albums.indexOf(album) === -1) {
                   albums.push(album);
                   albumsArt.push(albumart);
@@ -3630,9 +3646,7 @@ ControllerMpd.prototype.listGenre = function (curUri) {
                     });
                   }
                 }
-
               } else { // for artist
-
                 if (albums.indexOf(album) === -1) {
                   albums.push(album);
                   albumsArt.push(albumart);
@@ -3662,7 +3676,6 @@ ControllerMpd.prototype.listGenre = function (curUri) {
                   }
                 }
               }
-
             }
           }
 
@@ -3771,7 +3784,9 @@ ControllerMpd.prototype.ffwdRew = function (millisecs) {
   // console.log("PARAM: "+param);
 
   self.clientMpd.sendCommand(cmd('seekcur', [param]), function (err, msg) {
-    if (err) { defer.reject(new Error('Cannot seek ' + millisecs)); } else {
+    if (err) {
+      defer.reject(new Error('Cannot seek ' + millisecs));
+    } else {
       defer.resolve();
     }
   });
@@ -3932,45 +3947,44 @@ ControllerMpd.prototype.getSpecialCardConfig = function () {
 };
 
 ControllerMpd.prototype.getPlaybackMode = function () {
-    var self = this;
+  var self = this;
 
-    //values: continuous|single
-    var playbackMode = self.config.get('playback_mode_list', 'unset');
-    if (playbackMode === 'unset') {
-        if (process.env.DEFAULT_PLAYBACK_MODE_CONTINUOUS === 'true') {
-            playbackMode = 'continuous';
-        } else {
-            playbackMode = 'single';
-        }
+  //values: continuous|single
+  var playbackMode = self.config.get('playback_mode_list', 'unset');
+  if (playbackMode === 'unset') {
+    if (process.env.DEFAULT_PLAYBACK_MODE_CONTINUOUS === 'true') {
+      playbackMode = 'continuous';
+    } else {
+      playbackMode = 'single';
     }
-    process.env.PLAYBACK_MODE = playbackMode;
+  }
+  process.env.PLAYBACK_MODE = playbackMode;
 
-    return playbackMode;
+  return playbackMode;
 };
 
 ControllerMpd.prototype.setPlaybackMode = function (mode) {
-    var self = this;
+  var self = this;
 
-    //values: continuous|single
-    self.config.set('playback_mode_list', mode);
-    process.env.PLAYBACK_MODE = mode;
+  //values: continuous|single
+  self.config.set('playback_mode_list', mode);
+  process.env.PLAYBACK_MODE = mode;
 };
 
 ControllerMpd.prototype.checkIfSoxCanBeMultithread = function () {
-    var self = this;
+  var self = this;
 
-    var deviceHw = self.getAdditionalConf('system_controller', 'system', 'device');
-    if (deviceHw === 'Raspberry PI') {
-      return false;
+  var deviceHw = self.getAdditionalConf('system_controller', 'system', 'device');
+  if (deviceHw === 'Raspberry PI') {
+    return false;
+  } else {
+    var coresNumber = self.commandRouter.executeOnPlugin('system_controller', 'system', 'getCPUCoresNumber', '');
+    if (coresNumber > 1) {
+      return true;
     } else {
-      var coresNumber = self.commandRouter.executeOnPlugin('system_controller', 'system', 'getCPUCoresNumber', '');
-      if (coresNumber > 1) {
-          return true;
-      } else {
-        return false;
-      }
+      return false;
     }
-
+  }
 };
 
 ControllerMpd.prototype.getMyCollectionStatsObject = function () {
@@ -3978,7 +3992,6 @@ ControllerMpd.prototype.getMyCollectionStatsObject = function () {
 
   // This function is designed to retrieve collection stats immediately without the need for promise resolve
   return collectionStats;
-
 };
 
 ControllerMpd.prototype.getRandomLocalTrack = function () {
@@ -3986,7 +3999,7 @@ ControllerMpd.prototype.getRandomLocalTrack = function () {
   var defer = libQ.defer();
 
   var albumsList = self.listAlbums(true);
-  albumsList.then(function(data) {
+  albumsList.then(function (data) {
     if (data && data.navigation && data.navigation.lists[0] && data.navigation.lists[0].items && data.navigation.lists[0].items.length) {
       var items = data.navigation.lists[0].items;
       var randomIndex = Math.floor(Math.random() * (items.length - 2));
@@ -4013,7 +4026,7 @@ ControllerMpd.prototype.getRandomLocalTrack = function () {
       self.logger.error('Failed to retrieve random track as no albums found');
       defer.reject(null);
     }
-  })
+  });
   return defer.promise;
 };
 
@@ -4030,7 +4043,7 @@ ControllerMpd.prototype.checkIfMpdRequiresRescan = function () {
         self.logger.info('MPD Database is empty, triggering rescan');
         try {
           execSync('/usr/bin/mpc rescan', { uid: 1000, gid: 1000});
-        } catch(e) {
+        } catch (e) {
           self.logger.error('Failed to trigger MPD rescan: ' + e);
         }
       }
