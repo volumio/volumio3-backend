@@ -12,6 +12,7 @@ var os = require('os');
 var execSync = require('child_process').execSync;
 const {parseUri} = require('./app/routes');
 const cache = require('./app/cache');
+const {explodeSort, COMPARATORS, ALBUM_SORTERS} = require('./app/sorting');
 const {parseMpdOutput} = require('./utils/parseMpdOutput');
 
 var ignoreupdate = false;
@@ -2903,7 +2904,7 @@ ControllerMpd.prototype.handleBrowseUri = function (curUri) {
     // to support legacy lib "kew" in backend
     const response = libQ.defer();
     this
-      .listAlbums()
+      .listAlbums(payload)
       .then((res) => response.resolve(res))
       .catch((e) => response.reject(e));
     return response;
@@ -2922,78 +2923,124 @@ ControllerMpd.prototype.handleBrowseUri = function (curUri) {
  *
  * list album
  */
-ControllerMpd.prototype.listAlbums = async function () {
-  const cached = await cache.get();
-  if (cached) {
-    this.logger.info('listAlbums - loading Albums from cache');
-    return cached;
+ControllerMpd.prototype.listAlbums = async function ({sorting, sort} = {}) {
+  let items = await cache.get();
+  if (!items) {
+    const msg = await new Promise((resolve, reject) => {
+      this.clientMpd.sendCommand(libMpd.cmd('search album ""', []), (err, msg) => {
+        if (err) {
+          reject(new Error('Cannot list albums'));
+        } else {
+          resolve(msg);
+        }
+      });
+    });
+    const albumMap = {};
+    const lines = msg.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      if (!lines[i].startsWith('file:')) {
+        continue;
+      }
+      const {path, album, year, albumartist, artist, added} = parseMpdOutput(lines, i, {tracknumbers});
+      let albumName = album;
+      let artistName = albumartist || artist;
+      let albumYear = parseInt(year) || null;
+      let albumId = albumName + artistName;
+      if (!albumName) {
+        // This causes all orphaned tracks (tracks without an album) in the Albums view to be
+        //  grouped into a single dummy-album, rather than creating one such dummy-album per artist.
+        albumId = '';
+        albumName = '';
+        albumYear = '';
+        artistName = '*';
+      }
+
+      if (albumMap[albumId]) {
+        continue;
+      }
+
+      const item = {
+        service: 'mpd',
+        type: 'folder',
+        title: albumName,
+        artist: artistName,
+        year: albumYear,
+        album: '',
+        uri: 'albums://' + encodeURIComponent(artistName) + '/' + encodeURIComponent(albumName),
+        // Get correct album art from path- only download if not existent
+        albumart: this.getAlbumArt({artist: artistName, album: albumName}, this.getParentFolder('/mnt/' + path), 'dot-circle-o'),
+        added,
+      };
+      albumMap[albumId] = item;
+    }
+    items = Object.values(albumMap);
+    cache.set(items);
   }
 
-  const response = {
+  const {sortBy, sortDirection} = explodeSort(sort);
+  const comparator = COMPARATORS[sortDirection];
+  const sorter = ALBUM_SORTERS[sortBy];
+  items.sort(sorter(comparator));
+
+  return {
+    saveInBrowsingHistory: !sorting,
     navigation: {
+      prev: singleBrowse ? {uri: 'music-library'} : undefined,
       lists: [
         {
           availableListViews: ['list', 'grid'],
-          items: []
+          availableSortings: [
+            {
+              label: this.commandRouter.getI18nString('APPEARANCE.SORT_AZ'),
+              asc: {
+                uri: 'albums://?sort=name',
+                active: sort === 'name',
+              },
+              desc: {
+                uri: 'albums://?sort=name-desc',
+                active: sort === 'name-desc',
+              },
+            },
+            {
+              label: this.commandRouter.getI18nString('APPEARANCE.SORT_ARTIST'),
+              asc: {
+                uri: 'albums://?sort=artist',
+                active: sort === 'artist',
+              },
+              desc: {
+                uri: 'albums://?sort=artist-desc',
+                active: sort === 'artist-desc',
+              },
+            },
+            {
+              label: this.commandRouter.getI18nString('APPEARANCE.SORT_RELEASE_DATE'),
+              asc: {
+                uri: 'albums://?sort=releaseDate-asc',
+                active: sort === 'releaseDate-asc',
+              },
+              desc: {
+                uri: 'albums://?sort=releaseDate',
+                active: sort === 'releaseDate',
+              },
+            },
+            // Available since mpd 0.24.0
+            // {
+            //   label: this.commandRouter.getI18nString('APPEARANCE.SORT_DATE_ADDED'),
+            //   asc: {
+            //     uri: 'albums://?sort=dateAdded-asc',
+            //     active: sort === 'dateAdded-asc',
+            //   },
+            //   desc: {
+            //     uri: 'albums://?sort=dateAdded',
+            //     active: sort === 'dateAdded',
+            //   },
+            // },
+          ],
+          items
         }
       ]
     }
   };
-  if (singleBrowse) {
-    response.navigation.prev = {uri: 'music-library'};
-  }
-
-  const msg = await new Promise((resolve, reject) => {
-    this.clientMpd.sendCommand(libMpd.cmd('search album ""', []), (err, msg) => {
-      if (err) {
-        reject(new Error('Cannot list albums'));
-      } else {
-        resolve(msg);
-      }
-    });
-  });
-
-  const lines = msg.split('\n');
-  const albumsfound = [];
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (!line.startsWith('file:')) {
-      continue;
-    }
-
-    const {path, album, year: albumYear, albumartist, artist} = parseMpdOutput(lines, i, {tracknumbers});
-    let albumName = album;
-    let artistName = albumartist || artist;
-    let albumId = albumName + artistName;
-    if (!albumName) {
-      // This causes all orphaned tracks (tracks without an album) in the Albums view to be
-      //  grouped into a single dummy-album, rather than creating one such dummy-album per artist.
-      albumId = '';
-      albumName = '';
-      artistName = '*';
-    }
-
-    // Check if album and artist combination is already found and exists in 'albumsfound' array (Allows for duplicate album names)
-    if (albumsfound.indexOf(albumId) >= 0) {
-      continue;
-    }
-    albumsfound.push(albumId);
-
-    const item = {
-      service: 'mpd',
-      type: 'folder',
-      title: albumName,
-      artist: artistName,
-      year: albumYear,
-      album: '',
-      uri: 'albums://' + encodeURIComponent(artistName) + '/' + encodeURIComponent(albumName),
-      // Get correct album art from path- only download if not existent
-      albumart: this.getAlbumArt({artist: artistName, album: albumName}, this.getParentFolder('/mnt/' + path), 'dot-circle-o')
-    };
-    response.navigation.lists[0].items.push(item);
-  }
-  cache.set(response);
-  return response;
 };
 
 /**

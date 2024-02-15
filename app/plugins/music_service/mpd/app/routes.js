@@ -10,7 +10,10 @@ function parseUri (uri) {
     return ['PLAYLIST_CONTENT', {name}];
   }
   if (uri === 'albums://') {
-    return ['ALBUMS_ROOT'];
+    return ['ALBUMS_ROOT', {sort: 'artist'}];
+  }
+  if (uri.startsWith('albums://?sort=')) {
+    return ['ALBUMS_ROOT', {sorting: true, sort: uri.match(/albums:\/\/\?sort=(.*)/)[1]}];
   }
   if (uri === 'artists://') {
     return ['ARTISTS_ROOT'];

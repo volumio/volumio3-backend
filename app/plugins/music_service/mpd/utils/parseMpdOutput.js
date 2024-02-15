@@ -9,6 +9,7 @@ const FIELDS = {
   Time: 'duration',
   Title: 'title',
   Track: 'tracknumber',
+  added: 'added', // Available since mpd 0.24.0
 };
 
 function parseMpdOutput (lines, startFrom, {tracknumbers}) {

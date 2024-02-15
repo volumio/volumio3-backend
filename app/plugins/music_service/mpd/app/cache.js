@@ -11,9 +11,14 @@ module.exports = {
     memoryCache.get(KEY, function (err, cached) {
       if (err) {
         reject(err);
-      } else {
-        resolve(cached);
+        return;
       }
+      if (!Array.isArray(cached)) {
+        // treat old cache with whole response as null
+        resolve(null);
+        return;
+      }
+      resolve(cached);
     });
   }),
   set: (data) => {
