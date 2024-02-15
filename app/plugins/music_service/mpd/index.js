@@ -1,7 +1,5 @@
 'use strict';
 
-var cacheManager = require('cache-manager');
-var memoryCache = cacheManager.caching({store: 'memory', max: 100, ttl: 0});
 var libMpd = require('./lib/mpd.js');
 var libQ = require('kew');
 var libFast = require('fast.js');
@@ -13,6 +11,7 @@ var mm = require('music-metadata');
 var os = require('os');
 var execSync = require('child_process').execSync;
 const {parseUri} = require('./app/routes');
+const cache = require('./app/cache');
 
 var ignoreupdate = false;
 // tracknumbers variable below adds track numbers to titles if set to true. Set to false for normal behavour.
@@ -750,7 +749,7 @@ ControllerMpd.prototype.mpdEstablish = function () {
     // return self.commandRouter.fileUpdate();
     // return self.reportUpdatedLibrary();
     // Refresh AlbumList - delete the current AlbumList cache entry
-    memoryCache.del('cacheAlbumList', function (err) {});
+    cache.clear();
     // Store new AlbumList in cache
     self.listAlbums();
     self.getMyCollectionStats();
@@ -2923,16 +2922,7 @@ ControllerMpd.prototype.handleBrowseUri = function (curUri) {
  * list album
  */
 ControllerMpd.prototype.listAlbums = async function () {
-  const cached = await new Promise((resolve, reject) => {
-    memoryCache.get('cacheAlbumList', (err, cached) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(cached);
-      }
-    });
-  });
-
+  const cached = await cache.get();
   if (cached) {
     this.logger.info('listAlbums - loading Albums from cache');
     return cached;
@@ -3002,8 +2992,7 @@ ControllerMpd.prototype.listAlbums = async function () {
     };
     response.navigation.lists[0].items.push(album);
   }
-
-  memoryCache.set('cacheAlbumList', response);
+  cache.set(response);
   return response;
 };
 
@@ -3748,7 +3737,7 @@ ControllerMpd.prototype.rebuildAlbumCache = function () {
   var self = this;
 
   self.logger.info('Rebuild Album cache');
-  memoryCache.del('cacheAlbumList', function (err) {});
+  cache.clear();
   self.listAlbums();
 };
 
