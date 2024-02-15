@@ -12,6 +12,7 @@ var os = require('os');
 var execSync = require('child_process').execSync;
 const {parseUri} = require('./app/routes');
 const cache = require('./app/cache');
+const {parseMpdOutput} = require('./utils/parseMpdOutput');
 
 var ignoreupdate = false;
 // tracknumbers variable below adds track numbers to titles if set to true. Set to false for normal behavour.
@@ -2952,34 +2953,33 @@ ControllerMpd.prototype.listAlbums = async function () {
     });
   });
 
-  var lines = msg.split('\n');
-  var albumsfound = [];
-  for (var i = 0; i < lines.length; i++) {
-    var line = lines[i];
+  const lines = msg.split('\n');
+  const albumsfound = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     if (!line.startsWith('file:')) {
       continue;
     }
 
-    var path = line.slice(6);
-    var albumName = this.searchFor(lines, i + 1, 'Album:');
-    var albumYear = this.searchFor(lines, i + 1, 'Date:');
-    var artistName = this.searchFor(lines, i + 1, 'AlbumArtist:') || this.searchFor(lines, i + 1, 'Artist:');
-
-    // This causes all orphaned tracks (tracks without an album) in the Albums view to be
-    //  grouped into a single dummy-album, rather than creating one such dummy-album per artist.
-    var albumId = albumName + artistName;
+    const {path, album, year: albumYear, albumartist, artist} = parseMpdOutput(lines, i, {tracknumbers});
+    let albumName = album;
+    let artistName = albumartist || artist;
+    let albumId = albumName + artistName;
     if (!albumName) {
+      // This causes all orphaned tracks (tracks without an album) in the Albums view to be
+      //  grouped into a single dummy-album, rather than creating one such dummy-album per artist.
       albumId = '';
       albumName = '';
       artistName = '*';
     }
+
     // Check if album and artist combination is already found and exists in 'albumsfound' array (Allows for duplicate album names)
     if (albumsfound.indexOf(albumId) >= 0) {
       continue;
     }
-
     albumsfound.push(albumId);
-    var album = {
+
+    const item = {
       service: 'mpd',
       type: 'folder',
       title: albumName,
@@ -2990,7 +2990,7 @@ ControllerMpd.prototype.listAlbums = async function () {
       // Get correct album art from path- only download if not existent
       albumart: this.getAlbumArt({artist: artistName, album: albumName}, this.getParentFolder('/mnt/' + path), 'dot-circle-o')
     };
-    response.navigation.lists[0].items.push(album);
+    response.navigation.lists[0].items.push(item);
   }
   cache.set(response);
   return response;
