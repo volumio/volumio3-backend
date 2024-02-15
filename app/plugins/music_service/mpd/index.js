@@ -2919,76 +2919,81 @@ ControllerMpd.prototype.handleBrowseUri = function (curUri) {
 ControllerMpd.prototype.listAlbums = function (needResolve) {
   var self = this;
   var defer = libQ.defer();
-  memoryCache.get('cacheAlbumList', function (err, response) {
-    if (response == undefined) {
-      response = {
-        navigation: {
-          lists: [
-            {
-              availableListViews: ['list', 'grid'],
-              items: []
-            }
-          ]
-        }
-      };
-      if (singleBrowse) {
-        response.navigation.prev = {uri: 'music-library'};
-      }
-      var cmd = libMpd.cmd;
-
-      self.clientMpd.sendCommand(cmd('search album ""', []), function (err, msg) {
-        if (err) {
-          defer.reject(new Error('Cannot list albums'));
-        } else {
-          var lines = msg.split('\n');
-          var albumsfound = [];
-          for (var i = 0; i < lines.length; i++) {
-            var line = lines[i];
-            if (line.startsWith('file:')) {
-              var path = line.slice(6);
-              var albumName = self.searchFor(lines, i + 1, 'Album:');
-              var albumYear = self.searchFor(lines, i + 1, 'Date:');
-              var artistName = self.searchFor(lines, i + 1, 'AlbumArtist:') || self.searchFor(lines, i + 1, 'Artist:');
-
-              // This causes all orphaned tracks (tracks without an album) in the Albums view to be
-              //  grouped into a single dummy-album, rather than creating one such dummy-album per artist.
-              var albumId = albumName + artistName;
-              if (!albumName) {
-                albumId = '';
-                albumName = '';
-                artistName = '*';
-              }
-              // Check if album and artist combination is already found and exists in 'albumsfound' array (Allows for duplicate album names)
-              if (albumsfound.indexOf(albumId) < 0) { // Album/Artist is not in 'albumsfound' array
-                albumsfound.push(albumId);
-                var album = {
-                  service: 'mpd',
-                  type: 'folder',
-                  title: albumName,
-                  artist: artistName,
-                  year: albumYear,
-                  album: '',
-                  uri: 'albums://' + encodeURIComponent(artistName) + '/' + encodeURIComponent(albumName),
-                  // Get correct album art from path- only download if not existent
-                  albumart: self.getAlbumArt({artist: artistName, album: albumName}, self.getParentFolder('/mnt/' + path), 'dot-circle-o')
-                };
-                response.navigation.lists[0].items.push(album);
-              }
-            }
-          }
-          // Save response in albumList cache for future use
-          memoryCache.set('cacheAlbumList', response);
-          if (needResolve) {
-            defer.resolve(response);
-          }
-        }
-      });
-    } else {
+  memoryCache.get('cacheAlbumList', function (err, cached) {
+    if (cached) {
       self.logger.info('listAlbums - loading Albums from cache');
+      if (needResolve) {
+        defer.resolve(cached);
+      }
+      return;
+    }
+
+    const response = {
+      navigation: {
+        lists: [
+          {
+            availableListViews: ['list', 'grid'],
+            items: []
+          }
+        ]
+      }
+    };
+    if (singleBrowse) {
+      response.navigation.prev = {uri: 'music-library'};
+    }
+    var cmd = libMpd.cmd;
+
+    self.clientMpd.sendCommand(cmd('search album ""', []), function (err, msg) {
+      if (err) {
+        defer.reject(new Error('Cannot list albums'));
+        return;
+      }
+      var lines = msg.split('\n');
+      var albumsfound = [];
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        if (!line.startsWith('file:')) {
+          continue;
+        }
+
+        var path = line.slice(6);
+        var albumName = self.searchFor(lines, i + 1, 'Album:');
+        var albumYear = self.searchFor(lines, i + 1, 'Date:');
+        var artistName = self.searchFor(lines, i + 1, 'AlbumArtist:') || self.searchFor(lines, i + 1, 'Artist:');
+
+        // This causes all orphaned tracks (tracks without an album) in the Albums view to be
+        //  grouped into a single dummy-album, rather than creating one such dummy-album per artist.
+        var albumId = albumName + artistName;
+        if (!albumName) {
+          albumId = '';
+          albumName = '';
+          artistName = '*';
+        }
+        // Check if album and artist combination is already found and exists in 'albumsfound' array (Allows for duplicate album names)
+        if (albumsfound.indexOf(albumId) >= 0) {
+          continue;
+        }
+
+        albumsfound.push(albumId);
+        var album = {
+          service: 'mpd',
+          type: 'folder',
+          title: albumName,
+          artist: artistName,
+          year: albumYear,
+          album: '',
+          uri: 'albums://' + encodeURIComponent(artistName) + '/' + encodeURIComponent(albumName),
+          // Get correct album art from path- only download if not existent
+          albumart: self.getAlbumArt({artist: artistName, album: albumName}, self.getParentFolder('/mnt/' + path), 'dot-circle-o')
+        };
+        response.navigation.lists[0].items.push(album);
+      }
+
+      memoryCache.set('cacheAlbumList', response);
       if (needResolve) {
         defer.resolve(response);
       }
-    }
+    });
   });
   return defer.promise;
 };
