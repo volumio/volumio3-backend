@@ -3174,33 +3174,36 @@ ControllerMpd.prototype.listArtists = function () {
     artistbegin = 'AlbumArtist: ';
   }
 
-  self.clientMpd.sendCommand(cmd('list', [artistlist]), function (err, msg) { // List artists
+  self.clientMpd.sendCommand(cmd('list', [artistlist]), function (err, msg) {
     if (err) {
       defer.reject(new Error('Cannot list artist'));
-    } else {
-      var splitted = msg.split('\n');
-
-      for (var i in splitted) {
-        if (splitted[i].startsWith(artistbegin)) {
-          var artist = splitted[i].substring(artistbegin.length);
-
-          if (artist !== '') {
-            var codedArtists = encodeURIComponent(artist);
-            var albumart = self.getAlbumArt({artist: codedArtists}, undefined, 'users');
-            var item = {
-              service: 'mpd',
-              type: 'folder',
-              title: artist,
-              albumart: albumart,
-              uri: 'artists://' + codedArtists
-            };
-
-            response.navigation.lists[0].items.push(item);
-          }
-        }
-      }
-      defer.resolve(response);
+      return;
     }
+
+    var splitted = msg.split('\n');
+    for (var i in splitted) {
+      if (!splitted[i].startsWith(artistbegin)) {
+        continue;
+      }
+
+      var artist = splitted[i].substring(artistbegin.length);
+      if (artist === '') {
+        continue;
+      }
+
+      var codedArtists = encodeURIComponent(artist);
+      var albumart = self.getAlbumArt({artist: codedArtists}, undefined, 'users');
+      var item = {
+        service: 'mpd',
+        type: 'folder',
+        title: artist,
+        albumart: albumart,
+        uri: 'artists://' + codedArtists
+      };
+
+      response.navigation.lists[0].items.push(item);
+    }
+    defer.resolve(response);
   });
   return defer.promise;
 };
