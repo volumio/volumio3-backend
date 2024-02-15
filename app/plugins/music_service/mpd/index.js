@@ -2900,7 +2900,13 @@ ControllerMpd.prototype.handleBrowseUri = function (curUri) {
   case 'ARTISTS_ROOT':
     return this.listArtists();
   case 'ALBUMS_ROOT':
-    return this.listAlbums(true);
+    // to support legacy lib "kew" in backend
+    const response = libQ.defer();
+    this
+      .listAlbums()
+      .then((res) => response.resolve(res))
+      .catch((e) => response.reject(e));
+    return response;
   case 'GENRE_CONTENT':
     return this.listGenre(payload);
   case 'ARTIST_CONTENT':
@@ -2916,86 +2922,89 @@ ControllerMpd.prototype.handleBrowseUri = function (curUri) {
  *
  * list album
  */
-ControllerMpd.prototype.listAlbums = function (needResolve) {
-  var self = this;
-  var defer = libQ.defer();
-  memoryCache.get('cacheAlbumList', function (err, cached) {
-    if (cached) {
-      self.logger.info('listAlbums - loading Albums from cache');
-      if (needResolve) {
-        defer.resolve(cached);
-      }
-      return;
-    }
-
-    const response = {
-      navigation: {
-        lists: [
-          {
-            availableListViews: ['list', 'grid'],
-            items: []
-          }
-        ]
-      }
-    };
-    if (singleBrowse) {
-      response.navigation.prev = {uri: 'music-library'};
-    }
-    var cmd = libMpd.cmd;
-
-    self.clientMpd.sendCommand(cmd('search album ""', []), function (err, msg) {
+ControllerMpd.prototype.listAlbums = async function () {
+  const cached = await new Promise((resolve, reject) => {
+    memoryCache.get('cacheAlbumList', (err, cached) => {
       if (err) {
-        defer.reject(new Error('Cannot list albums'));
-        return;
-      }
-      var lines = msg.split('\n');
-      var albumsfound = [];
-      for (var i = 0; i < lines.length; i++) {
-        var line = lines[i];
-        if (!line.startsWith('file:')) {
-          continue;
-        }
-
-        var path = line.slice(6);
-        var albumName = self.searchFor(lines, i + 1, 'Album:');
-        var albumYear = self.searchFor(lines, i + 1, 'Date:');
-        var artistName = self.searchFor(lines, i + 1, 'AlbumArtist:') || self.searchFor(lines, i + 1, 'Artist:');
-
-        // This causes all orphaned tracks (tracks without an album) in the Albums view to be
-        //  grouped into a single dummy-album, rather than creating one such dummy-album per artist.
-        var albumId = albumName + artistName;
-        if (!albumName) {
-          albumId = '';
-          albumName = '';
-          artistName = '*';
-        }
-        // Check if album and artist combination is already found and exists in 'albumsfound' array (Allows for duplicate album names)
-        if (albumsfound.indexOf(albumId) >= 0) {
-          continue;
-        }
-
-        albumsfound.push(albumId);
-        var album = {
-          service: 'mpd',
-          type: 'folder',
-          title: albumName,
-          artist: artistName,
-          year: albumYear,
-          album: '',
-          uri: 'albums://' + encodeURIComponent(artistName) + '/' + encodeURIComponent(albumName),
-          // Get correct album art from path- only download if not existent
-          albumart: self.getAlbumArt({artist: artistName, album: albumName}, self.getParentFolder('/mnt/' + path), 'dot-circle-o')
-        };
-        response.navigation.lists[0].items.push(album);
-      }
-
-      memoryCache.set('cacheAlbumList', response);
-      if (needResolve) {
-        defer.resolve(response);
+        reject(err);
+      } else {
+        resolve(cached);
       }
     });
   });
-  return defer.promise;
+
+  if (cached) {
+    this.logger.info('listAlbums - loading Albums from cache');
+    return cached;
+  }
+
+  const response = {
+    navigation: {
+      lists: [
+        {
+          availableListViews: ['list', 'grid'],
+          items: []
+        }
+      ]
+    }
+  };
+  if (singleBrowse) {
+    response.navigation.prev = {uri: 'music-library'};
+  }
+
+  const msg = await new Promise((resolve, reject) => {
+    this.clientMpd.sendCommand(libMpd.cmd('search album ""', []), (err, msg) => {
+      if (err) {
+        reject(new Error('Cannot list albums'));
+      } else {
+        resolve(msg);
+      }
+    });
+  });
+
+  var lines = msg.split('\n');
+  var albumsfound = [];
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    if (!line.startsWith('file:')) {
+      continue;
+    }
+
+    var path = line.slice(6);
+    var albumName = this.searchFor(lines, i + 1, 'Album:');
+    var albumYear = this.searchFor(lines, i + 1, 'Date:');
+    var artistName = this.searchFor(lines, i + 1, 'AlbumArtist:') || this.searchFor(lines, i + 1, 'Artist:');
+
+    // This causes all orphaned tracks (tracks without an album) in the Albums view to be
+    //  grouped into a single dummy-album, rather than creating one such dummy-album per artist.
+    var albumId = albumName + artistName;
+    if (!albumName) {
+      albumId = '';
+      albumName = '';
+      artistName = '*';
+    }
+    // Check if album and artist combination is already found and exists in 'albumsfound' array (Allows for duplicate album names)
+    if (albumsfound.indexOf(albumId) >= 0) {
+      continue;
+    }
+
+    albumsfound.push(albumId);
+    var album = {
+      service: 'mpd',
+      type: 'folder',
+      title: albumName,
+      artist: artistName,
+      year: albumYear,
+      album: '',
+      uri: 'albums://' + encodeURIComponent(artistName) + '/' + encodeURIComponent(albumName),
+      // Get correct album art from path- only download if not existent
+      albumart: this.getAlbumArt({artist: artistName, album: albumName}, this.getParentFolder('/mnt/' + path), 'dot-circle-o')
+    };
+    response.navigation.lists[0].items.push(album);
+  }
+
+  memoryCache.set('cacheAlbumList', response);
+  return response;
 };
 
 /**
@@ -3879,7 +3888,7 @@ ControllerMpd.prototype.getRandomLocalTrack = function () {
   var self = this;
   var defer = libQ.defer();
 
-  var albumsList = self.listAlbums(true);
+  var albumsList = self.listAlbums();
   albumsList.then(function (data) {
     if (data && data.navigation && data.navigation.lists[0] && data.navigation.lists[0].items && data.navigation.lists[0].items.length) {
       var items = data.navigation.lists[0].items;
