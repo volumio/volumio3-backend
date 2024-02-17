@@ -7,6 +7,7 @@ var exec = require('child_process').exec;
 var execSync = require('child_process').execSync;
 var winston = require('winston');
 var vconf = require('v-conf');
+const SortingStorage = require('./sortingStorage');
 
 // Define the CoreCommandRouter class
 module.exports = CoreCommandRouter;
@@ -73,6 +74,7 @@ function CoreCommandRouter (server) {
 	  this.startupSound();
 	  this.closeModals();
   });
+  this.sortingStorage = new SortingStorage();
 }
 
 // Methods usually called by the Client Interfaces ----------------------------------------------------------------------------
@@ -2487,4 +2489,7 @@ CoreCommandRouter.prototype.reportBackendEvent = function (event, properties) {
       return myVolumioPlugin.reportBackendEvent(event, properties);
     } catch (e) {}
   }
+};
+CoreCommandRouter.prototype.getSortingStorage = function () {
+  return this.sortingStorage;
 };
