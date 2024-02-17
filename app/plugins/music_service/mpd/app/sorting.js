@@ -47,5 +47,8 @@ module.exports = {
   },
   ARTIST_SORTERS: {
     name: (cpr) => (a, b) => cpr(a.title, b.title),
-  }
+  },
+  FILES_SORTERS: {
+    name: (cpr) => (a, b) => cpr(a.title, b.title),
+  },
 };

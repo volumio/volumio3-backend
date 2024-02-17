@@ -12,7 +12,7 @@ var os = require('os');
 var execSync = require('child_process').execSync;
 const {parseUri} = require('./app/routes');
 const cache = require('./app/cache');
-const {explodeSort, COMPARATORS, ALBUM_SORTERS, ARTIST_SORTERS} = require('./app/sorting');
+const {explodeSort, COMPARATORS, ALBUM_SORTERS, ARTIST_SORTERS, FILES_SORTERS} = require('./app/sorting');
 const {parseMpdOutput} = require('./utils/parseMpdOutput');
 
 var ignoreupdate = false;
@@ -1254,7 +1254,7 @@ ControllerMpd.prototype.browsePlaylist = function ({name}) {
   return defer.promise;
 };
 
-ControllerMpd.prototype.lsInfo = function (uri) {
+ControllerMpd.prototype.lsInfo = function ({uri, sort, sorting}) {
   var self = this;
 
   var defer = libQ.defer();
@@ -1313,7 +1313,6 @@ ControllerMpd.prototype.lsInfo = function (uri) {
             var line = lines[i];
 
             if (line.indexOf('directory:') === 0) {
-              var diricon = 'fa fa-folder-open-o';
               path = line.slice(11);
               var namearr = path.split('/');
               name = namearr[namearr.length - 1];
@@ -1342,7 +1341,6 @@ ControllerMpd.prototype.lsInfo = function (uri) {
               }
               if (namearr.length == 2 && namearr[0] == 'USB') {
                 dirtype = 'remdisk';
-                diricon = 'fa fa-usb';
               } else if (uri.indexOf('music-library/INTERNAL') >= 0) {
                 dirtype = 'internal-folder';
               } else {
@@ -1459,12 +1457,30 @@ ControllerMpd.prototype.lsInfo = function (uri) {
           self.logger.error('Failed LSINFO: ' + err);
         }
       }
+      sort = self.sortItems(list, sort, {sorters: FILES_SORTERS, sortingStorageKey: 'mpd-files', defaultSort: 'name'});
       defer.resolve({
+        saveInBrowsingHistory: !sorting,
         navigation: {
           prev: {
             uri: prev
           },
-          lists: [{availableListViews: ['grid', 'list'], items: list}]
+          lists: [{
+            availableListViews: ['grid', 'list'],
+            availableSortings: [
+              {
+                label: self.commandRouter.getI18nString('APPEARANCE.SORT_AZ'),
+                asc: {
+                  uri: uri + '?sort=name',
+                  active: sort === 'name',
+                },
+                desc: {
+                  uri: uri + '?sort=name-desc',
+                  active: sort === 'name-desc',
+                },
+              },
+            ],
+            items: list
+          }]
         }
       });
     });
@@ -2922,8 +2938,10 @@ ControllerMpd.prototype.handleBrowseUri = function (curUri) {
     return this.listArtist(payload);
   case 'ALBUM_CONTENT':
     return this.listAlbumSongs(payload);
+  case 'LIB':
+    return this.lsInfo(payload);
   default:
-    return this.lsInfo(curUri);
+    return this.lsInfo(payload);
   }
 };
 
@@ -2977,13 +2995,7 @@ ControllerMpd.prototype.listAlbums = async function ({sorting, sort} = {}) {
     cache.set(items);
   }
 
-  sort = sort || this.commandRouter.getSortingStorage().get('mpd-albums', 'artist');
-  const {sortBy, sortDirection} = explodeSort(sort);
-  const comparator = COMPARATORS[sortDirection];
-  const sorter = ALBUM_SORTERS[sortBy];
-  items.sort(sorter(comparator));
-  this.commandRouter.getSortingStorage().set('mpd-albums', sort);
-
+  sort = this.sortItems(items, sort, {sorters: ALBUM_SORTERS, sortingStorageKey: 'mpd-albums', defaultSort: 'artist'});
   return {
     saveInBrowsingHistory: !sorting,
     navigation: {
@@ -3225,13 +3237,7 @@ ControllerMpd.prototype.listArtists = async function ({sorting, sort}) {
     items.push(item);
   }
 
-  sort = sort || this.commandRouter.getSortingStorage().get('mpd-artists', 'name');
-  const {sortBy, sortDirection} = explodeSort(sort);
-  const comparator = COMPARATORS[sortDirection];
-  const sorter = ARTIST_SORTERS[sortBy];
-  items.sort(sorter(comparator));
-  this.commandRouter.getSortingStorage().set('mpd-artists', sort);
-
+  sort = this.sortItems(items, sort, {sorters: ARTIST_SORTERS, sortingStorageKey: 'mpd-artists', defaultSort: 'name'});
   return {
     saveInBrowsingHistory: !sorting,
     navigation: {
@@ -3801,7 +3807,7 @@ ControllerMpd.prototype.registerConfigCallback = function (callback) {
 ControllerMpd.prototype.checkUSBDrives = function () {
   var self = this;
 
-  var usbList = self.lsInfo('music-library/USB');
+  var usbList = self.lsInfo({uri: 'music-library/USB'});
   usbList.then((list) => {
     if (list.navigation.lists[0].items.length > 0) {
       var diskArray = list.navigation.lists[0].items;
@@ -3833,7 +3839,7 @@ ControllerMpd.prototype.deleteFolder = function (data) {
           self.logger.error('Cannot delete folder: ' + error);
           defer.reject('Cannot delete folder ' + data.curUri);
         } else {
-          var list = self.lsInfo(data.curUri);
+          var list = self.lsInfo({uri: data.curUri});
           list.then((list) => {
             var items = list.navigation.lists[0].items;
             for (var i in items) {
@@ -3979,6 +3985,22 @@ ControllerMpd.prototype.checkIfMpdRequiresRescan = function () {
       }
     }
   });
+};
+
+ControllerMpd.prototype.sortItems = function (items, sort, {sorters, sortingStorageKey, defaultSort}) {
+  try {
+    sort = sort || this.commandRouter.getSortingStorage().get(sortingStorageKey, defaultSort);
+    const {sortBy, sortDirection} = explodeSort(sort);
+    const comparator = COMPARATORS[sortDirection];
+    const sorter = sorters[sortBy];
+    items.sort(sorter(comparator));
+    this.commandRouter.getSortingStorage().set(sortingStorageKey, sort);
+    return sort;
+  } catch (e) {
+    this.logger.warn(`Sorting failed: ${e.message}`);
+    this.commandRouter.getSortingStorage().set(sortingStorageKey, defaultSort);
+  }
+  return sort;
 };
 
 ControllerMpd.prototype.sendMpdCommandPromise = function (...args) {

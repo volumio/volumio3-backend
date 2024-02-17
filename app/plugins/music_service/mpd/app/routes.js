@@ -1,6 +1,12 @@
 function parseUri (uri) {
   if (uri.startsWith('music-library')) {
-    return ['LIB', {uri}];
+    const sortRegex = /\?sort=(.*)$/;
+    const match = uri.match(sortRegex);
+    let sort = null;
+    if (match) {
+      sort = match[1];
+    }
+    return ['LIB', {uri: uri.replace(sortRegex, ''), sort, sorting: !!sort}];
   }
   if (uri === 'playlists') {
     return ['PLAYLISTS_ROOT'];
