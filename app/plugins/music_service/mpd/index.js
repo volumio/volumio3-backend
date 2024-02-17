@@ -12,7 +12,7 @@ var os = require('os');
 var execSync = require('child_process').execSync;
 const {parseUri} = require('./app/routes');
 const cache = require('./app/cache');
-const {explodeSort, COMPARATORS, ALBUM_SORTERS} = require('./app/sorting');
+const {explodeSort, COMPARATORS, ALBUM_SORTERS, ARTIST_SORTERS} = require('./app/sorting');
 const {parseMpdOutput} = require('./utils/parseMpdOutput');
 
 var ignoreupdate = false;
@@ -2902,7 +2902,7 @@ ControllerMpd.prototype.handleBrowseUri = function (curUri) {
     // to support legacy lib "kew" in backend
     const response = libQ.defer();
     this
-      .listArtists()
+      .listArtists(payload)
       .then((res) => response.resolve(res))
       .catch((e) => response.reject(e));
     return response;
@@ -3197,7 +3197,7 @@ ControllerMpd.prototype.listAlbumSongs = function ({uri, artist, album, isOrphan
  *
  * list artists
  */
-ControllerMpd.prototype.listArtists = async function () {
+ControllerMpd.prototype.listArtists = async function ({sorting, sort}) {
   const artistlist = artistsort ? 'albumartist' : 'artist';
   const artistbegin = artistsort ? 'AlbumArtist: ' : 'Artist: ';
   const items = [];
@@ -3225,11 +3225,32 @@ ControllerMpd.prototype.listArtists = async function () {
     items.push(item);
   }
 
+  sort = sort || this.commandRouter.getSortingStorage().get('mpd-artists', 'name');
+  const {sortBy, sortDirection} = explodeSort(sort);
+  const comparator = COMPARATORS[sortDirection];
+  const sorter = ARTIST_SORTERS[sortBy];
+  items.sort(sorter(comparator));
+  this.commandRouter.getSortingStorage().set('mpd-artists', sort);
+
   return {
+    saveInBrowsingHistory: !sorting,
     navigation: {
       prev: singleBrowse ? {uri: 'music-library'} : undefined,
       lists: [{
         availableListViews: ['list', 'grid'],
+        availableSortings: [
+          {
+            label: this.commandRouter.getI18nString('APPEARANCE.SORT_AZ'),
+            asc: {
+              uri: 'artists://?sort=name',
+              active: sort === 'name',
+            },
+            desc: {
+              uri: 'artists://?sort=name-desc',
+              active: sort === 'name-desc',
+            },
+          },
+        ],
         items,
       }]
     }

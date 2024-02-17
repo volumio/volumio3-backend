@@ -44,5 +44,8 @@ module.exports = {
     artist: (cpr) => (a, b) => cpr(a.artist, b.artist),
     releaseDate: (cpr) => (a, b) => cpr(a.year, b.year),
     dateAdded: (cpr) => (a, b) => cpr(a.added, b.added),
+  },
+  ARTIST_SORTERS: {
+    name: (cpr) => (a, b) => cpr(a.title, b.title),
   }
 };

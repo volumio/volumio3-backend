@@ -16,7 +16,10 @@ function parseUri (uri) {
     return ['ALBUMS_ROOT', {sorting: true, sort: uri.match(/albums:\/\/\?sort=(.*)/)[1]}];
   }
   if (uri === 'artists://') {
-    return ['ARTISTS_ROOT'];
+    return ['ARTISTS_ROOT', {}];
+  }
+  if (uri.startsWith('artists://?sort=')) {
+    return ['ARTISTS_ROOT', {sorting: true, sort: uri.match(/artists:\/\/\?sort=(.*)/)[1]}];
   }
   if (uri === 'genres://') {
     return ['GENRES_ROOT'];
