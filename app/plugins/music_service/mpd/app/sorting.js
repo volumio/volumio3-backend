@@ -1,4 +1,10 @@
-function explodeSort (sort) {
+const FALLBACK_SORT = {sortBy: 'name', sortDirection: 'asc'};
+
+function explodeSort (sort, defaultSort) {
+  const fallback = defaultSort || FALLBACK_SORT;
+  if (!sort) {
+    return fallback;
+  }
   const SORT_BY_MAP = {
     name: 'name',
     'name-desc': 'name',
@@ -19,7 +25,12 @@ function explodeSort (sort) {
     dateAdded: 'asc',
     'dateAdded-desc': 'desc',
   };
-  return {sortBy: SORT_BY_MAP[sort] || 'name', sortDirection: DIRECTIONS[sort] || 'asc'};
+  const sortBy = SORT_BY_MAP[sort];
+  const sortDirection = DIRECTIONS[sort];
+  if (!sortBy || !sortDirection) {
+    return fallback;
+  }
+  return {sortBy, sortDirection};
 }
 
 module.exports = {

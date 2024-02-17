@@ -2977,10 +2977,12 @@ ControllerMpd.prototype.listAlbums = async function ({sorting, sort} = {}) {
     cache.set(items);
   }
 
+  sort = sort || this.commandRouter.getSortingStorage().get('mpd-albums', 'artist');
   const {sortBy, sortDirection} = explodeSort(sort);
   const comparator = COMPARATORS[sortDirection];
   const sorter = ALBUM_SORTERS[sortBy];
   items.sort(sorter(comparator));
+  this.commandRouter.getSortingStorage().set('mpd-albums', sort);
 
   return {
     saveInBrowsingHistory: !sorting,
