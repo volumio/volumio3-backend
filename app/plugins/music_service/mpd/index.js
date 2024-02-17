@@ -2898,9 +2898,16 @@ ControllerMpd.prototype.handleBrowseUri = function (curUri) {
     return this.browsePlaylist(payload);
   case 'GENRES_ROOT':
     return this.listGenres();
-  case 'ARTISTS_ROOT':
-    return this.listArtists();
-  case 'ALBUMS_ROOT':
+  case 'ARTISTS_ROOT': {
+    // to support legacy lib "kew" in backend
+    const response = libQ.defer();
+    this
+      .listArtists()
+      .then((res) => response.resolve(res))
+      .catch((e) => response.reject(e));
+    return response;
+  }
+  case 'ALBUMS_ROOT': {
     // to support legacy lib "kew" in backend
     const response = libQ.defer();
     this
@@ -2908,6 +2915,7 @@ ControllerMpd.prototype.handleBrowseUri = function (curUri) {
       .then((res) => response.resolve(res))
       .catch((e) => response.reject(e));
     return response;
+  }
   case 'GENRE_CONTENT':
     return this.listGenre(payload);
   case 'ARTIST_CONTENT':
@@ -2926,15 +2934,7 @@ ControllerMpd.prototype.handleBrowseUri = function (curUri) {
 ControllerMpd.prototype.listAlbums = async function ({sorting, sort} = {}) {
   let items = await cache.get();
   if (!items) {
-    const msg = await new Promise((resolve, reject) => {
-      this.clientMpd.sendCommand(libMpd.cmd('search album ""', []), (err, msg) => {
-        if (err) {
-          reject(new Error('Cannot list albums'));
-        } else {
-          resolve(msg);
-        }
-      });
-    });
+    const msg = await this.sendMpdCommandPromise('search album ""', []);
     const albumMap = {};
     const lines = msg.split('\n');
     for (let i = 0; i < lines.length; i++) {
@@ -3195,62 +3195,43 @@ ControllerMpd.prototype.listAlbumSongs = function ({uri, artist, album, isOrphan
  *
  * list artists
  */
-ControllerMpd.prototype.listArtists = function () {
-  var self = this;
-  var defer = libQ.defer();
-  var response = {
+ControllerMpd.prototype.listArtists = async function () {
+  const artistlist = artistsort ? 'albumartist' : 'artist';
+  const artistbegin = artistsort ? 'AlbumArtist: ' : 'Artist: ';
+  const items = [];
+  const msg = await this.sendMpdCommandPromise('list', [artistlist]);
+  const splitted = msg.split('\n');
+  for (let i in splitted) {
+    if (!splitted[i].startsWith(artistbegin)) {
+      continue;
+    }
+
+    const artist = splitted[i].substring(artistbegin.length);
+    if (artist === '') {
+      continue;
+    }
+
+    const encodedArtist = encodeURIComponent(artist);
+    const item = {
+      service: 'mpd',
+      type: 'folder',
+      title: artist,
+      albumart: this.getAlbumArt({artist: encodedArtist}, undefined, 'users'),
+      uri: 'artists://' + encodedArtist
+    };
+
+    items.push(item);
+  }
+
+  return {
     navigation: {
+      prev: singleBrowse ? {uri: 'music-library'} : undefined,
       lists: [{
         availableListViews: ['list', 'grid'],
-        items: []
+        items,
       }]
     }
   };
-  if (singleBrowse) {
-    response.navigation.prev = {uri: 'music-library'};
-  }
-
-  var cmd = libMpd.cmd;
-  var artistlist = 'artist';
-  var artistbegin = 'Artist: ';
-
-  if (artistsort) {
-    artistlist = 'albumartist';
-    artistbegin = 'AlbumArtist: ';
-  }
-
-  self.clientMpd.sendCommand(cmd('list', [artistlist]), function (err, msg) {
-    if (err) {
-      defer.reject(new Error('Cannot list artist'));
-      return;
-    }
-
-    var splitted = msg.split('\n');
-    for (var i in splitted) {
-      if (!splitted[i].startsWith(artistbegin)) {
-        continue;
-      }
-
-      var artist = splitted[i].substring(artistbegin.length);
-      if (artist === '') {
-        continue;
-      }
-
-      var codedArtists = encodeURIComponent(artist);
-      var albumart = self.getAlbumArt({artist: codedArtists}, undefined, 'users');
-      var item = {
-        service: 'mpd',
-        type: 'folder',
-        title: artist,
-        albumart: albumart,
-        uri: 'artists://' + codedArtists
-      };
-
-      response.navigation.lists[0].items.push(item);
-    }
-    defer.resolve(response);
-  });
-  return defer.promise;
 };
 
 /**
@@ -3974,5 +3955,17 @@ ControllerMpd.prototype.checkIfMpdRequiresRescan = function () {
         }
       }
     }
+  });
+};
+
+ControllerMpd.prototype.sendMpdCommandPromise = function (...args) {
+  return new Promise((resolve, reject) => {
+    this.clientMpd.sendCommand(libMpd.cmd(...args), (err, msg) => {
+      if (err) {
+        reject(new Error(`MPD command "${args[0]}" failed: ${err}`));
+      } else {
+        resolve(msg);
+      }
+    });
   });
 };
