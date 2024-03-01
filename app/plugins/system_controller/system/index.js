@@ -163,7 +163,7 @@ ControllerSystem.prototype.getUIConfig = function () {
                   uiconf.sections[4].hidden = true;
                 }
               }
-            } else (disklist.length > 0 ) {
+            } else if (disklist.length > 0 ) {
               uiconf.sections[4].hidden = false;
             }
               for (var i in disklist) {
