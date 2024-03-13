@@ -330,7 +330,7 @@ ControllerSystem.prototype.getUSBBootCapable = function (data) {
           //self.logger.info('USB Boot ::'+revisionparam+'::');
         }
     });
-  return defer.promise;
+  return;
 };
 
 ControllerSystem.prototype.USBBootCheck = function (data) {
