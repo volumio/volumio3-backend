@@ -679,7 +679,20 @@ ControllerAlsa.prototype.saveAlsaOptions = function (data) {
   var defer = libQ.defer();
   var uiPush = true;
 
-  //console.log('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' + JSON.stringify(data));
+  self.logger.info('Preparing to save Alsa Options, stopping services first');
+  var state = self.commandRouter.volumioGetState();
+  if (state && state.status != undefined) {
+      if (state.status !== 'stop' || state.status !== 'pause') {
+          if (state.trackType == 'webradio') {
+              self.commandRouter.volumioStop();
+          } else {
+              self.commandRouter.volumioPause();
+          }
+      }
+  }
+
+  self.logger.info('Saving Audio Output to: ' + JSON.stringify(data));
+
   if (data.output_device.label != undefined) {
     data.output_device.label = data.output_device.label.replace('USB: ', '');
   }
