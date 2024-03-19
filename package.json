@@ -3,10 +3,14 @@
   "version": "2.0.0",
   "private": false,
   "license": "GPL-3.0-only",
+  "engines": {
+    "node": "^14.0.0"
+  },
   "scripts": {
     "preinstall": "",
     "start": "nodejs ./index.js",
-    "lint": "semistandard \"./**/*.js\" --fix --verbose",
+    "format": "npm run lint -- --fix",
+    "lint": "semistandard \"./**/*.js\" --verbose",
     "lint-staged": "lint-staged",
     "lint-JSON": "jsonlint -qD ./app/plugins",
     "test": "npm install --only=dev --no-package-lock && ./node_modules/.bin/mocha --reporter spec",

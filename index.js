@@ -4,7 +4,7 @@ var dotenv = require('dotenv').config({ path: path.join(__dirname, '.env')}); //
 var execSync = require('child_process').execSync;
 var expressInstance = require('./http/index.js');
 var expressApp = expressInstance.app;
-/* eslint-disable */
+
 global.metrics = {
   start: {},
   time: (label) => {
@@ -16,7 +16,7 @@ global.metrics = {
     console.log(`\u001b[34m [Metrics] \u001b[39m ${label}: \u001b[31m ${metrics.end[label][0]}s ${(metrics.end[label][1] / 1000000).toFixed(2)}ms \u001b[39m`);
   }
 };
-/* eslint-disable */
+
 // metrics.start.WebUI = process.hrtime();
 metrics.time('WebUI');
 
