@@ -15,6 +15,8 @@ var commandArray = [
   'df -h',
   'mount',
   'netstat -natp',
+  'cat /boot/config.txt,
+  'cat /boot/userconfig.txt,
   'cat /etc/asound.conf',
   'cat /var/log/mpd.log',
   'cat /tmp/camilladsp.log',
