@@ -84,7 +84,8 @@
       "saveButton": {
         "label": "TRANSLATE.COMMON.SAVE",
         "data": [
-          "hdmi_enabled"
+          "hdmi_enabled",
+          "show_mouse_pointer"
         ]
       },
       "content": [
@@ -94,6 +95,17 @@
           "doc": "TRANSLATE.SYSTEM.HDMI_UI_DOC",
           "label": "TRANSLATE.SYSTEM.HDMI_UI",
           "value": false
+        },
+        {
+          "id": "show_mouse_pointer",
+          "element": "switch",
+          "doc": "TRANSLATE.SYSTEM.SHOW_MOUSE_POINTER_DOC",
+          "label": "TRANSLATE.SYSTEM.SHOW_MOUSE_POINTER",
+          "value": false,
+          "visibleIf": {
+            "field": "hdmi_enabled",
+            "value": true
+          }
         }
       ]
     },

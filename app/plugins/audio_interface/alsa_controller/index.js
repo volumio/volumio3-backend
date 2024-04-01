@@ -24,7 +24,7 @@ function ControllerAlsa (context) {
   this.commandRouter = this.context.coreCommand;
   this.logger = this.context.logger;
   this.configManager = this.context.configManager;
-  
+
   if (process.env.MODULAR_ALSA_PIPELINE === 'true') {
     // Used to prevent concurrent rewrites of the ALSA config file
     this.pendingALSAConfigUpdate = libQ.resolve();
@@ -38,7 +38,7 @@ ControllerAlsa.prototype.onVolumioStart = function () {
 
   this.config = new (require('v-conf'))();
   this.config.loadFile(configFile);
-  
+
   if (process.env.MODULAR_ALSA_PIPELINE === 'true') {
     // Modular ALSA enabled, we need to check that things are set properly
 	var output = self.config.get('outputdevice', '0');
@@ -46,16 +46,16 @@ ControllerAlsa.prototype.onVolumioStart = function () {
 	if (output == 'softvolume') {
       self.config.set('softvolume', true);
       output = self.config.get('softvolumenumber');
-      self.config.set('outputdevice', output);   
-    } 
+      self.config.set('outputdevice', output);
+    }
 
 	var outputdevicecard = null;
 	var outputdevicecardname = self.config.get('outputdevicecardname', null);
 	var outputdevicealsadevice = self.config.get('outputdevicealsadevice', null);
 	var alsacards = self.getAlsaCards();
-	
+
 	// Update the outputdevice card so that it uses the up to date alsa number
-	
+
 	if(outputdevicecardname === null) {
 	  outputdevicecard = self.getCardByAlsaCardNumber(alsacards, output);
       if (alsacards && alsacards[0] && alsacards[0].id && alsacards[0].id.length) {
@@ -71,14 +71,14 @@ ControllerAlsa.prototype.onVolumioStart = function () {
 	} else {
 	  outputdevicecard = self.getCardByAlsaCardNameAndDevice(alsacards, outputdevicecardname, outputdevicealsadevice);
 	}
-	
+
     var outputdevicename = self.config.get('outputdevicename');
 	if(outputdevicecard) {
       if(outputdevicename) {
         // Don't change the UI label based on hw reporting, as lots of DACs show up as hifiberry-dac
         outputdevicecard.name = outputdevicename;
       }
-      
+
 	  self.config.set('outputdevicecardname', outputdevicecard.alsacard);
 	  self.config.set('outputdevicealsadevice', outputdevicecard.alsadevice);
 	  self.config.set('outputdevicename', outputdevicecard.name);
@@ -86,8 +86,8 @@ ControllerAlsa.prototype.onVolumioStart = function () {
 	} else {
 	  self.logger.warn('Unable to locate the audio output device ' + outputdevicename + '. Please configure a valid output device.');
 	}
-	
-    
+
+
     if(self.config.get('softvolume')) {
 	  self.config.set('softvolumenumber', self.config.get('outputdevice'));
       var folder = self.commandRouter.pluginManager.getConfigurationFile(self.context, 'asound');
@@ -95,31 +95,31 @@ ControllerAlsa.prototype.onVolumioStart = function () {
         self.writeSoftVolContribution(self.config.get('outputdevice'));
       }
     }
-    
+
     if(self.commandRouter.sharedVars.get('alsa.outputdevice') != 'volumio') {
       self.commandRouter.sharedVars.set('alsa.outputdevice', 'volumio');
     }
-    
+
   } else {
     // Legacy ALSA, we need to check that things are set properly
-    
+
     var outputdevice = self.config.get('outputdevice');
 
     self.config.delete('outputdevicecardname');
     self.config.delete('outputdevicealsadevice');
-    
+
 	if(self.commandRouter.sharedVars.get('alsa.outputdevice') === 'volumio') {
 	  self.commandRouter.sharedVars.set('alsa.outputdevice', outputdevice);
 	}
-	
+
     var softvol = self.config.get('softvolume');
     if (softvol) {
       self.config.set('softvolume', false);
       self.config.set('outputdevice', 'softvolume')
 	  self.config.set('softvolumenumber', outputdevice);
-      
+
       var folder = self.commandRouter.pluginManager.getConfigurationFile(self.context, 'asound');
-	
+
       if(!fs.existsSync(folder + '/softvolume.postVolume.conf')) {
         fs.unlink(folder + '/softvolume.postVolume.conf');
       }
@@ -127,7 +127,7 @@ ControllerAlsa.prototype.onVolumioStart = function () {
     } else {
     	self.disableSoftMixer();
     }
-    
+
   }
 
   if (this.config.has('outputdevice') == false) {
@@ -222,9 +222,6 @@ ControllerAlsa.prototype.getUIConfig = function () {
             label: 'HDMI Out'
           });
         } else {
-          if (cards[i].id == '5') {
-            cards[i].name = 'USB: ' + cards[i].name;
-          }
           self.configManager.pushUIConfigParam(uiconf, 'sections[0].content[0].options', {
             value: cards[i].id,
             label: cards[i].name
@@ -232,7 +229,7 @@ ControllerAlsa.prototype.getUIConfig = function () {
         }
       }
 
-      if (i2soptions.length > 0) {
+      if (i2soptions.length > 0 && self.config.get('ignore_i2s', false) !== true) {
         if (i2sstatus.enabled) {
           self.configManager.setUIConfigParam(uiconf, 'sections[0].content[1].value', i2sstatus.enabled);
           self.configManager.setUIConfigParam(uiconf, 'sections[0].content[2].value', {
@@ -535,7 +532,7 @@ ControllerAlsa.prototype.getAdditionalUISections = function () {
     		var section = additionalUISections[i];
     		var pluginType = section.split('/')[0];
     		var pluginName = section.split('/')[1];
-      var additionalUISection = self.commandRouter.executeOnPlugin(pluginType, pluginName, 'getAdditionalUiSection');
+      var additionalUISection = self.commandRouter.executeOnPlugin(pluginType, pluginName, 'getAdditionalUiSection', 'audio');
       uiSectionsDefer.push(additionalUISection);
     	}
     libQ.all(uiSectionsDefer).then((uiSectionsResult) => {
@@ -682,7 +679,20 @@ ControllerAlsa.prototype.saveAlsaOptions = function (data) {
   var defer = libQ.defer();
   var uiPush = true;
 
-  //console.log('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' + JSON.stringify(data));
+  self.logger.info('Preparing to save Alsa Options, stopping services first');
+  var state = self.commandRouter.volumioGetState();
+  if (state && state.status != undefined) {
+      if (state.status !== 'stop' || state.status !== 'pause') {
+          if (state.trackType == 'webradio') {
+              self.commandRouter.volumioStop();
+          } else {
+              self.commandRouter.volumioPause();
+          }
+      }
+  }
+
+  self.logger.info('Saving Audio Output to: ' + JSON.stringify(data));
+
   if (data.output_device.label != undefined) {
     data.output_device.label = data.output_device.label.replace('USB: ', '');
   }
@@ -778,18 +788,18 @@ ControllerAlsa.prototype.saveAlsaOptions = function (data) {
   }
 
   if (process.env.MODULAR_ALSA_PIPELINE === 'true') {
-    var OutputDeviceCard = data.i2s ? 
-        self.commandRouter.executeOnPlugin('system_controller', 'i2s_dacs', 'getI2SAlsaName', data.i2sid.label) : 
+    var OutputDeviceCard = data.i2s ?
+        self.commandRouter.executeOnPlugin('system_controller', 'i2s_dacs', 'getI2SAlsaName', data.i2sid.label) :
         data.output_device.alsacard;
-        
+
     var outputAlsaDevice = null;
     if (OutputDevice.indexOf(',') >= 0) {
       outputAlsaDevice = OutputDevice.charAt(2);
-    } 
-    
+    }
+
     var alsacards = self.getAlsaCards();
     var outputcard = null;
-    
+
     if(OutputDeviceCard) {
       outputcard = self.getCardByAlsaCardNameAndDevice(alsacards, OutputDeviceCard, outputAlsaDevice);
       if(outputcard == null) {
@@ -813,7 +823,7 @@ ControllerAlsa.prototype.saveAlsaOptions = function (data) {
     }
     // Whatever we discover the label should be defined by the UI, otherwise lots of DACs show up as hifiberry-dac
     outputcard.name = data.i2s ? data.i2sid.label : data.output_device.label;
-    
+
     self.config.set('outputdevicecardname', outputcard.alsacard);
     if(outputcard.alsadevice !== undefined) {
 	  self.config.set('outputdevicealsadevice', outputcard.alsadevice);
@@ -822,7 +832,7 @@ ControllerAlsa.prototype.saveAlsaOptions = function (data) {
 	}
 	self.config.set('outputdevicename', outputcard.name);
 	self.config.set('outputdevice', outputcard.id);
-     
+
     self.setDefaultMixer(outputcard.id);
   } else {
     var alsacards = self.getAlsaCards();
@@ -850,7 +860,7 @@ ControllerAlsa.prototype.saveAlsaOptions = function (data) {
     } else {
       promise = libQ.resolve();
     }
-    
+
     return promise
       .then(self.updateALSAConfigFile.bind(self))
       .then((result) => {
@@ -1010,7 +1020,7 @@ ControllerAlsa.prototype.outputDeviceCallback = function (value) {
   } else {
     this.config.set('outputdevice', value);
   }
-  
+
 };
 
 ControllerAlsa.prototype.getConfigParam = function (key) {
@@ -1138,7 +1148,7 @@ ControllerAlsa.prototype.getAlsaCards = function () {
             }
             continue aplay;
           }
-        } 
+        }
         if (name !== undefined) {
           if (volumioDeviceName === 'primo') {
             if (name === 'ES90x8Q2M DAC') {
@@ -1259,7 +1269,7 @@ ControllerAlsa.prototype.setDefaultMixer = function (device) {
   var ignoreGenMixers = false;
 
   var i2sstatus = self.commandRouter.executeOnPlugin('system_controller', 'i2s_dacs', 'getI2sStatus');
-  
+
   var card = self.getCardByAlsaCardNumber(cards, device.toString());
 
   if (card) {
@@ -1337,14 +1347,14 @@ ControllerAlsa.prototype.setDefaultMixer = function (device) {
             }
           }
         }
-        
+
         var softVolumeEnabled = null;
         if (process.env.MODULAR_ALSA_PIPELINE === 'true') {
           softVolumeEnabled = self.config.get('softvolume');
         } else {
           softVolumeEnabled = outputdevice === 'softvolume';
         }
-        
+
         if (softVolumeEnabled) {
           self.logger.info('Setting default mixerSoftMaster for Softvolume device');
           this.mixertype = 'Software';
@@ -1416,7 +1426,7 @@ ControllerAlsa.prototype.checkMixer = function () {
           self.commandRouter.sharedVars.set('alsa.outputdevice', 'volumio');
         } else {
           self.commandRouter.sharedVars.set('alsa.outputdevice', 'softvolume');
-        }        
+        }
         self.updateVolumeSettings();
         // Restarting MPD, this seems needed only on first boot
         setTimeout(function () {
@@ -1435,7 +1445,7 @@ ControllerAlsa.prototype.enableSoftMixer = function (data) {
 
   self.logger.info('Enable softmixer device for audio device number ' + data);
   self.commandRouter.volumioStop();
-  
+
   var promise = null;
   if (process.env.MODULAR_ALSA_PIPELINE === 'true') {
     promise = self.writeSoftVolContribution(data)
@@ -1443,7 +1453,7 @@ ControllerAlsa.prototype.enableSoftMixer = function (data) {
   } else {
     promise = self.writeSoftMixerFile(data);
   }
-  
+
   return promise
     .then(self.setSoftParams.bind(self))
     .then(self.apply1.bind(self))
@@ -1531,7 +1541,7 @@ ControllerAlsa.prototype.writeSoftVolContribution = function (data) {
   var defer = libQ.defer();
 
   self.logger.info('Enable softmixer device for audio device ' + data.name);
-  
+
   if (this.config.has('softvolumenumber') == false) {
     self.config.addConfigValue('softvolumenumber', 'string', data);
     self.updateVolumeSettings();
@@ -1541,7 +1551,7 @@ ControllerAlsa.prototype.writeSoftVolContribution = function (data) {
 
   var card = data;
   var device = 0;
-  
+
   if(data.indexOf(',') >= 0) {
     var dataarr = data.split(',');
     card = dataarr[0];
@@ -1555,10 +1565,10 @@ ControllerAlsa.prototype.writeSoftVolContribution = function (data) {
   asoundcontent += '    type            plug\n';
   asoundcontent += '    slave {\n';
   asoundcontent += '        pcm         "volumioSoftVol"\n';
-  asoundcontent += '        format      "S24_3LE"\n';  
+  asoundcontent += '        format      "S24_3LE"\n';
   asoundcontent += '    }\n';
   asoundcontent += '}\n\n';
-  
+
   asoundcontent += 'pcm.volumioSoftVol {\n';
   asoundcontent += '    type            softvol\n';
   asoundcontent += '    slave {\n';
@@ -1573,7 +1583,7 @@ ControllerAlsa.prototype.writeSoftVolContribution = function (data) {
   asoundcontent += 'min_dB -50.0\n';
   asoundcontent += 'resolution 100\n';
   asoundcontent += '}\n';
-  
+
   var folder = self.commandRouter.pluginManager.getConfigurationFile(self.context, 'asound');
 
   if(!fs.existsSync(folder)) {
@@ -1636,7 +1646,7 @@ ControllerAlsa.prototype.apply2 = function () {
 ControllerAlsa.prototype.setSoftConf = function () {
   var self = this;
   var defer = libQ.defer();
-  
+
   if (process.env.MODULAR_ALSA_PIPELINE === 'true') {
     self.setConfigParam({key: 'softvolume', value: true});
     self.commandRouter.sharedVars.set('alsa.outputdevicemixer', 'SoftMaster');
@@ -1718,7 +1728,7 @@ ControllerAlsa.prototype.updateVolumeSettings = function () {
   var valmixertype = self.config.get('mixer_type');
 
   if (process.env.MODULAR_ALSA_PIPELINE === 'true') {
-    
+
     if(self.config.get('softvolume')) {
       outdevicename = 'softvolume';
     } else {
@@ -1737,7 +1747,7 @@ ControllerAlsa.prototype.updateVolumeSettings = function () {
       valdevice = self.config.get('softvolumenumber');
     }
   }
-  
+
   var valvolumestart = self.config.get('volumestart');
   var valvolumesteps = self.config.get('volumesteps');
 
@@ -2071,7 +2081,7 @@ ControllerAlsa.prototype.getAlsaCardsWithoutI2SDAC = function (data) {
 // in parallel
 ControllerAlsa.prototype.updateALSAConfigFile = function () {
   var self = this;
-  
+
   var promise = self.pendingALSAConfigUpdate
     .then(() => {
     	return self.internalUpdateALSAConfigFile();
@@ -2080,11 +2090,11 @@ ControllerAlsa.prototype.updateALSAConfigFile = function () {
         self.commandRouter.sharedVars.set('alsa.outputdevice', 'volumio');
         return x;
       });
-  
+
   self.pendingALSAConfigUpdate = promise;
-    
+
   return promise.then((x) => {
-   
+
       if(self.pendingALSAConfigUpdate === promise) {
         self.pendingALSAConfigUpdate = libQ.resolve();
       }
@@ -2093,7 +2103,7 @@ ControllerAlsa.prototype.updateALSAConfigFile = function () {
 };
 
 // This function regeneratees the ALSA config file, including
-// any contributions from enabled plugins. The main input is 
+// any contributions from enabled plugins. The main input is
 // always 'volumio' and the final output 'volumioOutput'
 ControllerAlsa.prototype.internalUpdateALSAConfigFile = function () {
   var self = this;
@@ -2133,30 +2143,34 @@ ControllerAlsa.prototype.internalUpdateALSAConfigFile = function () {
     asoundcontent += '    slave.pcm       "volumio"\n';
     asoundcontent += '}\n';
     asoundcontent += '\n';
-    
+
     var outPCM = 'volumio'
     for(var i = 0; i < contributions.length; i++) {
       var contribution = contributions[i];
-      
+
       asoundcontent += 'pcm.' + outPCM + ' {\n';
       asoundcontent += '    type             empty\n';
       asoundcontent += '    slave.pcm       "' + contribution.snippetDatum.inPCM + '"\n';
       asoundcontent += '}\n';
       asoundcontent += '\n';
-      
+
       asoundcontent += contribution.snippet;
       asoundcontent += '\n';
-      
+
       outPCM = contribution.snippetDatum.outPCM;
     }
-    
+
     var card = self.config.get('outputdevicecardname')
     var device = self.config.get('outputdevicealsadevice')
-    
+
     asoundcontent += '# There is always a plug before the hardware to be safe\n';
     asoundcontent += 'pcm.volumioOutput {\n';
     asoundcontent += '    type plug\n';
-    asoundcontent += '    slave.pcm "volumioHw"\n';    
+    asoundcontent += '    slave.pcm "volumioHw"\n';
+    if ( card  === 'vc4hdmi0' || card === 'vc4hdmi1' ) {
+        asoundcontent += '    type "iec958"\n';
+        asoundcontent += '    slave.format "IEC958_SUBFRAME_LE"\n';
+    }
     asoundcontent += '}\n\n';
 
     asoundcontent += 'pcm.volumioHw {\n';
@@ -2169,7 +2183,7 @@ ControllerAlsa.prototype.internalUpdateALSAConfigFile = function () {
 
     return asoundcontent;
   }).then((asoundcontent) => {
-  
+
     let defer = libQ.defer();
     fs.readFile('/etc/asound.conf', 'utf8', function (err, data) {
       if(data === asoundcontent) {
@@ -2200,25 +2214,25 @@ ControllerAlsa.prototype.internalUpdateALSAConfigFile = function () {
 // Contributions are in the form <in pcm>-<out pcm>.conf or <in pcm>-<out pcm>-<rank>.conf
 // which allows us to construct a complete config file wiring the contributions together.
 ControllerAlsa.prototype.getPluginALSAContributions = function () {
-  
+
   var self = this;
-  
+
   var alsaSnippetChecks = [];
 
   var plugins = this.commandRouter.pluginManager.getPluginsMatrix();
-  
+
   for (var i = 0; i < plugins.length; i++) {
 
     let category = plugins[i].cName;
-    
+
     for(var j = 0; j < plugins[i].catPlugin.length; j++) {
 
       let plugin = plugins[i].catPlugin[j];
-  
+
       if(this.commandRouter.pluginManager.isEnabled(category, plugin.name)) {
         // Check to see if there is an ALSA contribution from this plugin
         let folder = self.commandRouter.pluginManager.findPluginFolder(category, plugin.name);
-        
+
         // Folder will be truthy if found
         if(folder) {
           // Only get data from plugins that say they want to contribute in their package.json
@@ -2226,12 +2240,12 @@ ControllerAlsa.prototype.getPluginALSAContributions = function () {
           if(!package_json || !package_json.volumio_info || !package_json.volumio_info.has_alsa_contribution) {
         	  continue;
           }
-        	
+
           // This plugin has an ALSA contribution - check for static files and for dynamic files
-          
+
           alsaSnippetChecks.push(self.searchFolderForPluginALSAContributions(plugin, folder + '/asound'));
-          
-          alsaSnippetChecks.push(self.searchFolderForPluginALSAContributions(plugin, 
+
+          alsaSnippetChecks.push(self.searchFolderForPluginALSAContributions(plugin,
         		  self.commandRouter.pluginManager.getPluginConfigurationFile(category, plugin.name, 'asound')));
         }
       }
@@ -2245,7 +2259,7 @@ ControllerAlsa.prototype.getPluginALSAContributions = function () {
     });
 
     cleanedArray = [].concat.apply([], cleanedArray);
-    
+
     return cleanedArray.sort((a,b) => {
       return b.priority - a.priority;
     });
@@ -2259,20 +2273,20 @@ ControllerAlsa.prototype.getPluginALSAContributions = function () {
 // Contributions are in the form <in pcm>-<out pcm>.conf or <in pcm>-<out pcm>-<rank>.conf
 // which allows us to construct a complete config file wiring the contributions together.
 ControllerAlsa.prototype.searchFolderForPluginALSAContributions = function (plugin, folder) {
-	
+
 	var self = this;
-	
+
 	// Check to see if the plugin wants to contribute
     if(fs.existsSync(folder)) {
-      
+
       let dirDefer = libQ.defer();
-      
+
       fs.readdir(folder, function (err, files) {
         if (err) {
           self.logger.warn('Unable to scan plugin ' + plugin.name + ' for ALSA configuration: ' + err);
           dirDefer.resolve(null);
           return;
-        } 
+        }
         var fileData = [];
         // Get the contribution file(s)
         files.forEach(function (file) {
@@ -2282,15 +2296,15 @@ ControllerAlsa.prototype.searchFolderForPluginALSAContributions = function (plug
           }
           // Expected file name syntax is <in pcm>.<out pcm>.conf or <in pcm>.<out pcm>.<rank>.conf
           var tokens = file.substring(0, file.length - 5).split('.');
-          
+
           if(tokens.length < 2 || tokens.length > 3) {
-            self.logger.warn('The plugin ' + plugin.name + 
+            self.logger.warn('The plugin ' + plugin.name +
                 ' is trying to supply ALSA configuration but the file ' + file +
                 ' does not meet the expected name syntax');
           }
-          
+
           self.logger.info('The plugin ' + plugin.name + ' has an ALSA contribution file ' + file);
-          
+
           var pluginName = plugin.name;
           var configFile = folder + "/" + file;
           var inPCM = tokens[0];
@@ -2302,7 +2316,7 @@ ControllerAlsa.prototype.searchFolderForPluginALSAContributions = function (plug
 
         dirDefer.resolve(fileData);
       });
-      
+
       return dirDefer.promise
     } else {
     	return libQ.resolve([]);

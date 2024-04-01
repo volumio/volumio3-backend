@@ -155,5 +155,18 @@
 		  ]
 	  },
 		  "content": []
+	  },
+	  {
+		  "id": "supersearch_infinity_services",
+		  "element": "section",
+		  "label": "TRANSLATE.APPEARANCE.SUPERSEARCH_INFINITY_SERVICES",
+		  "icon": "fa-sliders",
+		  "onSave": {"type":"controller", "endpoint":"miscellanea/my_music", "method":"updateMusicLibrarySupersearchSources"},
+		  "saveButton": {
+			  "label": "TRANSLATE.COMMON.SAVE",
+			  "data": [
+			  ]
+		  },
+		  "content": []
 	  }
 ]}

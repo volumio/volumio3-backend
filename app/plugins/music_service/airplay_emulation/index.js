@@ -117,7 +117,7 @@ AirPlayInterface.prototype.startShairportSync = function () {
   var outdev = this.commandRouter.sharedVars.get('alsa.outputdevice');
   var outputdevicename = self.getAdditionalConf('audio_interface', 'alsa_controller', 'outputdevicename');
   var hwDevice = self.getAdditionalConf('system_controller', 'system', 'device');
-  
+
   if (process.env.MODULAR_ALSA_PIPELINE === 'true') {
     // No post-processing required
   } else {
@@ -128,7 +128,7 @@ AirPlayInterface.prototype.startShairportSync = function () {
       outdev = 'plughw:' + outdev;
     } else {
       outdev = 'plughw:' + outdev + ',0';
-    }  
+    }
   }
 
   var buffer_size_line;
@@ -142,10 +142,14 @@ AirPlayInterface.prototype.startShairportSync = function () {
     period_size_line = 'period_size = 2768;';
   }
   // This is a fix in order to make the alsa pipeline work on pi. Otherwise it will request a really low period size
-  if (process.env.MODULAR_ALSA_PIPELINE === 'true' && hwDevice === 'Raspberry PI' && (outputdevicename === 'Headphones' || outputdevicename === 'HDMI')) {
-    period_size_line = 'period_size = 500;';
+  if (process.env.MODULAR_ALSA_PIPELINE === 'true') {
+    if (hwDevice === 'Raspberry PI' && (outputdevicename === 'Headphones' || outputdevicename === 'HDMI')) {
+      period_size_line = 'period_size = 500;';
+    }
+    if (hwDevice.includes('NanoPi NEO')) {
+      buffer_size_line = 'buffer_size = 1500;';
+    }
   }
-
 
   var fs = require('fs');
   fs.readFile(__dirname + '/shairport-sync.conf.tmpl', 'utf8', function (err, data) {

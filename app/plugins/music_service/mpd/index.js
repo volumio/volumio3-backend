@@ -341,7 +341,7 @@ ControllerMpd.prototype.sendMpdCommand = function (sCommand, arrayParameters) {
       }
       const stop=Date.now()
       self.logger.info("sendMpdCommand "+sCommand+" took "+(stop-start)+" milliseconds")
-            
+
       return libQ.resolve(respobject);
     });
 };
@@ -602,7 +602,14 @@ ControllerMpd.prototype.onVolumioStart = function () {
   self.loadLibrarySettings();
   dsd_autovolume = self.config.get('dsd_autovolume', false);
   self.getPlaybackMode();
-  
+
+  return libQ.resolve();
+};
+
+ControllerMpd.prototype.onStart = function () {
+  var self = this;
+
+  self.logger.info('ControllerMpd::onStart: Initializing MPD');
   return self.mpdInit();
 };
 
@@ -675,6 +682,9 @@ ControllerMpd.prototype.mpdEstablish = function () {
     if (startup) {
       startup = false;
       setTimeout(()=>{
+        //self.checkIfMpdRequiresRescan();
+      }, 2500)
+      setTimeout(()=>{
         self.checkUSBDrives();
         self.listAlbums();
         self.getMyCollectionStats();
@@ -685,7 +695,7 @@ ControllerMpd.prototype.mpdEstablish = function () {
   // Catch and log errors
   self.clientMpd.on('error', function (err) {
     self.logger.error('MPD error: ' + err);
-    if (err === "{ [Error: This socket has been ended by the other party] code: 'EPIPE' }") {
+    if (err === "{ [Error: This socket has been ended by the other party] code: 'EPIPE' }" || err.toString().includes('ECONNRESET')) {
       // Wait 5 seconds before trying to reconnect
       setTimeout(function () {
         self.mpdEstablish();
@@ -970,7 +980,7 @@ ControllerMpd.prototype.createMPDFile = function (callback) {
 
       var mixerdev = '';
       var mixerstrings = '';
-      
+
       if (process.env.MODULAR_ALSA_PIPELINE === 'true') {
         var realDev = outdev;
         outdev = self.commandRouter.sharedVars.get('alsa.outputdevice');
@@ -983,7 +993,7 @@ ControllerMpd.prototype.createMPDFile = function (callback) {
             mixerdev = 'hw:' + realDev + ',0';
           }
         }
-      
+
       } else {
         if (outdev != 'softvolume') {
           var realDev = outdev;
@@ -1092,8 +1102,13 @@ ControllerMpd.prototype.createMPDFile = function (callback) {
         }
       }
       var conf13 = conf12.replace('${special_settings}', specialSettings);
+      var logLevel = 'default';
+      if (self.isAlsaDebugEnabled()) {
+        logLevel = 'verbose';
+      }
+      var conf14 = conf13.replace('${log_level}', logLevel);
 
-      fs.writeFile('/etc/mpd.conf', conf13, 'utf8', function (err) {
+      fs.writeFile('/etc/mpd.conf', conf14, 'utf8', function (err) {
         if (err) {
           self.logger.info('Could not write mpd.conf:' + err);
         }
@@ -1103,6 +1118,20 @@ ControllerMpd.prototype.createMPDFile = function (callback) {
     callback();
   } catch (err) {
     callback(err);
+  }
+};
+
+ControllerMpd.prototype.isAlsaDebugEnabled = function () {
+  var self = this;
+
+  try {
+    if (fs.existsSync('/data/alsadebug')) {
+      return true;
+    } else {
+      return false;
+    }
+  } catch(e) {
+    return false;
   }
 };
 
@@ -3989,4 +4018,25 @@ ControllerMpd.prototype.getRandomLocalTrack = function () {
     }
   })
   return defer.promise;
+};
+
+ControllerMpd.prototype.checkIfMpdRequiresRescan = function () {
+  var self = this;
+
+  // This function checks if we have an empty db, if that's the case, it will trigger a rescan
+  // This is added to repopulate the db when we update from previous mpd versions or in case the mpd db gets corrupted
+  exec('/usr/bin/mpc list artist', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+    if (error) {
+      // Mpc is not started, we don't have anything to do
+    } else {
+      if (!stdout.length) {
+        self.logger.info('MPD Database is empty, triggering rescan');
+        try {
+          execSync('/usr/bin/mpc rescan', { uid: 1000, gid: 1000});
+        } catch(e) {
+          self.logger.error('Failed to trigger MPD rescan: ' + e);
+        }
+      }
+    }
+  });
 };

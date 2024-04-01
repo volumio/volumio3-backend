@@ -755,9 +755,14 @@ ControllerWebradio.prototype.listMyWebRadio = function (uri) {
         artist: '',
         album: '',
         title: ithdata.name,
-        uri: ithdata.uri,
-        icon: 'fa fa-microphone'
+        uri: ithdata.uri
       };
+
+      if (ithdata.albumart) {
+        song.albumart = ithdata.albumart;
+      } else {
+        song.icon = 'fa fa-microphone';
+      }
 
       response.navigation.lists[0].items.push(song);
     }
@@ -812,9 +817,13 @@ ControllerWebradio.prototype.listRadioFavourites = function (uri) {
         title: ithdata.title,
         // artist: ithdata.artist,
         // album: ithdata.album,
-        icon: 'fa fa-microphone',
         uri: ithdata.uri
       };
+      if (ithdata.albumart) {
+        song.albumart = ithdata.albumart;
+      } else {
+        song.icon = 'fa fa-microphone';
+      }
 
       response.navigation.lists[0].items.push(song);
     }
@@ -1445,7 +1454,7 @@ ControllerWebradio.prototype.formatCodecString = function (text) {
     // use first codec entry, if multiple are supplied
     var codec=text.split(',')[0];
     var codecString;
-    
+
     switch (codec) {
       case 'audio/flac':
         codecString = 'flac';

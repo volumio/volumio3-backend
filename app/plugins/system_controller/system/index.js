@@ -72,7 +72,7 @@ ControllerSystem.prototype.onVolumioStart = function () {
     self.updateVersionHistoryFile();
   }, 30000);
 
-  return libQ.all(self.deviceDetect());
+  return libQ.all([self.deviceDetect(), self.getUSBBootCapable()]);
 };
 
 ControllerSystem.prototype.onStart = function () {
@@ -82,7 +82,7 @@ ControllerSystem.prototype.onStart = function () {
   self.callHome();
   self.initializeFirstStart();
   self.loadDefaultAdditionalDeviceVolumioProperties();
-  
+
   defer.resolve('OK')
   return defer.promise;
 };
@@ -114,8 +114,8 @@ ControllerSystem.prototype.getUIConfig = function () {
   var lang_code = self.commandRouter.sharedVars.get('language_code');
   var showLanguageSelector = self.getAdditionalConf('miscellanea', 'appearance', 'language_on_system_page', false);
   var device = self.config.get('device', '');
+  var usbdevice = self.config.get('usbboot', '');
   var showDiskInstaller = self.config.get('show_disk_installer', true);
-  var HDMIEnabled = self.config.get('hdmi_enabled', false);
   self.commandRouter.i18nJson(__dirname + '/../../../i18n/strings_' + lang_code + '.json',
     __dirname + '/../../../i18n/strings_en.json',
     __dirname + '/UIConfig.json')
@@ -129,16 +129,43 @@ ControllerSystem.prototype.getUIConfig = function () {
         self.configManager.setUIConfigParam(uiconf, 'sections[0].content[3].hidden', false);
       }
 
+      var HDMIEnabled = self.config.get('hdmi_enabled', false);
       self.configManager.setUIConfigParam(uiconf, 'sections[1].content[0].value', HDMIEnabled);
+      try {
+        var cursorEnabled = !fs.readFileSync('/data/kioskargs', 'utf8').includes('nocursor');
+      } catch(e) {
+        var cursorEnabled = true;
+      }
+      self.configManager.setUIConfigParam(uiconf, 'sections[1].content[1].value', cursorEnabled);
 
-      if (device != undefined && device.length > 0 && (device === 'Tinkerboard' || device === 'x86') && showDiskInstaller) {
+      if (device != undefined && device.length > 0 && (device === 'Tinkerboard' || device === 'x86' || device === 'Raspberry PI') && showDiskInstaller) {
         var hwdevice = device;
+        var usbbootdevice = usbdevice;
         var disks = self.getDisks();
         if (disks != undefined) {
           disks.then(function (result) {
             if (result.available.length > 0) {
-              uiconf.sections[4].hidden = false;
               var disklist = result.available;
+              if (hwdevice === 'Raspberry PI') {
+                var blacklisted = ('sda', 'sdb', 'sdc', 'sdd');
+                // Check if the device has boot from USB capability
+                if (usbbootdevice === '') {
+                  uiconf.sections[4].hidden = true;
+                } else if (usbbootdevice === 'bootusb') {
+                  // Prevent listing devices other than NVMe as a target.
+                  var disksToRemove = disklist.filter(x => x.name !== 'NVMe');
+                  disksToRemove.forEach(x => disklist.splice(disklist.findIndex(n => n === x), 1));
+                  console.log('Disk list : ', disklist);
+                  if (disklist.length > 0 ) {
+                  uiconf.sections[4].hidden = false;
+                } else {
+                  // Installer should not be offered for cloning
+                  uiconf.sections[4].hidden = true;
+                }
+              }
+            } else if (disklist.length > 0 ) {
+              uiconf.sections[4].hidden = false;
+            }
               for (var i in disklist) {
                 var device = disklist[i];
                 var label = self.commandRouter.getI18nString('SYSTEM.INSTALL_TO_DISK') + ' ' + device.name;
@@ -155,7 +182,7 @@ ControllerSystem.prototype.getUIConfig = function () {
             });
         }
       }
-            
+
       var autoUpdate = self.config.get('autoUpdate', false);
       uiconf.sections[3].content[2].value = autoUpdate;
 
@@ -207,7 +234,7 @@ ControllerSystem.prototype.getUIConfig = function () {
             label: languagesdata.languages[n].name
           });
         }
-        
+
         self.getAvailableTimezones().forEach((timeZone) => {
           self.configManager.pushUIConfigParam(uiconf, 'sections[0].content[1].options', {
             value: timeZone,
@@ -234,10 +261,12 @@ ControllerSystem.prototype.getUIConfig = function () {
         } else if (fs.existsSync("/data/volumio2ui")) {
           uiValue = "CLASSIC";
           uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CLASSIC');
-        } 
+        }
         self.configManager.setUIConfigParam(uiconf, 'sections[8].content[0].value.value', uiValue);
         self.configManager.setUIConfigParam(uiconf, 'sections[8].content[0].value.label', uiLabel);
-
+        if (uiValue === "CLASSIC" || uiValue === "CONTEMPORARY") {
+          uiconf.sections[9] = {"coreSection": "ui-settings"};
+        }
         var additionalConfs = self.getAdditionalUISections();
         additionalConfs.then((conf) => {
           for (var i in conf) {
@@ -259,6 +288,62 @@ ControllerSystem.prototype.getUIConfig = function () {
     });
 
   return defer.promise;
+};
+
+
+ControllerSystem.prototype.getUSBBootCapable = function (data) {
+  var self = this;
+  var defer = libQ.defer();
+  var usbboot = '';
+  var usbbootSBCname = '';
+     exec('cat /proc/cpuinfo | grep Revision', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+      if (error !== null) {
+          self.logger.info('Cannot read proc/cpuinfo: ' + error);
+          defer.resolve('unknown');
+        } else {
+          var revisionLine = stdout.split(':');
+          if (revisionLine[1] !== undefined) {
+            var revisionparam = revisionLine[1].replace(/\s/g, '');
+          } else {
+            var revisionparam = stdout.replace(/\s/g, '');
+          }
+          var usbbootlist = fs.readJson(('/volumio/app/plugins/system_controller/system/usbbootcapable.json'),
+          { encoding: 'utf8', throws: false },
+          function (err, usbbootlist) {
+            if(usbbootlist && usbbootlist.usbboot) {
+                for (var i = 0; i < usbbootlist.usbboot.length; i++) {
+                  if (usbbootlist.usbboot[i].revision == revisionparam) {
+                    usbboot = usbbootlist.usbboot[i].permitted;
+                    // usbbootSBCname is used only by self.logger.info
+                    usbbootSBCname = usbbootlist.usbboot[i].name;
+                    self.USBBootCheck(usbboot);
+                    defer.resolve(usbboot);
+                    self.logger.info('USB Boot Capable - System SBC Revision found in cpuinfo:  ' + revisionparam);
+                    self.logger.info('USB Boot Capable - Found matching device in SBC capable list: ' + usbbootSBCname);
+                    return;
+                  }
+                }
+            } else {
+              defer.resolve('unknown');
+            }
+          });
+          //self.logger.info('USB Boot ::'+revisionparam+'::');
+        }
+    });
+  return;
+};
+
+ControllerSystem.prototype.USBBootCheck = function (data) {
+  var self = this;
+  var usbboot = config.get('usbboot');
+
+  if (usbboot == undefined) {
+    self.logger.info('USB Boot Capable - Checking Install to Disk functions for: ' + data);
+    self.config.set('usbboot', data);
+  } else if (usbboot != data) {
+    self.logger.info('USB Boot Capable change detected - Checking Install to Disk functions for: ' + data);
+    self.config.set('usbboot', data);
+  }
 };
 
 ControllerSystem.prototype.capitalize = function () {
@@ -653,26 +738,36 @@ ControllerSystem.prototype.deviceDetect = function (data) {
       self.deviceCheck(device);
       defer.resolve(device);
     } else {
-      exec('cat /proc/cpuinfo | grep Hardware', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+      exec('cat /proc/cpuinfo | grep Hardware || cat /proc/cpuinfo | grep Model || cat /etc/os-release | grep ^VOLUMIO_HARDWARE | tr -d VOLUMIO_HARDWARE= | tr -d "\\042"', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
         if (error !== null) {
           self.logger.info('Cannot read proc/cpuinfo: ' + error);
           defer.resolve('unknown');
         } else {
           var hardwareLine = stdout.split(':');
-          var cpuidparam = hardwareLine[1].replace(/\s/g, '');
+          if (hardwareLine[1] !== undefined) {
+            var cpuidparam = hardwareLine[1].replace(/\s/g, '');
+          } else {
+            var cpuidparam = stdout.replace(/\s/g, '');
+          }
           var deviceslist = fs.readJson(('/volumio/app/plugins/system_controller/system/devices.json'),
           { encoding: 'utf8', throws: false },
           function (err, deviceslist) {
             if(deviceslist && deviceslist.devices) {
-              for (var i = 0; i < deviceslist.devices.length; i++) {
-                if (deviceslist.devices[i].cpuid == cpuidparam) {
-                  device = deviceslist.devices[i].name;
-                  self.deviceCheck(device);
-                  defer.resolve(device);
-                  return;
+              if (cpuidparam.indexOf('Raspberry') >= 0) {
+                var device = 'Raspberry PI';
+                self.deviceCheck(device);
+                defer.resolve(device);
+              } else {
+                for (var i = 0; i < deviceslist.devices.length; i++) {
+                  if (deviceslist.devices[i].cpuid == cpuidparam) {
+                    device = deviceslist.devices[i].name;
+                    self.deviceCheck(device);
+                    defer.resolve(device);
+                    return;
+                  }
                 }
+                defer.resolve('unknown');
               }
-              defer.resolve('unknown');
             } else {
               defer.resolve('unknown');
             }
@@ -802,7 +897,7 @@ ControllerSystem.prototype.getDisks = function () {
           diskinfo.name = disksarray[a].replace('MODEL=', '').replace(/"/g, '');
         }
         if (diskinfo.device.indexOf('mmcblk') >= 0) {
-				   diskinfo.name = 'eMMC/SD';
+				  diskinfo.name = 'eMMC/SD';
         }
         if (diskinfo.device.indexOf('nvme') >= 0) {
           diskinfo.name = 'NVMe';
@@ -911,7 +1006,7 @@ ControllerSystem.prototype.installToDisk = function (data) {
 
   var hwdevice = data.hwdevice;
 
-  if (hwdevice !== 'x86') {
+  if (hwdevice !== 'x86' && hwdevice !== 'Raspberry PI') {
     // Tinker processing
     self.notifyInstallToDiskStatus({'progress': 0, 'status': 'started'});
     var ddsizeRaw = execSync('/bin/lsblk -b | grep -w ' + data.from + " | awk '{print $4}' | head -n1", { uid: 1000, gid: 1000, encoding: 'utf8'});
@@ -1002,14 +1097,26 @@ ControllerSystem.prototype.installToDisk = function (data) {
     self.notifyInstallToDiskStatus({'progress': 0, 'status': 'started'});
     execSync('/bin/echo "0" > /tmp/install_progress', { uid: 1000, gid: 1000, encoding: 'utf8'});
 
-    try {
-      var fastinstall = exec('/usr/bin/sudo /usr/local/bin/x86Installer.sh ' + target + ' ' + boot_type + ' ' + boot_start + ' ' + boot_end + ' ' + volumio_end + ' ' + boot_part + ' ' + volumio_part + ' ' + data_part, { uid: 1000, gid: 1000, encoding: 'utf8'});
-    } catch (e) {
-        error = true;
-        self.logger.info('Install to disk failed');
-        self.notifyInstallToDiskStatus({'progress': 0, 'status': 'error', 'error': 'Cannot install on new Disk'});
+    if (hwdevice === 'x86') {
+      try {
+        var fastinstall = exec('/usr/bin/sudo /usr/local/bin/x86Installer.sh ' + target + ' ' + boot_type + ' ' + boot_start + ' ' + boot_end + ' ' + volumio_end + ' ' + boot_part + ' ' + volumio_part + ' ' + data_part, { uid: 1000, gid: 1000, encoding: 'utf8'});
+      } catch (e) {
+          error = true;
+          self.logger.info('Install to disk failed');
+          self.notifyInstallToDiskStatus({'progress': 0, 'status': 'error', 'error': 'Cannot install on new Disk'});
+      }
     }
 
+    if (hwdevice === 'Raspberry PI') {
+      try {
+        var fastinstall = exec('/usr/bin/sudo /usr/local/bin/PiInstaller.sh ' + target + ' ' + boot_type + ' ' + boot_start + ' ' + boot_end + ' ' + volumio_end + ' ' + boot_part + ' ' + volumio_part + ' ' + data_part, { uid: 1000, gid: 1000, encoding: 'utf8'});
+      } catch (e) {
+          error = true;
+          self.logger.info('Install to disk failed');
+          self.notifyInstallToDiskStatus({'progress': 0, 'status': 'error', 'error': 'Cannot install on new Disk'});
+      }
+    }
+  
     var installProgress = exec('usr/bin/tail -f /tmp/install_progress');
 
     installProgress.stdout.on('data', function (data) {
@@ -1078,26 +1185,28 @@ ControllerSystem.prototype.notifyInstallToDiskStatus = function (data) {
 ControllerSystem.prototype.saveHDMISettings = function (data) {
   var self = this;
 
-  var currentConf = self.config.get('hdmi_enabled', false);
-  if (currentConf |= data['hdmi_enabled']) {
-    self.config.set('hdmi_enabled', data['hdmi_enabled']);
-
-    var action = 'enable';
-    var immediate = 'start';
-    if (!data['hdmi_enabled']) {
-      action = 'disable';
-      immediate = 'stop';
-    }
-
-    exec('/usr/bin/sudo /bin/systemctl ' + immediate + ' volumio-kiosk.service && /usr/bin/sudo /bin/systemctl ' + action + ' volumio-kiosk.service', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
-      if (error !== null) {
-        self.logger.error('Cannot ' + action + ' volumio-kiosk service: ' + error);
-      } else {
-        self.logger.info(action + ' volumio-kiosk service success');
-        self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('SYSTEM.HDMI_UI'), self.commandRouter.getI18nString('SYSTEM.SYSTEM_CONFIGURATION_UPDATE_SUCCESS'));
-      }
-    });
+  self.config.set('hdmi_enabled', data['hdmi_enabled']);
+  var kioskArgs = '-- -nocursor';
+  if (data.show_mouse_pointer === true) {
+    kioskArgs = '';
   }
+  execSync('/bin/echo ' + kioskArgs + ' > /data/kioskargs', { uid: 1000, gid: 1000, encoding: 'utf8'});
+
+  var action = 'enable';
+  var immediate = 'restart';
+  if (!data['hdmi_enabled']) {
+    action = 'disable';
+    immediate = 'stop';
+  }
+
+  exec('/usr/bin/sudo /bin/systemctl ' + immediate + ' volumio-kiosk.service && /usr/bin/sudo /bin/systemctl ' + action + ' volumio-kiosk.service', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+    if (error !== null) {
+      self.logger.error('Cannot ' + action + ' volumio-kiosk service: ' + error);
+    } else {
+      self.logger.info(action + ' volumio-kiosk service success');
+      self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('SYSTEM.HDMI_UI'), self.commandRouter.getI18nString('SYSTEM.SYSTEM_CONFIGURATION_UPDATE_SUCCESS'));
+    }
+  });
 };
 
 ControllerSystem.prototype.saveUpdateSettings = function (data) {
@@ -1434,13 +1543,13 @@ ControllerSystem.prototype.setTimezone = function (data) {
     execSync('/usr/bin/sudo /usr/bin/unlink /etc/localtime', { uid: 1000, gid: 1000, encoding: 'utf8'});
     execSync('/usr/bin/sudo /bin/ln -s /usr/share/zoneinfo/' + data + ' /etc/localtime', { uid: 1000, gid: 1000, encoding: 'utf8'});
     execSync('/usr/bin/sudo /bin/chmod 777 /etc/localtime', { uid: 1000, gid: 1000, encoding: 'utf8'});
-    process.env.TZ = data;    
+    process.env.TZ = data;
     self.config.set('timezone', data);
   } catch (e) {
       self.logger.error('Could not set timezone: ' + e);
   }
   try {
-    execSync('/usr/bin/sudo /usr/bin/timedatectl set-timezone \'' + data + '\'', { uid: 1000, gid: 1000, encoding: 'utf8'});    
+    execSync('/usr/bin/sudo /usr/bin/timedatectl set-timezone \'' + data + '\'', { uid: 1000, gid: 1000, encoding: 'utf8'});
   } catch (e) {
     try {
       self.logger.info('Could not set timezone, retrying');
@@ -1452,13 +1561,13 @@ ControllerSystem.prototype.setTimezone = function (data) {
     }
   }
   setTimeout(() => {
-    self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'clearUpdateSchedule');  
+    self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'clearUpdateSchedule');
   }, 30000);
 }
 
 ControllerSystem.prototype.setLanguageTimezone = function (data) {
   var self = this;
-  
+
   if (data && data.timezone && data.timezone.value) {
     self.setTimezone(data.timezone.value);
   }
@@ -1472,9 +1581,9 @@ ControllerSystem.prototype.setLanguageTimezone = function (data) {
 }
 
 ControllerSystem.prototype.getCurrentTimezone = function () {
-  return this.config.get('timezone', "UTC");  
+  return this.config.get('timezone', "UTC");
 }
-  
+
 
 ControllerSystem.prototype.getAvailableTimezones = function () {
   return [
@@ -2165,7 +2274,7 @@ ControllerSystem.prototype.getAdditionalUISections = function () {
       var section = additionalUISections[i];
       var pluginType = section.split('/')[0];
       var pluginName = section.split('/')[1];
-      var additionalUISection = self.commandRouter.executeOnPlugin(pluginType, pluginName, 'getAdditionalUiSection');
+      var additionalUISection = self.commandRouter.executeOnPlugin(pluginType, pluginName, 'getAdditionalUiSection', 'system');
       uiSectionsDefer.push(additionalUISection);
     }
     libQ.all(uiSectionsDefer).then((uiSectionsResult) => {

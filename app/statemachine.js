@@ -70,6 +70,10 @@ CoreStateMachine.prototype.getState = function () {
       this.volatileState.trackType = '';
     }
 
+    if (this.volatileState.codec === undefined) {
+      this.volatileState.codec = '';
+    }
+
     if (this.volatileState.albumart === undefined) {
       this.volatileState.albumart = '/albumart';
     }
@@ -86,6 +90,7 @@ CoreStateMachine.prototype.getState = function () {
       albumart: this.volatileState.albumart,
       uri: this.volatileState.uri,
       trackType: this.volatileState.trackType,
+      codec: this.volatileState.codec,
       seek: this.volatileState.seek,
       duration: this.volatileState.duration,
       samplerate: this.volatileState.samplerate,
@@ -103,7 +108,6 @@ CoreStateMachine.prototype.getState = function () {
       stream: this.volatileState.stream,
       updatedb: this.currentUpdate,
       volatile: true,
-      trackType: this.volatileState.trackType,
       disableUiControls: this.volatileState.disableUiControls,
       service: this.volatileState.service
     };
@@ -149,7 +153,6 @@ CoreStateMachine.prototype.getState = function () {
         stream: this.consumeState.stream,
         updatedb: this.currentUpdate,
         volatile: false,
-        trackType: this.consumeState.trackType,
         service: this.consumeState.service
       };
     } else {
@@ -174,6 +177,7 @@ CoreStateMachine.prototype.getState = function () {
         albumart: trackBlock.albumart,
         uri: trackBlock.uri,
         trackType: trackBlock.trackType,
+        codec: trackBlock.codec,
         seek: this.currentSeek,
         duration: trackBlock.duration,
         samplerate: trackBlock.samplerate,
@@ -339,6 +343,7 @@ CoreStateMachine.prototype.resetVolumioState = function () {
       self.currentTrackBlock = [];
       self.timeLastServiceStateUpdate = 0;
       self.currentTrackType = null;
+      self.currentCodec = null;
       self.timerPlayback = null;
       self.currentTitle = null;
       self.currentArtist = null;
@@ -430,10 +435,6 @@ CoreStateMachine.prototype.increasePlaybackTimer = function () {
     this.playbackStart = Date.now();
 
     var remainingTime = this.currentSongDuration - this.currentSeek;
-    if (remainingTime < 0) {
-      // this.commandRouter.pushConsoleMessage("ERROR increasePlaybackTimer remainingTime:" + remainingTime + " negative - askedForPrefetch:" + this.askedForPrefetch + " - simulateStopStartDone:" + this.simulateStopStartDone);
-      remainingTime = 0;
-    }
 
     if (remainingTime >= 0 && remainingTime < 5000 && this.askedForPrefetch == false) {
       this.askedForPrefetch = true;
@@ -468,6 +469,8 @@ CoreStateMachine.prototype.increasePlaybackTimer = function () {
 
       this.askedForPrefetch = false;
       this.pushState.bind(this);
+      // Push another state when new track starts after prefetch
+      setTimeout(this.pushState.bind(this), 600);
 
       this.startPlaybackTimer();
     } else {
@@ -586,20 +589,6 @@ CoreStateMachine.prototype.syncState = function (stateService, sService) {
     this.logger.verbose('In UPNP mode');
   } else {
     this.volatileService = undefined;
-
-    // On slow devices, nodejs might update mpd before the scheduled setTimeout ends.
-    // To handle this, make a direct call to increasePlaybackTimer to force another mpd update.
-    // Sometimes the mpd update occurs more than 500ms before the end of the scheduled setTimeout.
-    // Setting currentSeek = currentSongDuration ensures a setTimeout increase of no more than 500ms.
-    if (this.askedForPrefetch) {
-      // Debug if the workaround is applicable
-      this.commandRouter.pushDebugConsoleMessage('ERROR Prefetch 500ms setTimeout missed >> directly calling increasePlaybackTimer');
-      this.commandRouter.pushDebugConsoleMessage('ERROR this.runPlaybackTimer:' + this.runPlaybackTimer + ' this.currentSongDuration:' + this.currentSongDuration + ' - this.currentSeek:' + this.currentSeek + ' - this.prefetchDone:' + this.prefetchDone + ' - this.simulateStopStartDone:' + this.simulateStopStartDone);
-
-      this.currentSeek = this.currentSongDuration;
-      this.increasePlaybackTimer();
-    }
-
     var trackBlock = this.getTrack(this.currentPosition);
   }
 
@@ -764,6 +753,7 @@ CoreStateMachine.prototype.syncState = function (stateService, sService) {
       this.currentSeek = stateService.seek;
       this.currentDuration = stateService.duration;
       this.currentTrackType = null;
+      this.currentCodec = null;
       this.currentTitle = null;
       this.currentArtist = null;
       this.currentAlbum = null;
@@ -801,6 +791,7 @@ CoreStateMachine.prototype.syncState = function (stateService, sService) {
       this.currentSeek = stateService.seek;
       this.currentDuration = stateService.duration;
       this.currentTrackType = null;
+      this.currentCodec = null;
       this.currentTitle = null;
       this.currentArtist = null;
       this.currentAlbum = null;

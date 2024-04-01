@@ -979,7 +979,7 @@ ControllerNetworkfs.prototype.initUdevWatcher = function () {
   var self = this;
 
   self.logger.info('Starting Udev Watcher for removable devices');
-  var monitor = udev.monitor();
+  var monitor = udev.monitor('block');
 
   var devices = self.getUdevDevices();
   for (var i in devices) {
@@ -1048,7 +1048,7 @@ ControllerNetworkfs.prototype.initUdevWatcher = function () {
 ControllerNetworkfs.prototype.getUdevDevices = function () {
   var self = this;
 
-  return udev.list();
+  return udev.list('block');
 };
 
 ControllerNetworkfs.prototype.mountDevice = function (device) {
