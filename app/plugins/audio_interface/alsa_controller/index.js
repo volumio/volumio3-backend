@@ -1953,7 +1953,7 @@ ControllerAlsa.prototype.checkAudioDeviceAvailable = function () {
     	var found = false;
     	for (var i in cards) {
     		var currentCard = cards[i];
-    		if (currentCard && currentCard.id && currentCard.name && currentCard.id === outdev && currentCard.name === outdevName) {
+    		if (currentCard && currentCard.id && currentCard.name && currentCard.id === outdev) {
     			found = true;
       }
     }
