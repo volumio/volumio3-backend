@@ -399,6 +399,11 @@ ControllerAlsa.prototype.getUIConfig = function () {
         value = true;
         uiconf.sections[2].content[0].hidden = true;
       }
+
+      if (outdevicename.toLowerCase().includes('pdif')) {
+          value = false;
+          uiconf.sections[2].content[0].hidden = true;
+      }
       self.configManager.setUIConfigParam(uiconf, 'sections[2].content[0].value.value', value);
       self.configManager.setUIConfigParam(uiconf, 'sections[2].content[0].value.label', self.getLabelForSelect(self.configManager.getValue(uiconf, 'sections[2].content[0].options'), value));
 
@@ -1953,7 +1958,7 @@ ControllerAlsa.prototype.checkAudioDeviceAvailable = function () {
     	var found = false;
     	for (var i in cards) {
     		var currentCard = cards[i];
-    		if (currentCard && currentCard.id && currentCard.name && currentCard.id === outdev && currentCard.name === outdevName) {
+    		if (currentCard && currentCard.id && currentCard.name && currentCard.id === outdev) {
     			found = true;
       }
     }
