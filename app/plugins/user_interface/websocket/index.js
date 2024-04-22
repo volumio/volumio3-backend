@@ -1314,7 +1314,10 @@ function InterfaceWebUI (context) {
       if (returnedData != undefined) {
         returnedData.then(function (AvailablePlugins) {
           if (AvailablePlugins.NotAuthorized) {
-            selfConnWebSocket.emit('openModal', {'title': self.commandRouter.getI18nString('PLUGINS.PLUGIN_LOGIN'), 'message': self.commandRouter.getI18nString('PLUGINS.PLUGIN_LOGIN_MESSAGE'), 'buttons': [{'name': self.commandRouter.getI18nString('COMMON.CLOSE'), 'class': 'btn btn-info', 'emit': 'closeModals', 'payload': ''}]});
+            var modalButtons = [{'name': self.commandRouter.getI18nString('COMMON.CLOSE'), 'class': 'btn btn-warning', 'emit': 'closeModals', 'payload': ''},
+              {'name': self.commandRouter.getI18nString('COMMON.LOGIN'), 'class': 'btn btn-info', 'state': 'myvolumio.access', 'payload': ''}];
+            var modalContent = {'title': self.commandRouter.getI18nString('PLUGINS.PLUGIN_LOGIN'), 'message': self.commandRouter.getI18nString('PLUGINS.PLUGIN_LOGIN_MESSAGE'), 'buttons': modalButtons};
+            selfConnWebSocket.emit('openModal', modalContent);
           } else {
             selfConnWebSocket.emit('pushAvailablePlugins', AvailablePlugins);
           }
