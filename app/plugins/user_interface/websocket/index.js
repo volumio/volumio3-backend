@@ -1951,6 +1951,13 @@ function InterfaceWebUI (context) {
       selfConnWebSocket.emit('pushInfinityPlayback', returnedData);
     });
 
+    connWebSocket.on('getShutdownOrStandbyMode', function () {
+      var selfConnWebSocket = this;
+
+      var returnedData = self.commandRouter.getShutdownOrStandbyMode();
+      selfConnWebSocket.emit('pushShutdownOrStandbyMode', returnedData);
+    });
+
     connWebSocket.on('setInfinityPlayback', function (data) {
       var selfConnWebSocket = this;
 

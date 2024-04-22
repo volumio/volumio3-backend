@@ -2326,6 +2326,16 @@ CoreCommandRouter.prototype.registerStandByHandler = function (data) {
   }
 };
 
+CoreCommandRouter.prototype.getShutdownOrStandbyMode = function () {
+  var self = this;
+
+  if (self.standByHandler && self.standByHandler.category && self.standByHandler.name && self.standByHandler.method) {
+    return 'standby';
+  } else {
+    return 'shutdown';
+  }
+};
+
 CoreCommandRouter.prototype.addDSPSignalPathElement = function (data) {
   var self = this;
   /*
