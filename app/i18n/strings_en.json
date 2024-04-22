@@ -450,7 +450,8 @@
         "SHOW_MOUSE_POINTER_DOC": "Show or hide the mouse pointer on the screen",
         "SHOW_MOUSE_POINTER": "Show Mouse Pointer",
         "DAC_FILTER": "DAC Filter",
-        "DAC_FILTER_DOC": "Select the DAC Filter, which suppress unwanted information from the signal and shape it to specific waveforms"
+        "DAC_FILTER_DOC": "Select the DAC Filter, which suppress unwanted information from the signal and shape it to specific waveforms",
+        "ADVANCED_AUDIO_SETTINGS": "Advanced Audio Settings"
     },
     "UPDATER": {
         "CHECKING_FOR_UPDATES": "Checking for Updates",
