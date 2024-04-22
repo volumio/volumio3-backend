@@ -448,7 +448,9 @@
         "HDMI_I2S_MODE_PROTOCOL": "HDMI I2S Mode Protocol",
         "HDMI_I2S_MODE_DOC": "Set the HDMI I2S Protocol. This setting is only available for some some I2S DACs, if in doubt of what to choose, consult your DAC's manual or its manufacturer",
         "SHOW_MOUSE_POINTER_DOC": "Show or hide the mouse pointer on the screen",
-        "SHOW_MOUSE_POINTER": "Show Mouse Pointer"
+        "SHOW_MOUSE_POINTER": "Show Mouse Pointer",
+        "DAC_FILTER": "DAC Filter",
+        "DAC_FILTER_DOC": "Select the DAC Filter, which suppress unwanted information from the signal and shape it to specific waveforms"
     },
     "UPDATER": {
         "CHECKING_FOR_UPDATES": "Checking for Updates",
