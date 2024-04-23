@@ -7,6 +7,7 @@ var exec = require('child_process').exec;
 var execSync = require('child_process').execSync;
 var winston = require('winston');
 var vconf = require('v-conf');
+const SortingStorage = require('./sortingStorage');
 
 // Define the CoreCommandRouter class
 module.exports = CoreCommandRouter;
@@ -16,7 +17,7 @@ function CoreCommandRouter (server) {
   this.logger = winston.createLogger({
     format: winston.format.simple(),
     transports: [
-      new (winston.transports.Console)({level: 'verbose'})
+      new winston.transports.Console({level: 'verbose'})
     ]
   });
 
@@ -67,12 +68,13 @@ function CoreCommandRouter (server) {
   // plugins may need to be fully active before sound can play properly
   pluginPromise.then(() => {
 	  this.pushConsoleMessage('BOOT COMPLETED');
-      process.env.VOLUMIO_SYSTEM_STATUS = 'ready';
+    process.env.VOLUMIO_SYSTEM_STATUS = 'ready';
 	  metrics.log('CommandRouter');
 	  this.setStartupVolume();
 	  this.startupSound();
 	  this.closeModals();
   });
+  this.sortingStorage = new SortingStorage();
 }
 
 // Methods usually called by the Client Interfaces ----------------------------------------------------------------------------
@@ -322,7 +324,9 @@ CoreCommandRouter.prototype.volumioPushState = function (state) {
   var res = libQ.all(
     libFast.map(this.pluginManager.getPluginNames('user_interface'), function (sInterface) {
       var thisInterface = self.pluginManager.getPlugin('user_interface', sInterface);
-      if (typeof thisInterface.pushState === 'function') { return thisInterface.pushState(state); }
+      if (typeof thisInterface.pushState === 'function') {
+        return thisInterface.pushState(state);
+      }
     })
   );
   self.callCallback('volumioPushState', state);
@@ -342,7 +346,9 @@ CoreCommandRouter.prototype.volumioPushQueue = function (queue) {
   return libQ.all(
     libFast.map(this.pluginManager.getPluginNames('user_interface'), function (sInterface) {
       var thisInterface = self.pluginManager.getPlugin('user_interface', sInterface);
-      if (typeof thisInterface.pushQueue === 'function') { return thisInterface.pushQueue(queue); }
+      if (typeof thisInterface.pushQueue === 'function') {
+        return thisInterface.pushQueue(queue);
+      }
     })
   );
 };
@@ -451,21 +457,21 @@ CoreCommandRouter.prototype.preLoadItems = function (items) {
   try {
     this.stateMachine.preLoadItems(items);
   } catch (error) {
-    this.logger.error("Preload failed: " + error);
+    this.logger.error('Preload failed: ' + error);
   }
 };
 
 CoreCommandRouter.prototype.preLoadItemsStop = function () {
-    this.stateMachine.preLoadItemsStop();
+  this.stateMachine.preLoadItemsStop();
 };
 
 CoreCommandRouter.prototype.addPlay = function (data) {
-    var self = this;
+  var self = this;
 
-    self.addQueueItems(data)
-        .then(function (e) {
-            return self.volumioPlay(e.firstItemIndex);
-        });
+  self.addQueueItems(data)
+    .then(function (e) {
+      return self.volumioPlay(e.firstItemIndex);
+    });
 };
 
 CoreCommandRouter.prototype.playItemsList = function (data) {
@@ -565,7 +571,7 @@ CoreCommandRouter.prototype.getId = function () {
   var time = date.getDate() + '/' + date.getMonth() + '/' + date.getFullYear() + ' - ' +
 			date.getHours() + ':' + date.getMinutes();
 
-  return {'name': name, 'uuid': uuid, 'time': time};
+  return {name: name, uuid: uuid, time: time};
 };
 
 /**
@@ -578,8 +584,8 @@ CoreCommandRouter.prototype.getPlugConf = function (category, plugin) {
   var cName = category;
   var name = plugin;
   try {
-    var config = fs.readJsonSync(('/data/configuration/' + cName + '/' +
-			name + '/' + 'config.json'), 'utf-8',
+    var config = fs.readJsonSync('/data/configuration/' + cName + '/' +
+			name + '/' + 'config.json', 'utf-8',
     {throws: false});
   } catch (e) {
     var config = '';
@@ -699,7 +705,7 @@ CoreCommandRouter.prototype.usefulBackupConfs = function (currArray, backArray) 
   if (backNum > 0) {
     self.installBackupPlugins(catName, backPlugins);
   }
-  return {'cName': catName, 'plugConf': existingPlug};
+  return {cName: catName, plugConf: existingPlug};
 };
 
 /**
@@ -730,7 +736,11 @@ CoreCommandRouter.prototype.writeConfs = function (data) {
 CoreCommandRouter.prototype.min = function (a, b) {
   var self = this;
 
-  if (a < b) { return a; } else { return b; }
+  if (a < b) {
+    return a;
+  } else {
+    return b;
+  }
 };
 
 /**
@@ -764,7 +774,7 @@ CoreCommandRouter.prototype.installBackupPlugins = function (name, array) {
           self.pluginManager.installPlugin(plug[k].url);
         }
       }
-      self.writeConfs([{'cName': name, 'plugConf': array}]);
+      self.writeConfs([{cName: name, plugConf: array}]);
     }
   });
 };
@@ -785,12 +795,12 @@ CoreCommandRouter.prototype.loadBackup = function (request) {
 
   if (request.type == 'playlist') {
     var identification = self.getId();
-    data = {'id': identification, 'backup': self.loadPlaylistsBackup()};
+    data = {id: identification, backup: self.loadPlaylistsBackup()};
     defer.resolve(data);
   } else if (request.type == 'radio-favourites' || request.type == 'favourites' ||
 	request.type == 'my-web-radio') {
     var identification = self.getId();
-    data = {'id': identification, 'backup': self.loadFavBackup(request.type)};
+    data = {id: identification, backup: self.loadFavBackup(request.type)};
     defer.resolve(data);
   } else {
     self.logger.info('Backup: request not accepted, unexisting category');
@@ -815,7 +825,7 @@ CoreCommandRouter.prototype.loadPlaylistsBackup = function () {
     var name = playlists[i];
     var path = self.playListManager.playlistFolder + name;
     var songs = fs.readJsonSync(path, {throws: false});
-    data.push({'name': name, 'content': songs});
+    data.push({name: name, content: songs});
   }
 
   return data;
@@ -863,7 +873,7 @@ CoreCommandRouter.prototype.writeFavouritesBackup = function () {
   var radio = self.loadFavBackup('radio-favourites');
   var myRadio = self.loadFavBackup('my-web-radio');
 
-  var favourites = {'songs': data, 'radios': radio, 'myRadios': myRadio};
+  var favourites = {songs: data, radios: radio, myRadios: myRadio};
 
   var file = '/data/configuration/favourites';
   fs.outputJsonSync(file, favourites);
@@ -879,7 +889,7 @@ CoreCommandRouter.prototype.restorePlaylistBackup = function () {
   var isbackup = check[0];
 
   if (isbackup) {
-    self.restorePlaylist({'type': 'playlist', 'backup': check[1]});
+    self.restorePlaylist({type: 'playlist', backup: check[1]});
   }
 };
 
@@ -898,7 +908,7 @@ CoreCommandRouter.prototype.restoreFavouritesBackup = function (type) {
     var kind = self.checkFavouritesType(type, backup[1]);
     var file = kind[0];
     var data = kind[1];
-    self.restorePlaylist({'type': type, 'path': file, 'backup': data});
+    self.restorePlaylist({type: type, path: file, backup: data});
   }
 };
 
@@ -930,11 +940,19 @@ CoreCommandRouter.prototype.restorePlaylist = function (req) {
     }
     self.logger.info('Backup: restoring ' + req.type + '!');
     fs.outputJsonSync(path, backup);
-  } else { self.logger.info('Backup: impossible to restore data'); }
+  } else {
+    self.logger.info('Backup: impossible to restore data');
+  }
 };
 
 CoreCommandRouter.prototype.getPath = function (type) {
-  if (type == 'songs') { return 'favourites'; } else if (type == 'radios') { return 'radio-favourites'; } else if (type == 'myRadios') { return 'my-web-radio'; }
+  if (type == 'songs') {
+    return 'favourites';
+  } else if (type == 'radios') {
+    return 'radio-favourites';
+  } else if (type == 'myRadios') {
+    return 'my-web-radio';
+  }
   return '';
 };
 
@@ -980,7 +998,9 @@ CoreCommandRouter.prototype.checkFavouritesType = function (type, backup) {
   } else if (type == 'myRadios') {
     data = backup.myRadios;
     file = 'my-web-radio';
-  } else { self.logger.info('Error: category non existent'); }
+  } else {
+    self.logger.info('Error: category non existent');
+  }
 
   return [file, data];
 };
@@ -1084,7 +1104,7 @@ CoreCommandRouter.prototype.executeOnPlugin = function (type, name, method, data
 CoreCommandRouter.prototype.getUIConfigOnPlugin = function (type, name, data) {
   var self = this;
   this.pushConsoleMessage('CoreCommandRouter::getUIConfigOnPlugin');
-  var noConf = {'page': {'label': self.getI18nString('PLUGINS.NO_CONFIGURATION_AVAILABLE')}, 'sections': []};
+  var noConf = {page: {label: self.getI18nString('PLUGINS.NO_CONFIGURATION_AVAILABLE')}, sections: []};
 
   var defer = libQ.defer();
 
@@ -1192,7 +1212,9 @@ CoreCommandRouter.prototype.pushToastMessage = function (type, title, message) {
   return libQ.all(
     libFast.map(this.pluginManager.getPluginNames('user_interface'), function (sInterface) {
       var thisInterface = self.pluginManager.getPlugin('user_interface', sInterface);
-      if (typeof thisInterface.printToastMessage === 'function') { return thisInterface.printToastMessage(type, title, message); }
+      if (typeof thisInterface.printToastMessage === 'function') {
+        return thisInterface.printToastMessage(type, title, message);
+      }
     })
   );
 };
@@ -1202,7 +1224,9 @@ CoreCommandRouter.prototype.broadcastToastMessage = function (type, title, messa
   return libQ.all(
     libFast.map(this.pluginManager.getPluginNames('user_interface'), function (sInterface) {
       var thisInterface = self.pluginManager.getPlugin('user_interface', sInterface);
-      if (typeof thisInterface.broadcastToastMessage === 'function') { return thisInterface.broadcastToastMessage(type, title, message); }
+      if (typeof thisInterface.broadcastToastMessage === 'function') {
+        return thisInterface.broadcastToastMessage(type, title, message);
+      }
     })
   );
 };
@@ -1216,7 +1240,9 @@ CoreCommandRouter.prototype.broadcastMessage = function (msg, value) {
     libFast.map(this.pluginManager.getPluginNames('user_interface'), function (sInterface) {
       var emit = {msg: msg, value: value};
       var thisInterface = self.pluginManager.getPlugin('user_interface', sInterface);
-      if (typeof thisInterface.broadcastMessage === 'function') { return thisInterface.broadcastMessage(emit); }
+      if (typeof thisInterface.broadcastMessage === 'function') {
+        return thisInterface.broadcastMessage(emit);
+      }
     })
   );
 };
@@ -1239,7 +1265,9 @@ CoreCommandRouter.prototype.pushMultiroomDevices = function (data) {
   return libQ.all(
     libFast.map(this.pluginManager.getPluginNames('user_interface'), function (sInterface) {
       var thisInterface = self.pluginManager.getPlugin('user_interface', sInterface);
-      if (typeof thisInterface.pushMultiroomDevices === 'function') { return thisInterface.pushMultiroomDevices(data); }
+      if (typeof thisInterface.pushMultiroomDevices === 'function') {
+        return thisInterface.pushMultiroomDevices(data);
+      }
     })
   );
 };
@@ -1285,7 +1313,9 @@ CoreCommandRouter.prototype.pushMultiroom = function (data) {
   return libQ.all(
     libFast.map(this.pluginManager.getPluginNames('user_interface'), function (sInterface) {
       var thisInterface = self.pluginManager.getPlugin('user_interface', sInterface);
-      if (typeof thisInterface.pushMultiroom === 'function') { return thisInterface.pushMultiroom(data); }
+      if (typeof thisInterface.pushMultiroom === 'function') {
+        return thisInterface.pushMultiroom(data);
+      }
     })
 
   );
@@ -1296,7 +1326,9 @@ CoreCommandRouter.prototype.pushAirplay = function (data) {
   return libQ.all(
     libFast.map(this.pluginManager.getPluginNames('user_interface'), function (sInterface) {
       var thisInterface = self.pluginManager.getPlugin('user_interface', sInterface);
-      if (typeof thisInterface.pushAirplay === 'function') { return thisInterface.pushAirplay(data); }
+      if (typeof thisInterface.pushAirplay === 'function') {
+        return thisInterface.pushAirplay(data);
+      }
     })
   );
 };
@@ -1380,7 +1412,9 @@ CoreCommandRouter.prototype.volumioPlay = function (N) {
 
   this.stateMachine.unSetVolatile();
 
-  if (N === undefined) { return this.stateMachine.play(); } else {
+  if (N === undefined) {
+    return this.stateMachine.play();
+  } else {
     return this.stateMachine.play(N);
   }
 };
@@ -1506,7 +1540,9 @@ CoreCommandRouter.prototype.broadcastMessage = function (emit, payload) {
   return libQ.all(
     libFast.map(this.pluginManager.getPluginNames('user_interface'), function (sInterface) {
       var thisInterface = self.pluginManager.getPlugin('user_interface', sInterface);
-      if (typeof thisInterface.broadcastMessage === 'function') { return thisInterface.broadcastMessage(emit, payload); }
+      if (typeof thisInterface.broadcastMessage === 'function') {
+        return thisInterface.broadcastMessage(emit, payload);
+      }
     })
   );
 };
@@ -1653,9 +1689,9 @@ CoreCommandRouter.prototype.getI18nString = function (key) {
         return this.i18nStrings[key];
       } else {
         if (this.i18nStringsDefaults[key] !== undefined && this.i18nStringsDefaults[key] !== '') {
-            return this.i18nStringsDefaults[key];
+          return this.i18nStringsDefaults[key];
         } else {
-            return key;
+          return key;
         }
       }
     } else {
@@ -1663,7 +1699,7 @@ CoreCommandRouter.prototype.getI18nString = function (key) {
           this.i18nStrings[splitted[0]][splitted[1]] !== undefined &&
           this.i18nStrings[splitted[0]][splitted[1]] !== '') {
         return this.i18nStrings[splitted[0]][splitted[1]];
-      } else  {
+      } else {
         if (this.i18nStringsDefaults[splitted[0]] !== undefined &&
             this.i18nStringsDefaults[splitted[0]][splitted[1]] !== undefined &&
             this.i18nStringsDefaults[splitted[0]][splitted[1]] !== '') {
@@ -1763,7 +1799,7 @@ CoreCommandRouter.prototype.translateKeys = function (parent, dictionary, defaul
 
     for (var i in keys) {
       var obj = parent[keys[i]];
-      var type = typeof (obj);
+      var type = typeof obj;
 
       if (type === 'object') {
         self.translateKeys(obj, dictionary, defaultDictionary);
@@ -1829,7 +1865,7 @@ CoreCommandRouter.prototype.overrideUIConfig = function (uiconfig, overrideFile)
 CoreCommandRouter.prototype.overrideField = function (parent, id, attribute_name, attribute_value) {
   var self = this;
 
-  if (typeof (parent) === 'object') {
+  if (typeof parent === 'object') {
     if (parent.id === id) {
       parent[attribute_name] = attribute_value;
     } else {
@@ -1940,7 +1976,7 @@ CoreCommandRouter.prototype.getMyVolumioToken = function () {
       defer.resolve(result);
     })
       .fail(function () {
-        var jsonobject = {'tokenAvailable': false};
+        var jsonobject = {tokenAvailable: false};
         defer.resolve(jsonobject);
       });
   }
@@ -1969,7 +2005,7 @@ CoreCommandRouter.prototype.setMyVolumioToken = function (data) {
 CoreCommandRouter.prototype.getMyVolumioStatus = function () {
   var self = this;
   var defer = libQ.defer();
-  var notLoggedInResponseObject = {'loggedIn': false};
+  var notLoggedInResponseObject = {loggedIn: false};
 
   var response = self.executeOnPlugin('system_controller', 'my_volumio', 'getMyVolumioStatus', '');
   if (response != undefined) {
@@ -2031,7 +2067,7 @@ CoreCommandRouter.prototype.getMenuItems = function () {
     __dirname + '/mainmenu.json')
     .then(function (menuItemsJson) {
       if (fs.existsSync('/myvolumio/')) {
-        var menuItems = [{'id': 'my-volumio'}];
+        var menuItems = [{id: 'my-volumio'}];
         menuItems = menuItems.concat(menuItemsJson.menuItems);
       } else {
         var menuItems = menuItemsJson['menuItems'];
@@ -2105,20 +2141,20 @@ CoreCommandRouter.prototype.addPluginRestEndpoint = function (data) {
 };
 
 CoreCommandRouter.prototype.removePluginRestEndpoint = function (data) {
-    var self = this;
-    var updated = false;
+  var self = this;
+  var updated = false;
 
-    if (data && data.endpoint) {
-        if (self.pluginsRestEndpoints.length) {
-            for (var i in self.pluginsRestEndpoints) {
-                var endpoint = self.pluginsRestEndpoints[i];
-                if (endpoint.endpoint === data.endpoint) {
-                    self.logger.info('Removing ' + data.endpoint + ' REST Endpoint');
-                    self.pluginsRestEndpoints.splice(i, 1);
-                }
-            }
+  if (data && data.endpoint) {
+    if (self.pluginsRestEndpoints.length) {
+      for (var i in self.pluginsRestEndpoints) {
+        var endpoint = self.pluginsRestEndpoints[i];
+        if (endpoint.endpoint === data.endpoint) {
+          self.logger.info('Removing ' + data.endpoint + ' REST Endpoint');
+          self.pluginsRestEndpoints.splice(i, 1);
         }
+      }
     }
+  }
 };
 
 CoreCommandRouter.prototype.getPluginsRestEndpoints = function () {
@@ -2411,7 +2447,7 @@ CoreCommandRouter.prototype.addTracksForInfinityPlayback = function (currentLast
   try {
     var metaVolumioPlugin = self.pluginManager.getPlugin('miscellanea', 'metavolumio');
     return metaVolumioPlugin.addTracksForInfinityPlayback(currentLastTrack);
-  } catch(e) {}
+  } catch (e) {}
 };
 
 CoreCommandRouter.prototype.getInfinityPlayback = function () {
@@ -2420,7 +2456,7 @@ CoreCommandRouter.prototype.getInfinityPlayback = function () {
   try {
     var metaVolumioPlugin = self.pluginManager.getPlugin('miscellanea', 'metavolumio');
     return metaVolumioPlugin.getInfinityPlayback();
-  } catch(e) {}
+  } catch (e) {}
 };
 
 CoreCommandRouter.prototype.setInfinityPlayback = function (data) {
@@ -2429,7 +2465,7 @@ CoreCommandRouter.prototype.setInfinityPlayback = function (data) {
   try {
     var metaVolumioPlugin = self.pluginManager.getPlugin('miscellanea', 'metavolumio');
     return metaVolumioPlugin.setInfinityPlayback(data);
-  } catch(e) {}
+  } catch (e) {}
 };
 
 CoreCommandRouter.prototype.getStreamingCacheValue = function (path) {
@@ -2461,6 +2497,9 @@ CoreCommandRouter.prototype.reportBackendEvent = function (event, properties) {
   if (myVolumioPlugin != undefined && typeof myVolumioPlugin.reportBackendEvent === 'function') {
     try {
       return myVolumioPlugin.reportBackendEvent(event, properties);
-    } catch(e) {}
+    } catch (e) {}
   }
+};
+CoreCommandRouter.prototype.getSortingStorage = function () {
+  return this.sortingStorage;
 };
