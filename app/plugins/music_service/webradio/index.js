@@ -479,7 +479,11 @@ ControllerWebradio.prototype.clearAddPlayTrack = function (track) {
       return self.mpdPlugin.sendMpdCommand('clear', []);
     })
     .then(function () {
-      return self.mpdPlugin.sendMpdCommand('load "' + safeUri + '"', []);
+      if (track && track.uri && track.uri.includes('m3u8')) {
+        return self.mpdPlugin.sendMpdCommand('add "' + safeUri + '"', []);
+      } else {
+        return self.mpdPlugin.sendMpdCommand('load "' + safeUri + '"', []);
+      }
     })
     .fail(function (e) {
       return self.mpdPlugin.sendMpdCommand('add "' + safeUri + '"', []);
