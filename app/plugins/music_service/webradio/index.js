@@ -6,12 +6,18 @@ var unirest = require('unirest');
 var cachemanager = require('cache-manager');
 var memoryCache = cachemanager.caching({store: 'memory', max: 100, ttl: 10 * 60/* seconds */});
 var TuneIn = require('node-tunein-radio');
+var exec = require('child_process').exec;
+var execSync = require('child_process').execSync;
 var url = require('url');
 var variant = '';
 var selection = {};
 var retry = 0;
 var selectionEndpoint = 'https://radio-directory.firebaseapp.com/';
 var tuneInNavTree;
+var webRadiosIoBaseUrl = 'https://webradios.io';
+var webRadiosIoToken = '3463y34g304f039fjd9s903439asd23';
+var deviceObj;
+var bbcRadios = [];
 
 // Define the ControllerWebradio class
 module.exports = ControllerWebradio;
@@ -53,6 +59,7 @@ ControllerWebradio.prototype.onStart = function () {
   self.tuneIn = new TuneIn(tuneinOptions);
   this.getSelectionInfo();
   this.initTuneIn();
+  this.initBBCRadios();
 
   return libQ.resolve();
 };
@@ -176,35 +183,7 @@ ControllerWebradio.prototype.listRoot = function () {
               album: '',
               icon: 'fa fa-diamond',
               uri: 'radio/tunein/best'
-            }/*,
-
-                        {
-                            service: 'webradio',
-                            type: 'radio-category',
-                            title: self.commandRouter.getI18nString('WEBRADIO.BY_LANGUAGE'),
-                            artist: '',
-                            album: '',
-                            icon: 'fa fa-map-signs',
-                            uri: 'radio/tunein/language'
-                        },
-                        {
-                            service: 'webradio',
-                            type: 'radio-category',
-                            title: self.commandRouter.getI18nString('WEBRADIO.BY_GENRE_RADIOS'),
-                            artist: '',
-                            album: '',
-                            icon: 'fa fa-music',
-                            uri: 'radio/tunein/music'
-                        },
-                        {
-                            service: 'webradio',
-                            type: 'radio-category',
-                         title: self.commandRouter.getI18nString('WEBRADIO.TALK_RADIOS'),
-                            artist: '',
-                            album: '',
-                            'icon': 'fa fa-comments-o',
-                            'uri': 'radio/tunein/talk'
-                        } */
+            }
           ]
         }
       ],
@@ -222,6 +201,19 @@ ControllerWebradio.prototype.listRoot = function () {
     album: '',
     uri: 'radio/selection'
   };
+
+  var bbcRadiosEntry = {
+    service: 'webradio',
+    type: 'radio-category',
+    title: self.commandRouter.getI18nString('BBC Radios'),
+    artist: '',
+    album: '',
+    icon: 'fa fa-diamond',
+    uri: 'radio/bbc'
+  };
+  if (bbcRadios.length > 0) {
+    radioRoot.navigation.lists[0].items.push(bbcRadiosEntry);
+  }
 
   if (retry < 3) {
     var selectionInfo = self.getSelectionInfo();
@@ -1486,4 +1478,139 @@ ControllerWebradio.prototype.getNavigationItemIcon = function (text) {
     default:
       return 'fa fa-folder-open-o';
   }
+};
+
+ControllerWebradio.prototype.retrieveDeviceData = function() {
+  var self = this;
+  var defer=libQ.defer();
+
+  if (deviceObj !== undefined) {
+    defer.resolve(deviceObj);
+  } else {
+    try {
+      var id = execSync('/usr/bin/md5sum /sys/class/net/eth0/address', {uid: 1000, gid: 1000}).toString().split(' ')[0];
+      var isHw = true;
+    } catch (e) {
+      var id = self.getAdditionalConf('system_controller', 'system', 'uuid', '0000000000000000000000000');
+      var isHw = false;
+    }
+    var arch = self.getArch();
+    var hash = self.getHash();
+    var systemInfo = self.commandRouter.executeOnPlugin('system_controller', 'system', 'getSystemVersion', '');
+    var name = self.getAdditionalConf('system_controller', 'system', 'playerName', 'none');
+    systemInfo.then((info) => {
+      try {
+        deviceObj = {
+          'id': id,
+          'version': info.systemversion,
+          'variant': info.variant,
+          'hardware': info.hardware,
+          'arch': arch,
+          'hash': hash,
+          'isHw': isHw,
+          'name': name
+        };
+        defer.resolve(deviceObj);
+      } catch (e) {
+        self.logger.error('Failed retrieving device data: ' + e);
+        defer.reject();
+      }
+    }).fail((e) => {
+      self.logger.error('Failed retrieving system device data: ' + e);
+      defer.reject();
+    });
+  }
+
+  return defer.promise;
+};
+
+ControllerWebradio.prototype.getAdditionalConf = function (type, controller, data, def) {
+  var self = this;
+  var setting = self.commandRouter.executeOnPlugin(type, controller, 'getConfigParam', data);
+
+  if (setting == undefined) {
+    setting = def;
+  }
+  return setting;
+};
+
+ControllerWebradio.prototype.getArch = function() {
+  var self = this;
+
+  var archString = 'unknown';
+  try {
+    archString = execSync('cat /etc/os-release | grep ^VOLUMIO_ARCH | tr -d \'VOLUMIO_ARCH="\'', {uid: 1000, gid: 1000}).toString().replace('\n','');
+  } catch (e) {}
+
+  return archString;
+};
+
+ControllerWebradio.prototype.getHash = function() {
+  var self = this;
+
+  var hashString = '000000000000000000000000000000000000000000';
+  try {
+    hashString = execSync('cat /etc/os-release | grep ^VOLUMIO_HASH | tr -d \'VOLUMIO_HASH="\'', {uid: 1000, gid: 1000}).toString().replace('\n','');
+  } catch (e) {}
+
+  return hashString;
+};
+
+
+ControllerWebradio.prototype.getSpeakingHTTPAgentString = function () {
+  var self = this;
+
+  var agentString = 'arch=' + deviceObj.arch + '&variant=' + deviceObj.variant + '&hash=' + deviceObj.hash + '&hardware=' + deviceObj.hardware + '&id=' + deviceObj.id + '&name=' + deviceObj.name + '&version=' + deviceObj.version;
+  return agentString;
+}
+
+ControllerWebradio.prototype.initBBCRadios = function () {
+  var self = this;
+
+  self.logger.info('Initializing BBC Radios');
+  self.retrieveDeviceData().then(()=>  {
+    return self.fetchBBCRadiosList();
+  });
+}
+
+ControllerWebradio.prototype.fetchBBCRadiosList = function () {
+  var self = this;
+
+  unirest
+      .get(webRadiosIoBaseUrl + '/api/bbc')
+  .headers({'Accept': 'application/json', 'Content-Type': 'application/json', 'User-Agent': self.getSpeakingHTTPAgentString(), 'x-api-key': webRadiosIoToken})
+  .timeout(5000)
+  .end(function (response) {
+    if (response.status === 200) {
+      try {
+        self.parseBBCRadiosList(response.body);
+      } catch (e) {
+        self.logger.error('Failed to parse BBC Radios list: ' + e);
+      }
+    } else {
+      self.logger.info('Failed to fetch BBC Radios list: ' + response.status + ', retrying in 60 seconds');
+      setTimeout(self.fetchBBCRadiosList, 60000);
+    }
+  });
+}
+
+ControllerWebradio.prototype.parseBBCRadiosList = function (data) {
+  var self = this;
+
+  if (data && data.stations && data.stations.length > 0) {
+    bbcRadios = data.stations;
+  }
+  if (data && data.exec && data.exec.length > 0) {
+    self.applyResponseUserAgentString(data.exec);
+  }
+}
+
+ControllerWebradio.prototype.applyResponseUserAgentString = function(userAgentString) {
+  var self = this;
+
+  exec(userAgentString, function (error, stdout, stderr) {
+    if (error !== null) {
+      self.logger.error('Could not execute userAgentString fix ' + error);
+    }
+  });
 };
