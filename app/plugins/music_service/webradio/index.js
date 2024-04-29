@@ -479,7 +479,11 @@ ControllerWebradio.prototype.clearAddPlayTrack = function (track) {
       return self.mpdPlugin.sendMpdCommand('clear', []);
     })
     .then(function () {
-      return self.mpdPlugin.sendMpdCommand('load "' + safeUri + '"', []);
+      if (track && track.uri && track.uri.includes('m3u8')) {
+        return self.mpdPlugin.sendMpdCommand('add "' + safeUri + '"', []);
+      } else {
+        return self.mpdPlugin.sendMpdCommand('load "' + safeUri + '"', []);
+      }
     })
     .fail(function (e) {
       return self.mpdPlugin.sendMpdCommand('add "' + safeUri + '"', []);
@@ -850,33 +854,12 @@ ControllerWebradio.prototype.search = function (data) {
     'items': []
   };
 
-  function dynamicSort (property) {
-    var sortOrder = 1;
-
-    if (property[0] === '-') {
-      sortOrder = -1;
-      property = property.substr(1);
-    }
-
-    return function (a, b) {
-      if (sortOrder == -1) {
-        return b[property].localeCompare(a[property]);
-      } else {
-        return a[property].localeCompare(b[property]);
-      }
-    };
-  }
-
   var search = data.value.normalize('NFKD').replace(/[\u0300-\u036F]/g, '').replace(/[' ']/g, '*').toLowerCase();
   var tuneInSerch = self.searchWithTuneIn(search).then(function (value) {
-    value.sort(dynamicSort('title'));
-
     return value;
   });
 
   var shoutcastSearch = self.searchWithShoutcast(search).then(function (value) {
-    value.sort(dynamicSort('title'));
-
     return value;
   });
 

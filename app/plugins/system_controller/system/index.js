@@ -249,7 +249,9 @@ ControllerSystem.prototype.getUIConfig = function () {
           label: currentTimezone
         });
 
-
+        if (process.env.ALLOW_LEGACY_UIS_SELECTION === 'false') {
+          uiconf.sections[8].hidden = true;
+        }
         var uiValue = "";
         var uiLabel = "";
         if (fs.existsSync('/data/disableManifestUI') === false) {
