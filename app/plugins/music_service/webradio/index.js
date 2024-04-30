@@ -1580,7 +1580,7 @@ ControllerWebradio.prototype.fetchBBCRadiosList = function () {
   var self = this;
 
   var speakingAgentString = self.getSpeakingHTTPAgentString();
-  unirest.get(webRadiosIoBaseUrl + '/api/bbc')
+  unirest.get(webRadiosIoBaseUrl + '/api/v1/bbc')
   .headers({'Accept': 'application/json', 'Content-Type': 'application/json', 'User-Agent': speakingAgentString, 'x-api-key': webRadiosIoToken})
   .timeout(5000)
   .end(function (response) {
