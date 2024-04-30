@@ -211,7 +211,7 @@ ControllerWebradio.prototype.listRoot = function () {
     title: self.commandRouter.getI18nString('BBC Radios'),
     artist: '',
     album: '',
-    icon: 'fa fa-diamond',
+    albumart: '/albumart?sourceicon=music_service/webradio/bbcradiologo.png',
     uri: 'radio/bbc'
   };
   if (bbcRadios.length > 0) {
