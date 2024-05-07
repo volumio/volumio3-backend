@@ -378,3 +378,18 @@ volumioWizard.prototype.getDoneMessage = function () {
 
   return response;
 };
+
+volumioWizard.prototype.getOnboardingWizard = function () {
+  var self = this;
+  var isShowOnboarding= self.config.get('first_onboarding',true)
+
+  var onboardingWizardResponse = {'openOnboardingWizard': isShowOnboarding}
+  return onboardingWizardResponse
+
+}
+volumioWizard.prototype.setOnboardingWizard = function () {
+  var self = this;
+  
+ self.config.set('first_onboarding',false)
+
+}
