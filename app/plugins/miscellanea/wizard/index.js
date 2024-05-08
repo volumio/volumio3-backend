@@ -397,3 +397,16 @@ volumioWizard.prototype.setOnboardingWizard = function () {
   self.config.set('first_onboarding', false)
 
 }
+
+volumioWizard.prototype.getDeviceName = function () {
+  var self = this;
+  var defer = libQ.defer();
+
+  var isShowPopoverMotivo = process.env.PRODUCT_NAME
+
+  var deviceNameResponse = { 'showPopoverMotivo': isShowPopoverMotivo };
+  defer.resolve(deviceNameResponse);
+
+  return defer.promise;
+
+}

@@ -1468,7 +1468,7 @@ function InterfaceWebUI (context) {
       } else self.logger.error('Cannot get UI Settings');
     });
    //ONBOARDING WIZARD
-   connWebSocket.on('getOnboardingWizard', function () {
+    connWebSocket.on('getOnboardingWizard', function () {
     var selfConnWebSocket = this;
 
     var returnedData = self.commandRouter.executeOnPlugin('miscellanea', 'wizard', 'getOnboardingWizard', '');
@@ -1482,13 +1482,29 @@ function InterfaceWebUI (context) {
         }
       });
     } else self.logger.error('Cannot get onboarding wizard');
-  });
+    });
 
-  connWebSocket.on('setOnboardingWizard', function () {
+    connWebSocket.on('setOnboardingWizard', function () {
 
-    self.commandRouter.executeOnPlugin('miscellanea', 'wizard', 'setOnboardingWizard', '');
+     self.commandRouter.executeOnPlugin('miscellanea', 'wizard', 'setOnboardingWizard', '');
 
-  });
+    });
+    
+    connWebSocket.on('getDeviceName', function () {
+      var selfConnWebSocket = this;
+  
+      var returnedData = self.commandRouter.executeOnPlugin('miscellanea', 'wizard', 'getDeviceName', '');
+      if (returnedData != undefined) {
+        returnedData.then(function (data) {
+  
+          if (data) {
+            selfConnWebSocket.emit('pushDeviceName', data)
+          } else {
+            self.logger.error('No data to send for device name');
+          }
+        });
+      } else self.logger.error('Cannot get device name');
+    });
 
     connWebSocket.on('getBackgrounds', function () {
       var selfConnWebSocket = this;
