@@ -1467,24 +1467,28 @@ function InterfaceWebUI (context) {
         });
       } else self.logger.error('Cannot get UI Settings');
     });
-//ONBOARDING WIZARD
-    connWebSocket.on('getOnboardingWizard', function () {
-      var selfConnWebSocket = this;
+   //ONBOARDING WIZARD
+   connWebSocket.on('getOnboardingWizard', function () {
+    var selfConnWebSocket = this;
 
-      var returnedData = self.commandRouter.executeOnPlugin('miscellanea', 'wizard', 'getOnboardingWizard', '');
-      if (returnedData != undefined) {
-        returnedData.then(function (data) {
-          selfConnWebSocket.emit('pushOnboardingWizard', data);
+    var returnedData = self.commandRouter.executeOnPlugin('miscellanea', 'wizard', 'getOnboardingWizard', '');
+    if (returnedData != undefined) {
+      returnedData.then(function (data) {
 
-         // selfConnWebSocket.emit('pushOnboardingWizard', {'openOnboardingWizard': true});
-        });
-      } else self.logger.error('Cannot get onboarding wizard');
-    });
-    connWebSocket.on('setOnboardingWizard', function () {
+        if (data) {
+          selfConnWebSocket.emit('pushOnboardingWizard', data)
+        } else {
+          self.logger.error('No data to send for onboarding wizard');
+        }
+      });
+    } else self.logger.error('Cannot get onboarding wizard');
+  });
 
-     self.commandRouter.executeOnPlugin('miscellanea', 'wizard', 'setOnboardingWizard', '');
-     
-    });
+  connWebSocket.on('setOnboardingWizard', function () {
+
+    self.commandRouter.executeOnPlugin('miscellanea', 'wizard', 'setOnboardingWizard', '');
+
+  });
 
     connWebSocket.on('getBackgrounds', function () {
       var selfConnWebSocket = this;

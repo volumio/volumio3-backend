@@ -381,15 +381,19 @@ volumioWizard.prototype.getDoneMessage = function () {
 
 volumioWizard.prototype.getOnboardingWizard = function () {
   var self = this;
-  var isShowOnboarding= self.config.get('first_onboarding',true)
+  var defer = libQ.defer();
 
-  var onboardingWizardResponse = {'openOnboardingWizard': isShowOnboarding}
-  return onboardingWizardResponse
+  var isShowOnboarding = self.config.get('first_onboarding', true);
+
+  var onboardingWizardResponse = { 'openOnboardingWizard': isShowOnboarding };
+  defer.resolve(onboardingWizardResponse);
+
+  return defer.promise;
 
 }
 volumioWizard.prototype.setOnboardingWizard = function () {
   var self = this;
-  
- self.config.set('first_onboarding',false)
+
+  self.config.set('first_onboarding', false)
 
 }
