@@ -1572,30 +1572,42 @@ ControllerWebradio.prototype.initBBCRadios = function () {
 
   self.logger.info('Initializing BBC Radios');
   self.retrieveDeviceData().then(()=>  {
-    return self.fetchBBCRadiosList();
+    return self.checkIfBBCRadiosAreAvailable();
+  });
+}
+
+ControllerWebradio.prototype.checkIfBBCRadiosAreAvailable = function () {
+  var self = this;
+
+  self.fetchBBCRadiosList().then((data) => {
+    try {
+      self.parseBBCRadiosList(data);
+    } catch (e) {
+      self.logger.error('Failed to parse BBC Radios list: ' + e);
+    }
+  }).fail((e) => {
+    setTimeout(() => {
+      self.checkIfBBCRadiosAreAvailable();
+    }, 60000);
   });
 }
 
 ControllerWebradio.prototype.fetchBBCRadiosList = function () {
   var self = this;
+  var defer = libQ.defer();
 
   var speakingAgentString = self.getSpeakingHTTPAgentString();
   unirest.get(webRadiosIoBaseUrl + '/api/v1/bbc')
   .headers({'Accept': 'application/json', 'Content-Type': 'application/json', 'User-Agent': speakingAgentString, 'x-api-key': webRadiosIoToken})
   .timeout(5000)
   .end(function (response) {
-    if (response.status === 200) {
-      try {
-        self.parseBBCRadiosList(response.body);
-      } catch (e) {
-        self.logger.error('Failed to parse BBC Radios list: ' + e);
-      }
+    if (response.status === 200 && response.body) {
+      defer.resolve(response.body);
     } else {
-      setTimeout(() => {
-        self.fetchBBCRadiosList();
-      }, 60000);
+      defer.reject();
     }
   });
+  return defer.promise;
 }
 
 ControllerWebradio.prototype.parseBBCRadiosList = function (data) {
@@ -1642,16 +1654,20 @@ ControllerWebradio.prototype.listBBCRadios = function () {
     }
   };
 
-  if (bbcRadios && bbcRadios.length > 0) {
-    for (var i in bbcRadios) {
-      var station = bbcRadios[i];
-      object.navigation.lists[0].items.push(station);
+  self.fetchBBCRadiosList().then((data) => {
+    if (data.stations && data.stations.length > 0) {
+      for (var i in data.stations) {
+        var station = data.stations[i];
+        object.navigation.lists[0].items.push(station);
+      }
+      defer.resolve(object);
+    } else {
+      self.logger.info('No BBC Radios found');
+      defer.resolve(object);
     }
-    defer.resolve(object);
-  } else {
-    self.logger.info('No BBC Radios found');
-    defer.resolve(object);
-  }
-
+  }).fail((e) => {
+    defer.reject(new Error('Failed to list BBC Radios: ' + e));
+  });
+  
   return defer.promise;
 };
