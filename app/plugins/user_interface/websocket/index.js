@@ -1476,7 +1476,7 @@ function InterfaceWebUI (context) {
       returnedData.then(function (data) {
 
         if (data) {
-          selfConnWebSocket.emit('pushOnboardingWizard', data)
+          selfConnWebSocket.emit('pushOnboardingWizard', data);
         } else {
           self.logger.error('No data to send for onboarding wizard');
         }
@@ -1490,21 +1490,7 @@ function InterfaceWebUI (context) {
 
     });
     
-    connWebSocket.on('getDeviceName', function () {
-      var selfConnWebSocket = this;
   
-      var returnedData = self.commandRouter.executeOnPlugin('miscellanea', 'wizard', 'getDeviceName', '');
-      if (returnedData != undefined) {
-        returnedData.then(function (data) {
-  
-          if (data) {
-            selfConnWebSocket.emit('pushDeviceName', data)
-          } else {
-            self.logger.error('No data to send for device name');
-          }
-        });
-      } else self.logger.error('Cannot get device name');
-    });
 
     connWebSocket.on('getBackgrounds', function () {
       var selfConnWebSocket = this;

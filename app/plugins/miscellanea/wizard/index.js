@@ -382,31 +382,23 @@ volumioWizard.prototype.getDoneMessage = function () {
 volumioWizard.prototype.getOnboardingWizard = function () {
   var self = this;
   var defer = libQ.defer();
+  //to do - check the access to the process.env.product_name value
+  var isShowPopoverMotivo = process.env.PRODUCT_NAME;
+  console.log(isShowOnboarding)
 
-  var isShowOnboarding = self.config.get('first_onboarding', true);
+  var isShowOnboarding = self.config.get('first_onboarding', true, 'product_device_name', isShowPopoverMotivo);
 
   var onboardingWizardResponse = { 'openOnboardingWizard': isShowOnboarding };
   defer.resolve(onboardingWizardResponse);
 
   return defer.promise;
 
-}
+};
+
 volumioWizard.prototype.setOnboardingWizard = function () {
   var self = this;
 
-  self.config.set('first_onboarding', false)
+  self.config.set('first_onboarding', false);
 
-}
+};
 
-volumioWizard.prototype.getDeviceName = function () {
-  var self = this;
-  var defer = libQ.defer();
-
-  var isShowPopoverMotivo = process.env.PRODUCT_NAME
-
-  var deviceNameResponse = { 'showPopoverMotivo': isShowPopoverMotivo };
-  defer.resolve(deviceNameResponse);
-
-  return defer.promise;
-
-}
