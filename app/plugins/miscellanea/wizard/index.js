@@ -382,11 +382,8 @@ volumioWizard.prototype.getDoneMessage = function () {
 volumioWizard.prototype.getOnboardingWizard = function () {
   var self = this;
   var defer = libQ.defer();
-  //to do - check the access to the process.env.product_name value
-  var isShowPopoverMotivo = process.env.PRODUCT_NAME;
-  console.log(isShowOnboarding)
-
-  var isShowOnboarding = self.config.get('first_onboarding', true, 'product_device_name', isShowPopoverMotivo);
+ 
+  var isShowOnboarding = self.config.get('first_onboarding', true);
 
   var onboardingWizardResponse = { 'openOnboardingWizard': isShowOnboarding };
   defer.resolve(onboardingWizardResponse);
