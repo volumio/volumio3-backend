@@ -24,6 +24,10 @@
     {"name":"Raspberry PI", "permitted":"bootusb", "revision":"c03140"},
     {"name":"Raspberry PI", "permitted":"bootusb", "revision":"d03140"},
     {"name":"Raspberry PI", "permitted":"bootusb", "revision":"d03141"},
+    {"name":"Raspberry PI", "permitted":"bootusb", "revision":"a03150"},
+    {"name":"Raspberry PI", "permitted":"bootusb", "revision":"b03150"},
+    {"name":"Raspberry PI", "permitted":"bootusb", "revision":"c03150"},
+    {"name":"Raspberry PI", "permitted":"bootusb", "revision":"d03150"},
     {"name":"Raspberry PI", "permitted":"bootusb", "revision":"902120"},
     {"name":"Raspberry PI", "permitted":"bootusb", "revision":"c04170"},
     {"name":"Raspberry PI", "permitted":"bootusb", "revision":"d04170"}
