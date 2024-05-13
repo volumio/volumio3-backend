@@ -1476,7 +1476,7 @@ function InterfaceWebUI (context) {
       returnedData.then(function (data) {
 
         if (data) {
-          selfConnWebSocket.emit('pushOnboardingWizard', data);
+          selfConnWebSocket.emit('firstOnboardingWizard', data);
         } else {
           self.logger.error('No data to send for onboarding wizard');
         }

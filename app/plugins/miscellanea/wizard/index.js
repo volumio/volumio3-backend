@@ -382,10 +382,15 @@ volumioWizard.prototype.getDoneMessage = function () {
 volumioWizard.prototype.getOnboardingWizard = function () {
   var self = this;
   var defer = libQ.defer();
- 
-  var isShowOnboarding = self.config.get('first_onboarding', true);
 
-  var onboardingWizardResponse = { 'openOnboardingWizard': isShowOnboarding };
+  var isMotivo = process.env.PRODUCT_NAME
+  var isShowOnboarding = self.config.get('show_first_onboarding', true);
+
+
+  var onboardingWizardResponse = {
+    'openOnboardingWizard': isShowOnboarding, 
+    'deviceName' : isMotivo
+  };
   defer.resolve(onboardingWizardResponse);
 
   return defer.promise;
@@ -395,7 +400,7 @@ volumioWizard.prototype.getOnboardingWizard = function () {
 volumioWizard.prototype.setOnboardingWizard = function () {
   var self = this;
 
-  self.config.set('first_onboarding', false);
+  self.config.set('show_first_onboarding', false);
 
 };
 
