@@ -307,6 +307,7 @@ volumioWizard.prototype.setCloseWizard = function () {
   self.logger.info('Wizard terminated Successfully');
   self.commandRouter.broadcastMessage('closeWizard', '');
   self.commandRouter.setStartupVolume();
+  self.config.set('show_first_onboarding', true);
 
   if (I2Sreboot) {
     self.logger.info('Player Reboot required after I2S DAC has been enabled in wizard');
@@ -378,3 +379,29 @@ volumioWizard.prototype.getDoneMessage = function () {
 
   return response;
 };
+
+volumioWizard.prototype.getOnboardingWizard = function () {
+  var self = this;
+  var defer = libQ.defer();
+
+  var deviceName = process.env.PRODUCT_NAME
+  var isShowOnboarding = self.config.get('show_first_onboarding', false);
+
+
+  var onboardingWizardResponse = {
+    'openOnboardingWizard': isShowOnboarding, 
+    'deviceName' : deviceName
+  };
+  defer.resolve(onboardingWizardResponse);
+
+  return defer.promise;
+
+};
+
+volumioWizard.prototype.setOnboardingWizardFalse = function () {
+  var self = this;
+
+  self.config.set('show_first_onboarding', false);
+
+};
+

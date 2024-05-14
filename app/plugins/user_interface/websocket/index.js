@@ -1467,6 +1467,30 @@ function InterfaceWebUI (context) {
         });
       } else self.logger.error('Cannot get UI Settings');
     });
+    
+    connWebSocket.on('getOnboardingWizard', function () {
+    var selfConnWebSocket = this;
+
+    var returnedData = self.commandRouter.executeOnPlugin('miscellanea', 'wizard', 'getOnboardingWizard', '');
+    if (returnedData != undefined) {
+      returnedData.then(function (data) {
+
+        if (data) {
+          selfConnWebSocket.emit('firstOnboardingWizard', data);
+        } else {
+          self.logger.error('No data to send for onboarding wizard');
+        }
+      });
+    } else self.logger.error('Cannot get onboarding wizard');
+    });
+
+    connWebSocket.on('setOnboardingWizardFalse', function () {
+
+     self.commandRouter.executeOnPlugin('miscellanea', 'wizard', 'setOnboardingWizardFalse', '');
+
+    });
+    
+  
 
     connWebSocket.on('getBackgrounds', function () {
       var selfConnWebSocket = this;
