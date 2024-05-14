@@ -24,6 +24,8 @@ function InterfaceWebUI (context) {
   /** Init SocketIO listener */
   self.libSocketIO = require('socket.io')(self.context.websocketServer);
 
+  self.logger.info('Starting Socket.io Server version ' + require('socket.io/package').version);
+
   /** On Client Connection, listen for various types of clients requests */
   self.libSocketIO.on('connection', function (connWebSocket) {
 
@@ -2160,7 +2162,9 @@ InterfaceWebUI.prototype.logClientConnection = function (client) {
     let socketUserAgent = client.handshake.headers['user-agent'] || 'unknown';
     let socketHost = client.handshake.headers.host;
     let socketOrigin = client.handshake.address.split(':').pop();
+    let transport = client.handshake.query.transport;
+    let engineVersion = client.handshake.query.EIO;
     let connectedClientsNumber = this.libSocketIO.engine.clientsCount;
-    self.logger.verbose('New Socket.io Connection to ' + socketHost + ' from ' + socketOrigin + ' UA: ' + socketUserAgent + ' Total Clients: ' + connectedClientsNumber);
+    self.logger.verbose('New Socket.io Connection to ' + socketHost + ' from ' + socketOrigin + ' UA: ' + socketUserAgent + ' Engine version: ' + engineVersion + ' Transport: ' + transport + ' Total Clients: ' + connectedClientsNumber);
   } catch(e) {}
 };
