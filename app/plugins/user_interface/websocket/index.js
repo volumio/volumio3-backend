@@ -1467,7 +1467,7 @@ function InterfaceWebUI (context) {
         });
       } else self.logger.error('Cannot get UI Settings');
     });
-   //ONBOARDING WIZARD
+    
     connWebSocket.on('getOnboardingWizard', function () {
     var selfConnWebSocket = this;
 
@@ -1484,9 +1484,9 @@ function InterfaceWebUI (context) {
     } else self.logger.error('Cannot get onboarding wizard');
     });
 
-    connWebSocket.on('setOnboardingWizard', function () {
+    connWebSocket.on('setOnboardingWizardFalse', function () {
 
-     self.commandRouter.executeOnPlugin('miscellanea', 'wizard', 'setOnboardingWizard', '');
+     self.commandRouter.executeOnPlugin('miscellanea', 'wizard', 'setOnboardingWizardFalse', '');
 
     });
     
