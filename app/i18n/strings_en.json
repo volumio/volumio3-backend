@@ -451,7 +451,9 @@
         "SHOW_MOUSE_POINTER": "Show Mouse Pointer",
         "DAC_FILTER": "DAC Filter",
         "DAC_FILTER_DOC": "Select the DAC Filter, which suppress unwanted information from the signal and shape it to specific waveforms",
-        "ADVANCED_AUDIO_SETTINGS": "Advanced Audio Settings"
+        "ADVANCED_AUDIO_SETTINGS": "Advanced Audio Settings",
+        "POWER_OVERLOAD_PROTECTION_TITLE": "Overload",
+        "POWER_OVERLOAD_PROTECTION_MESSAGE": "Power reduction"
     },
     "UPDATER": {
         "CHECKING_FOR_UPDATES": "Checking for Updates",
