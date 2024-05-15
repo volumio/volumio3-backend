@@ -50,6 +50,9 @@ ControllerSystem.prototype.onVolumioStart = function () {
 
   var autoUpdate = self.config.get('autoUpdate');
   if (autoUpdate == undefined) {
+    if (process.env.IS_VOLUMIO_PRODUCT === 'true') {
+        process.env.AUTO_UPDATE_AUTOMATIC_INSTALL = 'true';
+    }
     self.config.addConfigValue('autoUpdate', 'boolean', process.env.AUTO_UPDATE_AUTOMATIC_INSTALL === 'true');
   } else {
     if (autoUpdate) {
