@@ -271,6 +271,72 @@ CorePlayQueue.prototype.addQueueItems = function (arrayItems) {
     });
   return defer.promise;
 };
+//TODO
+CorePlayQueue.prototype.playNextItems = function (infoPlayNext) {
+  var self = this;
+  var defer = libQ.defer();
+
+  this.commandRouter.pushConsoleMessage('CorePlayQueue::addPlayNextItems');
+
+  self.clearPreloadQueue();
+
+  var firstItemIndex = this.arrayQueue.length;
+  var currentItemPlaying = infoPlayNext.currentItemPosition;
+  var playNextItems = infoPlayNext.playNext;
+
+  var promiseArray = [];
+
+  var items = [];
+  if (!Array.isArray(playNextItems))
+    items = [].concat(playNextItems);
+  else
+    items = playNextItems;
+
+  for (const item of items) {
+    if (item.uri != undefined) {
+      self.commandRouter.logger.info('Adding Item to play next: ' + item.uri);
+      promiseArray.push(self.explodeUri(item));
+    }
+  }
+
+  libQ.all(promiseArray)
+    .then(function (content) {
+      var contentArray = [];
+      for (var j in content) {
+        if (content[j]) {
+          if (content[j].samplerate === undefined) {
+            content[j].samplerate = self.defaultSampleRate;
+          }
+
+          if (content[j].bitdepth === undefined) {
+            content[j].bitdepth = self.defaultBitdepth;
+          }
+
+          if (content[j].channels === undefined) {
+            content[j].channels = self.defaultChannels;
+          }
+          contentArray = contentArray.concat(content[j])
+        }
+      }
+      //TODO - check already existing track
+    var spliceIndex = currentItemPlaying + 1;
+    var queueBeforeIndex = self.arrayQueue.slice(0, spliceIndex); 
+    var queueAfterIndex = self.arrayQueue.slice(spliceIndex); 
+
+    self.arrayQueue = queueBeforeIndex.concat(content.flat(), queueAfterIndex);
+    
+    self.commandRouter.volumioPushQueue(self.arrayQueue);
+    self.saveQueue();
+    })
+    .then(function () {
+      self.stateMachine.updateTrackBlock();
+      defer.resolve({ firstItemIndex: firstItemIndex });
+    }).fail(function (e) {
+      defer.reject(new Error(e));
+      self.commandRouter.logger.info('An error occurred while exploding URI: ' + e);
+    });
+  return defer.promise;
+}
 
 CorePlayQueue.prototype.clearAddPlayQueue = function (arrayItems) {
   this.commandRouter.pushConsoleMessage('CorePlayQueue::clearAddPlayQueue');
