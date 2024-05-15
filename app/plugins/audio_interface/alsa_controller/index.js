@@ -276,7 +276,6 @@ ControllerAlsa.prototype.getUIConfig = function () {
       if (overrideMixerType !== undefined) {
           activemixer_type = overrideMixerType;
       }
-
       self.configManager.setUIConfigParam(uiconf, 'sections[3].content[0].element', 'select');
       self.configManager.setUIConfigParam(uiconf, 'sections[3].content[0].label', self.commandRouter.getI18nString('PLAYBACK_OPTIONS.MIXER_TYPE'));
         if (activemixer_type == 'None' && process.env.FORCE_VOLUME_OPTIONS_VISIBILITY !== 'true') {
@@ -379,7 +378,7 @@ ControllerAlsa.prototype.getUIConfig = function () {
           label: self.commandRouter.getI18nString('COMMON.NONE')
         });
       }
-
+        process.env.EXTERNAL_VOLUME_CONTROL = true;
       if (overrideMixerType !== undefined) {
           uiconf.sections[3].content[0].hidden = true;
           uiconf.sections[3].content[1].hidden = true;
@@ -1770,6 +1769,7 @@ ControllerAlsa.prototype.updateVolumeSettings = function () {
 
   if (deviceVolumeOverride && deviceVolumeOverride.card !== undefined && deviceVolumeOverride.pluginType && deviceVolumeOverride.pluginName) {
     if (deviceVolumeOverride.card.toString() === valdevice.toString()) {
+      process.env.FORCE_VOLUME_OPTIONS_VISIBILITY = true;
       self.logger.info('Applying Volume Override');
       settings.volumeOverride = true;
       settings.pluginType = deviceVolumeOverride.pluginType;
@@ -1789,6 +1789,8 @@ ControllerAlsa.prototype.updateVolumeSettings = function () {
         overrideMixerType = undefined;
         overrideAvoidSoftwareMixer = false;
     }
+  } else {
+      process.env.FORCE_VOLUME_OPTIONS_VISIBILITY = false;
   }
 
   return self.commandRouter.volumioUpdateVolumeSettings(settings);
