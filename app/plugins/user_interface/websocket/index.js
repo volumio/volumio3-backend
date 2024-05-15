@@ -1489,7 +1489,7 @@ function InterfaceWebUI (context) {
     connWebSocket.on('setOnboardingWizardFalse', function () {
 
      self.commandRouter.executeOnPlugin('miscellanea', 'wizard', 'setOnboardingWizardFalse', '');
-
+     self.commandRouter.broadcastMessage('closeOnboardingWizard', '');
     });
     
   
