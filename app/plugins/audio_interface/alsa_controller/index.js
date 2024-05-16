@@ -378,7 +378,7 @@ ControllerAlsa.prototype.getUIConfig = function () {
           label: self.commandRouter.getI18nString('COMMON.NONE')
         });
       }
-        process.env.EXTERNAL_VOLUME_CONTROL = true;
+
       if (overrideMixerType !== undefined) {
           uiconf.sections[3].content[0].hidden = true;
           uiconf.sections[3].content[1].hidden = true;
