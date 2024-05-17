@@ -63,6 +63,7 @@
         "ADD_QUEUE_TEXT_1": "Added ",
         "ADD_QUEUE_TEXT_2": " to queue",
         "ADD_QUEUE_TITLE": "Add to queue",
+        "PLAY_NEXT_TITLE":"Play next",
         "ALBUM": "Album",
         "ALBUMS": "Albums",
         "ARTIST": "Artist",

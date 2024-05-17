@@ -247,6 +247,13 @@ CoreStateMachine.prototype.addQueueItems = function (arrayItems) {
   return this.playQueue.addQueueItems(arrayItems);
 };
 
+CoreStateMachine.prototype.playNextItems = function (arrayItems) {
+  this.commandRouter.pushConsoleMessage('CoreStateMachine::playNextItems');
+  var currentItemPosition = this.currentPosition;
+  var infoToPlayNext = { 'currentItemPosition': currentItemPosition, 'playNext': arrayItems };
+  return this.playQueue.playNextItems(infoToPlayNext);
+}
+
 CoreStateMachine.prototype.preLoadItems = function (item) {
   this.playQueue.preLoadItems(item);
 };

@@ -81,6 +81,21 @@ function InterfaceWebUI (context) {
           self.printToastMessage('success', self.commandRouter.getI18nString('COMMON.ADD_QUEUE_TITLE'), item);
         });
     });
+    
+    connWebSocket.on('playNext', function (data) {
+      if (data === null || data === undefined) {
+        console.error('Invalid data: null or undefined');
+        return;
+      }
+      self.commandRouter.playNextItems(data)
+        .then(function () {
+          var item = data.uri;
+          if (data.title) {
+            item = data.title;
+          }
+          self.printToastMessage('success', self.commandRouter.getI18nString('COMMON.PLAY_NEXT_TITLE'), item);
+        });
+    })
 
     connWebSocket.on('replaceAndPlay', function (data) {
       return self.commandRouter.replaceAndPlay(data);
