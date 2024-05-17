@@ -271,34 +271,51 @@ CorePlayQueue.prototype.addQueueItems = function (arrayItems) {
     });
   return defer.promise;
 };
-//TODO
+
 CorePlayQueue.prototype.playNextItems = function (infoPlayNext) {
   var self = this;
   var defer = libQ.defer();
-
+  
   this.commandRouter.pushConsoleMessage('CorePlayQueue::addPlayNextItems');
-
+  
+  if (!self || !self.commandRouter) {
+    defer.reject(new Error('self or self.commandRouter is not defined'));
+    return defer.promise;
+  }
+  
   self.clearPreloadQueue();
-
-  var firstItemIndex = this.arrayQueue.length;
+  
+  var firstItemIndex = this.arrayQueue ? this.arrayQueue.length : 0;
+  
+  if (!infoPlayNext || typeof infoPlayNext.currentItemPosition !== 'number' || !infoPlayNext.playNext) {
+    defer.reject(new Error('infoPlayNext is not properly defined'));
+    return defer.promise;
+  }
+  
   var currentItemPlaying = infoPlayNext.currentItemPosition;
-  var playNextItems = infoPlayNext.playNext;
-
+  var playNext = infoPlayNext.playNext;
+  
   var promiseArray = [];
-
+  
   var items = [];
-  if (!Array.isArray(playNextItems))
-    items = [].concat(playNextItems);
-  else
-    items = playNextItems;
-
+  if (!Array.isArray(playNext)) {
+    items = [].concat(playNext);
+  } else {
+    items = playNext;
+  }
+  
+  if (!Array.isArray(this.arrayQueue)) {
+    defer.reject(new Error('this.arrayQueue is not an array'));
+    return defer.promise;
+  }
+  
   for (const item of items) {
-    if (item.uri != undefined) {
+    if (item && item.uri !== undefined) {
       self.commandRouter.logger.info('Adding Item to play next: ' + item.uri);
       promiseArray.push(self.explodeUri(item));
     }
   }
-
+  
   libQ.all(promiseArray)
     .then(function (content) {
       var contentArray = [];
@@ -307,35 +324,49 @@ CorePlayQueue.prototype.playNextItems = function (infoPlayNext) {
           if (content[j].samplerate === undefined) {
             content[j].samplerate = self.defaultSampleRate;
           }
-
+  
           if (content[j].bitdepth === undefined) {
             content[j].bitdepth = self.defaultBitdepth;
           }
-
+  
           if (content[j].channels === undefined) {
             content[j].channels = self.defaultChannels;
           }
-          contentArray = contentArray.concat(content[j])
+          contentArray = contentArray.concat(content[j]);
         }
       }
-      //TODO - check already existing track
-    var spliceIndex = currentItemPlaying + 1;
-    var queueBeforeIndex = self.arrayQueue.slice(0, spliceIndex); 
-    var queueAfterIndex = self.arrayQueue.slice(spliceIndex); 
-
-    self.arrayQueue = queueBeforeIndex.concat(content.flat(), queueAfterIndex);
-    
-    self.commandRouter.volumioPushQueue(self.arrayQueue);
-    self.saveQueue();
+      var spliceIndex = currentItemPlaying + 1;
+  
+      if (!Array.isArray(content)) {
+        defer.reject(new Error('content is not an array'));
+        return defer.promise;
+      }
+  
+      var contentArray = content.flat();
+  
+      self.arrayQueue = self.arrayQueue.filter(item => !contentArray.some(newItem => newItem.uri === item.uri));
+  
+      spliceIndex = Math.min(spliceIndex, self.arrayQueue.length);
+  
+      var queueBeforeIndex = self.arrayQueue.slice(0, spliceIndex);
+      var queueAfterIndex = self.arrayQueue.slice(spliceIndex);
+  
+      self.arrayQueue = queueBeforeIndex.concat(contentArray, queueAfterIndex);
+  
+      self.commandRouter.volumioPushQueue(self.arrayQueue);
+      self.saveQueue();
     })
     .then(function () {
       self.stateMachine.updateTrackBlock();
       defer.resolve({ firstItemIndex: firstItemIndex });
-    }).fail(function (e) {
+    })
+    .fail(function (e) {
       defer.reject(new Error(e));
       self.commandRouter.logger.info('An error occurred while exploding URI: ' + e);
     });
+  
   return defer.promise;
+  
 }
 
 CorePlayQueue.prototype.clearAddPlayQueue = function (arrayItems) {

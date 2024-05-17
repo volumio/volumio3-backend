@@ -246,7 +246,7 @@ CoreStateMachine.prototype.addQueueItems = function (arrayItems) {
 
   return this.playQueue.addQueueItems(arrayItems);
 };
-//TODO
+
 CoreStateMachine.prototype.playNextItems = function (arrayItems) {
   this.commandRouter.pushConsoleMessage('CoreStateMachine::playNextItems');
   var currentItemPosition = this.currentPosition;

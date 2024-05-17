@@ -446,7 +446,7 @@ CoreCommandRouter.prototype.addQueueItems = function (arrayItems) {
 
   return this.stateMachine.addQueueItems(arrayItems);
 };
-//TODO
+
 CoreCommandRouter.prototype.playNextItems = function (arrayItems) {
   this.pushConsoleMessage('CoreCommandRouter::volumioplayNextItems');
 
