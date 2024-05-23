@@ -152,7 +152,8 @@
         "SHUTDOWN": "Shutdown",
         "SLEEP": "Sleep",
         "SOURCES": "Sources",
-        "SYSTEM": "System"
+        "SYSTEM": "System",
+        "TAB_BROWSE": "Browse"
     },
     "MYVOLUMIO": {
         "ENABLE_YOUR_DEVICE_TO_USE_THIS_FUNCTIONALITY": "To use this functionality, please enable MyVolumio on this device from your device list",
