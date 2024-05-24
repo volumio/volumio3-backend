@@ -77,6 +77,8 @@ function InterfaceWebUI (context) {
           var item = data.uri;
           if (data.title) {
             item = data.title;
+          } else if (data.album) {
+            item = data.album
           }
           self.printToastMessage('success', self.commandRouter.getI18nString('COMMON.ADD_QUEUE_TITLE'), item);
         });
@@ -92,6 +94,8 @@ function InterfaceWebUI (context) {
           var item = data.uri;
           if (data.title) {
             item = data.title;
+          } else if (data.album) {
+            item = data.album
           }
           self.printToastMessage('success', self.commandRouter.getI18nString('COMMON.PLAY_NEXT_TITLE'), item);
         });
