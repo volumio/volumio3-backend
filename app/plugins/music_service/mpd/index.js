@@ -833,7 +833,8 @@ ControllerMpd.prototype.savePlaybackOptions = function (data) {
     self.config.set('iso', data['iso']);
     if (isonew) {
       // iso enabled
-      execSync('/usr/bin/sudo /bin/systemctl stop mpd', {uid: 1000, gid: 1000, encoding: 'utf8'});
+      execSync('/usr/bin/sudo /bin/systemctl stop mpd.service', {uid: 1000, gid: 1000, encoding: 'utf8'});
+      execSync('/usr/bin/sudo /bin/systemctl stop mpd.socket', {uid: 1000, gid: 1000, encoding: 'utf8'});
       execSync('echo "volumio" | sudo -S /bin/cp -f /usr/bin/mpdsacd /usr/bin/mpd', {
         uid: 1000,
         gid: 1000,
@@ -935,13 +936,17 @@ ControllerMpd.prototype.restartMpd = function (callback) {
   var self = this;
 
   if (callback) {
-    exec('/usr/bin/sudo /bin/systemctl restart mpd.service ', {uid: 1000, gid: 1000},
+    exec('/usr/bin/sudo /bin/systemctl stop mpd.service ', {uid: 1000, gid: 1000});
+    exec('/usr/bin/sudo /bin/systemctl stop mpd.socket ', {uid: 1000, gid: 1000});
+    exec('/usr/bin/sudo /bin/systemctl start mpd.service ', {uid: 1000, gid: 1000},
       function (error, stdout, stderr) {
         self.mpdEstablish();
         callback(error);
       });
   } else {
-    exec('/usr/bin/sudo /bin/systemctl restart mpd.service ', {uid: 1000, gid: 1000},
+    exec('/usr/bin/sudo /bin/systemctl stop mpd.service ', {uid: 1000, gid: 1000});
+    exec('/usr/bin/sudo /bin/systemctl stop mpd.socket ', {uid: 1000, gid: 1000});
+    exec('/usr/bin/sudo /bin/systemctl start mpd.service ', {uid: 1000, gid: 1000},
       function (error, stdout, stderr) {
         if (error) {
           self.logger.error('Cannot restart MPD: ' + error);
