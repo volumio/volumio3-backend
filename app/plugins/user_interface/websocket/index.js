@@ -615,7 +615,7 @@ function InterfaceWebUI (context) {
     connWebSocket.on('addToPlaylist', function (data) {
 			    var selfConnWebSocket = this;
 
-      var returnedData = self.commandRouter.playListManager.addToPlaylist(data.name, data.service, data.uri, data.album);
+      var returnedData = self.commandRouter.playListManager.addToPlaylist(data.name, data.service, data.uri, data.albumTitle);
       returnedData.then(function (data) {
         var returnedListData = self.commandRouter.playListManager.listPlaylist();
         returnedListData.then(function (listdata) {

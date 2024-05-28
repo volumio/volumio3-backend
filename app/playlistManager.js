@@ -89,13 +89,13 @@ PlaylistManager.prototype.getPlaylistContent = function (name) {
   return self.commonGetPlaylistContent(self.playlistFolder, name);
 };
 
-PlaylistManager.prototype.addToPlaylist = function (name, service, uri, album) {
+PlaylistManager.prototype.addToPlaylist = function (name, service, uri, albumTitle) {
   var self = this;
-  var albumTitle = album ? album : uri
+  var title = albumTitle ? albumTitle : uri;
   // self.commandRouter.pushConsoleMessage('Adding uri '+uri+' to playlist '+name);
   self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('PLAYLIST.ADDED_TITLE'),
-    albumTitle + self.commandRouter.getI18nString('PLAYLIST.ADDED_TO_PLAYLIST') + name);
-  return self.commonAddToPlaylist(self.playlistFolder, name, service, uri);
+    title + self.commandRouter.getI18nString('PLAYLIST.ADDED_TO_PLAYLIST') + name);
+  return self.commonAddToPlaylist(self.playlistFolder, name, service, uri, albumTitle);
 };
 
 PlaylistManager.prototype.addItemsToPlaylist = function (name, data) {
