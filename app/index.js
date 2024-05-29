@@ -2042,6 +2042,11 @@ CoreCommandRouter.prototype.getMenuItems = function () {
       } else {
         var menuItems = menuItemsJson['menuItems'];
       }
+
+      if (!fs.existsSync('/data/manifestUI')) {
+        menuItems = menuItems.filter(item => item.id !== "browse");
+      } 
+      
       defer.resolve(menuItems);
     });
   return defer.promise;
