@@ -935,13 +935,13 @@ ControllerMpd.prototype.restartMpd = function (callback) {
   var self = this;
 
   if (callback) {
-    exec('/usr/bin/sudo /bin/systemctl stop mpd.service; /usr/bin/sudo /bin/systemctl stop mpd.socket; sleep 2; /usr/bin/sudo /bin/systemctl start mpd.service ', {uid: 1000, gid: 1000}),
+    exec('/usr/bin/sudo /bin/systemctl stop mpd.service; /usr/bin/sudo /bin/systemctl stop mpd.socket; sleep 2; /usr/bin/sudo /bin/systemctl start mpd.service ', {uid: 1000, gid: 1000},
       function (error, stdout, stderr) {
         self.mpdEstablish();
         callback(error);
       });
   } else {
-    exec('/usr/bin/sudo /bin/systemctl stop mpd.service; /usr/bin/sudo /bin/systemctl stop mpd.socket; sleep 2; /usr/bin/sudo /bin/systemctl start mpd.service ', {uid: 1000, gid: 1000}),
+    exec('/usr/bin/sudo /bin/systemctl stop mpd.service; /usr/bin/sudo /bin/systemctl stop mpd.socket; sleep 2; /usr/bin/sudo /bin/systemctl start mpd.service ', {uid: 1000, gid: 1000},
       function (error, stdout, stderr) {
         if (error) {
           self.logger.error('Cannot restart MPD: ' + error);
