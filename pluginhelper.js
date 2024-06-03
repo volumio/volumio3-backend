@@ -817,7 +817,7 @@ function update() {
             + package.name + ".zip", category: package.category, name: package.name})
         socket.on('installPluginStatus', function (data) {
             console.log("Progress: " + data.progress + "\nStatus :" + data.message)
-            if(data.message == "Plugin Successfully Installed"){
+            if(["Plugin Successfully Installed", "Successfully updated plugin"].includes(data.message)){
                 console.log("Done!");
                 socket.close()
             }
