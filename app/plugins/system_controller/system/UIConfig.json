@@ -85,7 +85,8 @@
         "label": "TRANSLATE.COMMON.SAVE",
         "data": [
           "hdmi_enabled",
-          "show_mouse_pointer"
+          "show_mouse_pointer",
+          "display_zoom"
         ]
       },
       "content": [
@@ -106,6 +107,42 @@
             "field": "hdmi_enabled",
             "value": true
           }
+        },
+        {
+          "id": "display_zoom",
+          "element": "select",
+          "doc":"TRANSLATE.SYSTEM.DISPLAY_ZOOM_FACTOR_DOC",
+          "label": "TRANSLATE.SYSTEM.DISPLAY_ZOOM_FACTOR",
+          "value":  {
+            "value": "1.2",
+            "label": "100%"
+          },
+          "options": [
+            {
+              "value": "1.2",
+              "label": "100%"
+            },
+            {
+              "value": "1.3",
+              "label": "110%"
+            },
+            {
+              "value": "1.4",
+              "label": "120%"
+            },
+            {
+              "value": "1.5",
+              "label": "130%"
+            },
+            {
+              "value": "1.6",
+              "label": "140%"
+            },
+            {
+              "value": "1.7",
+              "label": "150%"
+            }
+          ]
         }
       ]
     },
@@ -141,7 +178,7 @@
             "message": "updateCheck",
             "data": "search-for-upgrade"
           }
-        },        
+        },
         {
           "id": "factory",
           "element": "button",
@@ -282,6 +319,6 @@
           ]
         }
       ]
-    }    
+    }
   ]
 }

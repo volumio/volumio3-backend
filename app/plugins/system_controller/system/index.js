@@ -141,6 +141,10 @@ ControllerSystem.prototype.getUIConfig = function () {
       }
       self.configManager.setUIConfigParam(uiconf, 'sections[1].content[1].value', cursorEnabled);
 
+      var zoomFactor = self.config.get('display_zoom', '1.2')
+      self.configManager.setUIConfigParam(uiconf, 'sections[0].content[2].value.value', zoomFactor);
+      self.configManager.setUIConfigParam(uiconf, 'sections[1].content[2].value.label', self.getLabelForSelect(self.configManager.getValue(uiconf, 'sections[1].content[2].options'), zoomFactor));
+
       if (device != undefined && device.length > 0 && (device === 'Tinkerboard' || device === 'x86' || device === 'Raspberry PI') && showDiskInstaller) {
         var hwdevice = device;
         var usbbootdevice = usbdevice;
@@ -1121,7 +1125,7 @@ ControllerSystem.prototype.installToDisk = function (data) {
           self.notifyInstallToDiskStatus({'progress': 0, 'status': 'error', 'error': 'Cannot install on new Disk'});
       }
     }
-  
+
     var installProgress = exec('usr/bin/tail -f /tmp/install_progress');
 
     installProgress.stdout.on('data', function (data) {
@@ -1197,6 +1201,11 @@ ControllerSystem.prototype.saveHDMISettings = function (data) {
   }
   execSync('/bin/echo ' + kioskArgs + ' > /data/kioskargs', { uid: 1000, gid: 1000, encoding: 'utf8'});
 
+  if (data['display_zoom'] !== undefined) {
+    self.config.set('display_zoom', data['display_zoom'].value);
+    execSync('/bin/echo "SCALE_FACTOR=' + data['display_zoom'].value + '" > /data/browserargs', { uid: 1000, gid: 1000, encoding: 'utf8'});
+  }
+
   var action = 'enable';
   var immediate = 'restart';
   if (!data['hdmi_enabled']) {
@@ -1209,7 +1218,7 @@ ControllerSystem.prototype.saveHDMISettings = function (data) {
       self.logger.error('Cannot ' + action + ' volumio-kiosk service: ' + error);
     } else {
       self.logger.info(action + ' volumio-kiosk service success');
-      self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('SYSTEM.HDMI_UI'), self.commandRouter.getI18nString('SYSTEM.SYSTEM_CONFIGURATION_UPDATE_SUCCESS'));
+      self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('SYSTEM.DISPLAY_UI'), self.commandRouter.getI18nString('SYSTEM.SYSTEM_CONFIGURATION_UPDATE_SUCCESS'));
     }
   });
 };

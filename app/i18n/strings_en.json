@@ -455,7 +455,10 @@
         "DAC_FILTER_DOC": "Select the DAC Filter, which suppress unwanted information from the signal and shape it to specific waveforms",
         "ADVANCED_AUDIO_SETTINGS": "Advanced Audio Settings",
         "POWER_OVERLOAD_PROTECTION_TITLE": "Overload",
-        "POWER_OVERLOAD_PROTECTION_MESSAGE": "Power reduction"
+        "POWER_OVERLOAD_PROTECTION_MESSAGE": "Power reduction",
+        "DISPLAY_ZOOM_FACTOR": "Display Zoom Factor",
+        "DISPLAY_ZOOM_FACTOR_DOC": "Allow to change the display Zoom factor to increase the size of displayed elements",
+        "DISPLAY_UI": "User Interface Display"
     },
     "UPDATER": {
         "CHECKING_FOR_UPDATES": "Checking for Updates",
