@@ -213,7 +213,7 @@ app.route('/backgrounds-upload')
         socket.emit('callMethod', {'endpoint': 'miscellanea/appearance', 'method': 'sendSizeErrorToasMessage', 'data': '3'});
         return res.status(500);
       }
-      var allowedExtensions = ['jpg', 'jpeg', 'png'];
+      var allowedExtensions = ['jpg', 'jpeg', 'png', 'avif'];
       var extension = this.filename.split('.').pop().toLowerCase();
       if (allowedExtensions.indexOf(extension) > -1) {
         console.log('Uploading: ' + this.filename);
@@ -285,7 +285,7 @@ app.route('/albumart-upload')
       }
       console.log('Uploading albumart: ' + this.filename);
       extension = this.filename.split('.').pop().toLowerCase();
-      var allowedExtensions = ['jpg', 'jpeg', 'png'];
+      var allowedExtensions = ['jpg', 'jpeg', 'png', 'avif'];
       if (allowedExtensions.indexOf(extension) > -1) {
         this.filename = 'cover' + '.' + extension;
         var albumartDir = '/data/albumart';

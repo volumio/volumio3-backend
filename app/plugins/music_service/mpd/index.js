@@ -163,7 +163,7 @@ ControllerMpd.prototype.addPlayCue = function (data) {
       album: cueItem.album,
       number: cueItem.number,
       albumart: cueItem.albumart,
-      year: cueItem.date,
+      date: cueItem.date,
     }]);
 
     var index = this.commandRouter.stateMachine.playQueue.arrayQueue.length;
@@ -216,7 +216,7 @@ ControllerMpd.prototype.parseListAllInfoResult = function (sInput) {
         'genres': [],
         'performers': [],
         'tracknumber': 0,
-        'year': '',
+        'date': '',
         'duration': 0
       };
       objReturn.tracks.push(curEntry);
@@ -241,7 +241,7 @@ ControllerMpd.prototype.parseListAllInfoResult = function (sInput) {
       curEntry.tracknumber = Number(arrayLineParts[1]);
     } else if (arrayLineParts[0] === 'Date') {
       // TODO - parse into a date object
-      curEntry.year = arrayLineParts[1];
+      curEntry.date = arrayLineParts[1];
     }
   }
 
@@ -273,7 +273,7 @@ ControllerMpd.prototype.getState = function () {
             collectedState.title = trackinfo.title;
             collectedState.artist = trackinfo.artist;
             collectedState.album = trackinfo.album;
-            collectedState.year = trackinfo.year;
+            collectedState.date = trackinfo.date;
             // collectedState.albumart = trackinfo.albumart;
             collectedState.uri = trackinfo.uri;
             collectedState.trackType = trackinfo.trackType.split('?')[0];
@@ -1423,11 +1423,11 @@ ControllerMpd.prototype.lsInfo = function (uri) {
                   var title = title1;
                 }
               }
-              var year, albumart, tracknumber, duration, composer, genre;
+              var date, albumart, tracknumber, duration, composer, genre;
               if (self.commandRouter.sharedVars.get('extendedMetas')) {
-                year = self.searchFor(lines, i + 1, 'Date:');
-                if (year) {
-                  year = parseInt(year);
+                date = self.searchFor(lines, i + 1, 'Date:');
+                if (date) {
+                  date = parseInt(date);
                 }
 
                 albumart = self.getAlbumArt({artist: artist, album: album},
@@ -1457,7 +1457,7 @@ ControllerMpd.prototype.lsInfo = function (uri) {
                 artist: artist,
                 album: album,
                 uri: s0 + path,
-                year: year,
+                date: date,
                 albumart: albumart,
                 genre: genre,
                 tracknumber: tracknumber,
@@ -2994,7 +2994,7 @@ ControllerMpd.prototype.listAlbums = function (ui) {
             if (line.startsWith('file:')) {
               var path = line.slice(6);
               var albumName = self.searchFor(lines, i + 1, 'Album:');
-              var albumYear = self.searchFor(lines, i + 1, 'Date:');
+              var albumDate = self.searchFor(lines, i + 1, 'Date:');
               var artistName = self.searchFor(lines, i + 1, 'AlbumArtist:') || self.searchFor(lines, i + 1, 'Artist:');
 
               // This causes all orphaned tracks (tracks without an album) in the Albums view to be
@@ -3013,7 +3013,7 @@ ControllerMpd.prototype.listAlbums = function (ui) {
                   type: 'folder',
                   title: albumName,
                   artist: artistName,
-                  year: albumYear,
+                  date: albumDate,
                   album: '',
                   uri: 'albums://' + encodeURIComponent(artistName) + '/' + encodeURIComponent(albumName),
                   // Get correct album art from path- only download if not existent
@@ -3102,7 +3102,8 @@ ControllerMpd.prototype.listAlbumSongs = function (uri, index, previous) {
         'album': 'album',
         'type': 'song',
         'albumart': 'albumart',
-        'duration': 'time'
+        'duration': 'time',
+        'date': 'date'
       },
       'lists': [
         {
@@ -3122,7 +3123,7 @@ ControllerMpd.prototype.listAlbumSongs = function (uri, index, previous) {
 
   var cmd = libMpd.cmd;
   var duration = 0;
-  var year = '';
+  var date = '';
   var genre = '';
   var albumTrackType = '';
 
@@ -3139,7 +3140,7 @@ ControllerMpd.prototype.listAlbumSongs = function (uri, index, previous) {
 
           var artist = self.searchFor(lines, i + 1, 'Artist:');
           var album = self.searchFor(lines, i + 1, 'Album:');
-          var year = self.searchFor(lines, i + 1, 'Date:');
+          var date = self.searchFor(lines, i + 1, 'Date:');
 
           var track = self.searchFor(lines, i + 1, 'Track:');
           var title = self.searchFor(lines, i + 1, 'Title:');
@@ -3170,7 +3171,8 @@ ControllerMpd.prototype.listAlbumSongs = function (uri, index, previous) {
             type: 'song',
             tracknumber: track,
             duration: time,
-            trackType: trackType
+            trackType: trackType,
+            date: date
           });
         }
       }
@@ -3190,7 +3192,7 @@ ControllerMpd.prototype.listAlbumSongs = function (uri, index, previous) {
                   artist: isOrphanAlbum ? '*' : artist,
                   album: album,
                   albumart: albumart,
-                  year: isOrphanAlbum ? '' : year,
+                  date: isOrphanAlbum ? '' : date,
                   genre: isOrphanAlbum ? '' : genre,
                   type: 'album',
                   trackType: albumTrackType,
@@ -3392,7 +3394,7 @@ ControllerMpd.prototype.parseListAlbum = function (err, msg, defer, response, ur
         }
         var album = self.searchFor(lines, i + 1, 'Album:');
         var genre = self.searchFor(lines, i + 1, 'Genre:');
-        var year = self.searchFor(lines, i + 1, 'Date:');
+        var date = self.searchFor(lines, i + 1, 'Date:');
         // Include track number if tracknumber variable is set to 'true'
         if (!tracknumbers) {
           var title = self.searchFor(lines, i + 1, 'Title:');
@@ -3419,7 +3421,7 @@ ControllerMpd.prototype.parseListAlbum = function (err, msg, defer, response, ur
           title: title,
           artist: artist,
           album: album,
-          year: year,
+          date: date,
           albumart: albumart,
           uri: 'music-library/' + path
         });
@@ -3447,6 +3449,7 @@ ControllerMpd.prototype.parseListAlbum = function (err, msg, defer, response, ur
               type: 'folder',
               title: album,
               artist: artist,
+              date: date,
               albumart: self.getAlbumArt({artist: artist, album: album}, self.getParentFolder(path), 'dot-circle-o'),
               uri: uri
             });

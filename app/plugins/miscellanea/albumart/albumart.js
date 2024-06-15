@@ -9,6 +9,7 @@ var execSync = require('child_process').execSync;
 var apiKey = '4cb074e4b8ec4ee9ad3eb37d6f7eb240';
 var diskCache = true;
 var variant = 'none';
+var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'avif'];
 const { v4: uuidv4 } = require('uuid');
 
 var winston = require('winston');
@@ -54,7 +55,7 @@ var searchOnline = function (defer, web) {
 	 * If we arrive to this point the file albumart has not been passed or doesn't exists
 	 */
 
-  var artist, album, resolution;
+  var artist, album, resolution, wiki;
 
   if (web != undefined) {
     var splitted = web.split('/');
@@ -94,7 +95,6 @@ var searchOnline = function (defer, web) {
 
   try {
     var personalFiles = fs.readdirSync(personalFolder);
-    var allowedExtensions = ['jpg', 'jpeg', 'png'];
     var extension = personalFiles[0].split('.').pop().toLowerCase();
     if (allowedExtensions.indexOf(extension) > -1) {
       return defer.resolve(personalFolder + personalFiles[0]);
@@ -151,7 +151,7 @@ var searchOnline = function (defer, web) {
       decodedAlbum = decodedAlbum || null;
     }
 
-    retrieveAlbumart(decodedArtist, decodedAlbum, decodedResolution, function (err, url) {
+    retrieveAlbumart(decodedArtist, decodedAlbum, decodedResolution, function (err, url, wiki) {
       if (err) {
         // console.log("ERROR getting albumart: " + err + " for Infopath '" + infoPath + "'");
         defer.reject(new Error(err));
@@ -178,6 +178,9 @@ var searchOnline = function (defer, web) {
         } else {
           defer.reject(new Error('No albumart URL'));
           return defer.promise;
+        }
+        if(wiki != undefined && wiki != '') {
+          infoJson['wiki'] = wiki;
         }
       }
       try {
@@ -218,22 +221,25 @@ var searchInFolder = function (defer, path, web, meta) {
 		 * Trying to read albumart from file
 		 */
 
-    var covers = ['coverart.jpg', 'albumart.jpg', 'coverart.png', 'albumart.png',
-      'cover.JPG', 'Cover.JPG', 'folder.JPG', 'Folder.JPG',
-      'cover.PNG', 'Cover.PNG', 'folder.PNG', 'Folder.PNG',
-      'cover.jpg', 'Cover.jpg', 'folder.jpg', 'Folder.jpg',
-      'cover.png', 'Cover.png', 'folder.png', 'Folder.png'];
+    var coverFilename = ['coverart', 'albumart', 'coverart', 'albumart', 'cover', 'folder' ];
     splitted = path.split('/');
+    var covers = [];
+    for (var ext in allowedExtensions) {
+      for (var cn in coverFilename) {
+          covers.push(cn + '.' + ext)
+      }
+    }
 
     for (var i in covers) {
       var coverFile = coverFolder + '/' + covers[i];
       // console.log("Searching for cover " + coverFile);
       if (fs.existsSync(coverFile)) {
         var size = fs.statSync(coverFile).size;
+        var extension = coverFile.split('.').pop();
         // Limit the size of local arts to about 5MB
         if (size < 5000000) {
           if (diskCache) {
-            var cacheFile = mountAlbumartFolder + '/' + coverFolder + '/extralarge.jpeg';
+            var cacheFile = mountAlbumartFolder + '/' + coverFolder + '/extralarge.' + extension;
             // logger.info('1: Copying file to cache ['+cacheFile+']');
             fs.ensureFileSync(cacheFile);
             fs.copySync(coverFile, cacheFile);
@@ -249,8 +255,9 @@ var searchInFolder = function (defer, path, web, meta) {
     var files = fs.readdirSync(coverFolder);
     for (var j in files) {
       var fileName = S(files[j]);
+      var cfileName = fileName.toLowerCase();
 
-      if (fileName.endsWith('.png') || fileName.endsWith('.jpg') || fileName.endsWith('.JPG') || fileName.endsWith('.PNG') || fileName.endsWith('.jpeg') || fileName.endsWith('.JPEG')) {
+      if (cfileName.endsWith('.png') || cfileName.endsWith('.jpg') || cfileName.endsWith('.jpeg') || cfileName.endsWith('.webp') || cfileName.endsWith('.avif')) {
         var coverFile = coverFolder + '/' + fileName.s;
         var size = fs.statSync(coverFile).size;
         // Limit the size of local arts to about 5MB
@@ -688,16 +695,17 @@ var retrieveAlbumart = function (artist, album, size, cb) {
           // Error
           return cb('JSON Error: ' + json.message, '');
         } else if (sizes.indexOf(size) !== -1 && json[method] && json[method].image) {
+
           // Return image in specific size
           json[method].image.forEach(function (e, i) {
             if (e.size === size) {
-              cb(null, e['#text']);
+              cb(null, e['#text'], json[method].wiki );
             }
           });
         } else if (json[method] && json[method].image) {
           // Return largest image
           var i = json[method].image.length - 2;
-          cb(null, json[method].image[i]['#text']);
+          cb(null, json[method].image[i]['#text'], json[method].wiki );
         } else {
           // No image art found
           cb('Error: No image found.', '');
@@ -731,9 +739,9 @@ var download = function (uri, dest, cb) {
 var sendDefaultAlbumart = function (req, res) {
 
   try {
-    sendTinyArt(req, res, __dirname + '/default.jpg');
+    sendTinyArt(req, res, __dirname + '/default.webp');
   } catch (e) {
-    sendTinyArt(req, res, __dirname + '/default.png');
+    sendTinyArt(req, res, __dirname + '/default.jpg');
   }
 };
 
