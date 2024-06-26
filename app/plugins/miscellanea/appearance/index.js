@@ -436,47 +436,62 @@ volumioAppearance.prototype.getConfigParam = function (key) {
 volumioAppearance.prototype.setVolumio3UI = function (data) {
   var self = this;
 
-  if (data && data.volumio3_ui.value === "CONTEMPORARY") {
-    try {
-      if (fs.existsSync('/data/manifestUI')) {
-        execSync('/usr/bin/touch /data/disableManifestUI');
-      }
-      execSync('/bin/rm -f /data/volumio2ui');
-      execSync('/bin/rm -f  /data/manifestUI');
-    } catch (e) {
-      self.logger.error(e);
-    }
-    process.env.VOLUMIO_3_UI = 'true';
-    setTimeout(()=> {
-      self.commandRouter.reloadUi();
-    }, 2000);
-  } else if (data && data.volumio3_ui.value === "MANIFEST") {
-    try {
-      execSync('/usr/bin/touch /data/manifestUI');
-      execSync('/bin/rm -f  /data/volumio2ui');
-      execSync('/bin/rm -f  /data/disableManifestUI');
-    } catch (e) {
-      self.logger.error(e);
-    }
-    process.env.VOLUMIO_3_UI = 'false';
-    setTimeout(()=> {
-      self.commandRouter.reloadUi();
-    }, 2000);
-  } else if (data && data.volumio3_ui.value === "CLASSIC") {
-    try {
-      if (fs.existsSync('/data/manifestUI')) {
-        execSync('/usr/bin/touch /data/disableManifestUI');
-      }
+  var activeUiJson = {
+    "uiPrettyName": "Manifest",
+    "uiName": "manifest",
+    "uiPath": "/volumio/http/www4"
+  }
 
-      execSync('/bin/rm -f  /data/manifestUI');
-      execSync('/usr/bin/touch /data/volumio2ui');
-    } catch (e) {
-      self.logger.error(e);
+  if (data && data.volumio3_ui.value === "contemporary") {
+    activeUiJson = {
+      "uiPrettyName": "Comtemporary",
+      "uiName": "contemporary",
+      "uiPath": "/volumio/http/www3"
+    };
+  } else if (data && data.volumio3_ui.value === "manifest") {
+    activeUiJson = {
+      "uiPrettyName": "Manifest",
+      "uiName": "manifest",
+      "uiPath": "/volumio/http/www4"
+    };
+  } else if (data && data.volumio3_ui.value === "classic") {
+    activeUiJson = {
+      "uiPrettyName": "Classic",
+      "uiName": "classic",
+      "uiPath": "/volumio/http/www"
+    };
+  } else {
+    // TODO: This is a provision for third party UIs
+    self.logger.error('Failed to save UI: ' + data.volumio3_ui.value);
+    return self.commandRouter.pushToastMessage('error', self.commandRouter.getI18nString('COMMON.ERROR'), self.commandRouter.getI18nString('APPEARANCE.FAILED_TO_SELECT_USER_INTERFACE'));
+  }
+
+  self.logger.info('Setting active UI to: ' + JSON.stringify(activeUiJson));
+
+  self.saveActiveUIFile(activeUiJson);
+  setTimeout(()=> {
+    self.commandRouter.reloadUi();
+  }, 2000);
+};
+
+volumioAppearance.prototype.saveActiveUIFile = function (activeUiJson) {
+  var self = this;
+
+  var uiFlagFile = '/data/active_volumio_ui';
+
+  if (fs.existsSync(activeUiJson.uiPath)) {
+    try {
+      execSync('[ -f ' + uiFlagFile + ' ] && /usr/bin/sudo /bin/chmod 777 ' + uiFlagFile, { uid: 1000, gid: 1000, encoding: 'utf8'});
+      fs.writeJsonSync(uiFlagFile, activeUiJson);
+      process.env.VOLUMIO_ACTIVE_UI_NAME = activeUiJson.uiName;
+      process.env.VOLUMIO_ACTIVE_UI_PATH = activeUiJson.uiPath;
+      process.env.VOLUMIO_ACTIVE_UI_PRETTY_NAME = activeUiJson.uiPrettyName;
+    } catch(e) {
+      self.logger.error('Failed to write ' + uiFlagFile + ': ' + e);
     }
-    process.env.VOLUMIO_3_UI = 'false';
-    setTimeout(()=> {
-        self.commandRouter.reloadUi();
-    }, 2000);
+  } else {
+    self.logger.error('Cannot find UI path: ' + activeUiJson.uiPath);
+    return self.commandRouter.pushToastMessage('error', self.commandRouter.getI18nString('COMMON.ERROR'), self.commandRouter.getI18nString('APPEARANCE.FAILED_TO_SELECT_USER_INTERFACE'));
   }
 };
 

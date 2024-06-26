@@ -259,21 +259,23 @@ ControllerSystem.prototype.getUIConfig = function () {
         if (process.env.ALLOW_LEGACY_UIS_SELECTION === 'false') {
           uiconf.sections[8].hidden = true;
         }
-        var uiValue = "";
-        var uiLabel = "";
-        if (fs.existsSync('/data/disableManifestUI') === false) {
-          uiValue = "MANIFEST";
-          uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_MANIFEST');
-        } else if (process.env.VOLUMIO_3_UI === 'true') {
-          uiValue = "CONTEMPORARY";
-          uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CONTEMPORARY');
-        } else if (fs.existsSync("/data/volumio2ui")) {
-          uiValue = "CLASSIC";
-          uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CLASSIC');
+        // TODO: Delegate this to appearance plugin which will register UIs
+        var uiValue = process.env.VOLUMIO_ACTIVE_UI_NAME;
+        var uiLabel = process.env.VOLUMIO_ACTIVE_UI_PRETTY_NAME;
+        switch(uiValue) {
+            case 'classic':
+                uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CLASSIC');
+                break;
+            case 'contemporary':
+                uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CONTEMPORARY');
+                break;
+            case 'manifest':
+                uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_MANIFEST');
+                break;
         }
         self.configManager.setUIConfigParam(uiconf, 'sections[8].content[0].value.value', uiValue);
         self.configManager.setUIConfigParam(uiconf, 'sections[8].content[0].value.label', uiLabel);
-        if (uiValue === "CLASSIC" || uiValue === "CONTEMPORARY") {
+        if (uiValue === "classic" || uiValue === "contemporary") {
           uiconf.sections[9] = {"coreSection": "ui-settings"};
         }
         var additionalConfs = self.getAdditionalUISections();
@@ -285,14 +287,15 @@ ControllerSystem.prototype.getUIConfig = function () {
             }
           }
           defer.resolve(uiconf);
-        }).fail(() => {
+        }).fail((e) => {
+          self.logger.error('Failed to retrieve System UI Config: ' + e);
           defer.resolve(uiconf);
         });
       });
 
     })
     .fail(function (error) {
-      self.logger.info(error);
+      self.logger.error(error);
       defer.reject(new Error());
     });
 

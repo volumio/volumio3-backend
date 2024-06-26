@@ -68,14 +68,18 @@ var staticMiddlewareWizard = express.static(path.join(__dirname, 'wizard'));
 app.use(function (req, res, next) {
   var userAgent = req.get('user-agent');
   if (process.env.NEW_WIZARD === 'true' && fs.existsSync(volumioWizardFlagFile)){
+    process.env.VOLUMIO_ACTIVE_UI_NAME = 'wizard';
     staticMiddlewareWizard(req, res, next);
   } else {
     if (fs.existsSync(volumioManifestUIDir) && !fs.existsSync(volumioManifestUIDisabledFile)){
+      process.env.VOLUMIO_ACTIVE_UI_NAME = 'manifest';
       staticMiddlewareManifestUI(req, res, next);
     } else {
       if ((userAgent && userAgent.includes('volumiokiosk')) || process.env.VOLUMIO_3_UI === 'false') {
+        process.env.VOLUMIO_ACTIVE_UI_NAME = 'classic';
         staticMiddlewareUI2(req, res, next);
       } else {
+        process.env.VOLUMIO_ACTIVE_UI_NAME = 'contemporary';
         staticMiddlewareUI3(req, res, next);
       }
     }

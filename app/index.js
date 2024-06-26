@@ -2043,10 +2043,10 @@ CoreCommandRouter.prototype.getMenuItems = function () {
         var menuItems = menuItemsJson['menuItems'];
       }
 
-      if (!fs.existsSync('/data/manifestUI')) {
+      if (process.env.VOLUMIO_ACTIVE_UI_NAME !== 'manifest') {
         menuItems = menuItems.filter(item => item.id !== "browse");
-      } 
-      
+      }
+
       defer.resolve(menuItems);
     });
   return defer.promise;
