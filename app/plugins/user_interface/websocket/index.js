@@ -22,7 +22,10 @@ function InterfaceWebUI (context) {
   self.lastPushedBrowseLibraryObject = {};
 
   /** Init SocketIO listener */
-  self.libSocketIO = require('socket.io')(self.context.websocketServer);
+  self.libSocketIO = require('socket.io')(self.context.websocketServer, {
+    perMessageDeflate: false,
+    maxHttpBufferSize: 1e7
+  });
 
   self.logger.info('Starting Socket.io Server version ' + require('socket.io/package').version);
 
