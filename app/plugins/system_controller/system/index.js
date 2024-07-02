@@ -45,7 +45,9 @@ ControllerSystem.prototype.onVolumioStart = function () {
   var uuid = this.config.get('uuid');
   if (uuid == undefined) {
     self.logger.info('No id defined. Creating one');
-    self.config.addConfigValue('uuid', 'string', uuidv4());
+    var newuuid = uuidv4();
+    self.config.addConfigValue('uuid', 'string', newuuid);
+    uuid = newuuid;
   }
 
   var autoUpdate = self.config.get('autoUpdate');
