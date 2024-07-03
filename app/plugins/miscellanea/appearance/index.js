@@ -10,6 +10,7 @@ var exec = require('child_process').exec;
 var crypto = require('crypto');
 
 var backgroundPath = '/data/backgrounds';
+var thirdPartyUIListFilePath = '/data/thirdPartyUisList.json';
 
 // Define the volumioAppearance class
 module.exports = volumioAppearance;
@@ -436,47 +437,62 @@ volumioAppearance.prototype.getConfigParam = function (key) {
 volumioAppearance.prototype.setVolumio3UI = function (data) {
   var self = this;
 
-  if (data && data.volumio3_ui.value === "CONTEMPORARY") {
-    try {
-      if (fs.existsSync('/data/manifestUI')) {
-        execSync('/usr/bin/touch /data/disableManifestUI');
-      }
-      execSync('/bin/rm -f /data/volumio2ui');
-      execSync('/bin/rm -f  /data/manifestUI');
-    } catch (e) {
-      self.logger.error(e);
-    }
-    process.env.VOLUMIO_3_UI = 'true';
-    setTimeout(()=> {
-      self.commandRouter.reloadUi();
-    }, 2000);
-  } else if (data && data.volumio3_ui.value === "MANIFEST") {
-    try {
-      execSync('/usr/bin/touch /data/manifestUI');
-      execSync('/bin/rm -f  /data/volumio2ui');
-      execSync('/bin/rm -f  /data/disableManifestUI');
-    } catch (e) {
-      self.logger.error(e);
-    }
-    process.env.VOLUMIO_3_UI = 'false';
-    setTimeout(()=> {
-      self.commandRouter.reloadUi();
-    }, 2000);
-  } else if (data && data.volumio3_ui.value === "CLASSIC") {
-    try {
-      if (fs.existsSync('/data/manifestUI')) {
-        execSync('/usr/bin/touch /data/disableManifestUI');
-      }
+  self.setActiveUI(data.volumio3_ui.value);
+};
 
-      execSync('/bin/rm -f  /data/manifestUI');
-      execSync('/usr/bin/touch /data/volumio2ui');
-    } catch (e) {
-      self.logger.error(e);
+volumioAppearance.prototype.setActiveUI = function (data) {
+  var self = this;
+
+  var found = false;
+  var availableUIS = self.getAvailableUIs();
+
+  for (var i in availableUIS) {
+    if (availableUIS[i].uiName === data) {
+      self.setActiveUIJSON(availableUIS[i]);
+      found = true;
     }
-    process.env.VOLUMIO_3_UI = 'false';
-    setTimeout(()=> {
-        self.commandRouter.reloadUi();
-    }, 2000);
+  }
+  if (!found) {
+    self.logger.error('Failed to set Active UI: ' + data + ' not found');
+    self.commandRouter.pushToastMessage('error', self.commandRouter.getI18nString('COMMON.ERROR'), self.commandRouter.getI18nString('APPEARANCE.FAILED_TO_SELECT_USER_INTERFACE'));
+  }
+};
+
+volumioAppearance.prototype.setActiveUIJSON = function (activeUiJson) {
+  var self = this;
+
+  self.logger.info('Setting active UI to: ' + JSON.stringify(activeUiJson));
+
+  self.saveActiveUIFile(activeUiJson);
+  setTimeout(()=> {
+    self.commandRouter.reloadUi();
+  }, 1000);
+}
+
+volumioAppearance.prototype.saveActiveUIFile = function (activeUiJson) {
+  var self = this;
+
+  var uiFlagFile = '/data/active_volumio_ui';
+
+  if (fs.existsSync(activeUiJson.uiPath)) {
+    try {
+      fs.stat(uiFlagFile, function(err, stat) {
+        if (err == null) {
+          execSync('/usr/bin/sudo /bin/chmod 777 ' + uiFlagFile, { uid: 1000, gid: 1000, encoding: 'utf8'});
+        }
+        fs.writeJsonSync(uiFlagFile, activeUiJson);
+      });
+      process.env.VOLUMIO_ACTIVE_UI_NAME = activeUiJson.uiName;
+      process.env.VOLUMIO_ACTIVE_UI_PATH = activeUiJson.uiPath;
+      process.env.VOLUMIO_ACTIVE_UI_PRETTY_NAME = activeUiJson.uiPrettyName;
+      self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_SETTINGS'), self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_SUCCESSFULLY_SET_TO') + ' ' + activeUiJson.uiPrettyName);
+    } catch(e) {
+      self.logger.error('Failed to write ' + uiFlagFile + ': ' + e);
+      self.commandRouter.pushToastMessage('error', self.commandRouter.getI18nString('COMMON.ERROR'), self.commandRouter.getI18nString('APPEARANCE.FAILED_TO_SELECT_USER_INTERFACE'));
+    }
+  } else {
+    self.logger.error('Cannot find UI path: ' + activeUiJson.uiPath);
+    return self.commandRouter.pushToastMessage('error', self.commandRouter.getI18nString('COMMON.ERROR'), self.commandRouter.getI18nString('APPEARANCE.FAILED_TO_SELECT_USER_INTERFACE'));
   }
 };
 
@@ -555,3 +571,91 @@ volumioAppearance.prototype.isLatestTOSAccepted = function () {
 
   return defer.promise;
 };
+
+volumioAppearance.prototype.getAvailableUIs = function () {
+  var self = this;
+
+  var coreUis = self.getAvailableCoreUIs();
+  var thirdPartyUis = self.getAvailableThirdPartyUIs();
+
+  return coreUis.concat(thirdPartyUis);
+};
+
+volumioAppearance.prototype.getAvailableCoreUIs = function () {
+  var self = this;
+
+  var availableUis = [];
+
+  try {
+    var availableUIsConf = fs.readJsonSync(path.join('volumio', 'volumioUisList.json'));
+    for (var i in availableUIsConf) {
+      if (fs.existsSync(availableUIsConf[i].uiPath)) {
+        availableUis.push(availableUIsConf[i]);
+      }
+    }
+  } catch(e) {
+    self.logger.error('Failed to get available Core UIs: ' + e);
+  }
+
+  return availableUis;
+};
+
+volumioAppearance.prototype.getAvailableThirdPartyUIs = function () {
+  var self = this;
+
+  var availableUis = [];
+
+  try {
+    var availableUIsConf = fs.readJsonSync(thirdPartyUIListFilePath);
+    for (var i in availableUIsConf) {
+      if (fs.existsSync(availableUIsConf[i].uiPath)) {
+        availableUis.push(availableUIsConf[i]);
+      }
+    }
+  } catch(e) {}
+
+  return availableUis;
+};
+
+volumioAppearance.prototype.registerThirdPartyUI = function (data) {
+  var self = this;
+
+  if (data && data.uiName && data.uiPath && data.uiPrettyName) {
+    if (fs.existsSync(data.uiPath)) {
+      self.logger.info('Registering Third Party UI: ' + JSON.stringify(data));
+      self.addThirdPartyUIToUIListFile(data);
+    } else {
+      self.logger.error('Failed to register UI: ' + data.uiPath + ' does not exist');
+    }
+  } else {
+    self.logger.error('Failed to register UI: missing uiName, uiPath or uiPrettyName');
+  }
+
+};
+
+volumioAppearance.prototype.addThirdPartyUIToUIListFile = function (data) {
+  var self = this;
+
+
+  try {
+    var availableUIsConf = [];
+    if (fs.existsSync(thirdPartyUIListFilePath)) {
+      availableUIsConf = fs.readJsonSync(thirdPartyUIListFilePath);
+    }
+    for (var i in availableUIsConf) {
+      if (availableUIsConf[i].uiPath === data.uiPath) {
+        if (JSON.stringify(data) === JSON.stringify(availableUIsConf[i])) {
+          self.logger.info('UI already registered: ' + JSON.stringify(data));
+          return;
+        }
+      }
+    }
+    availableUIsConf.push(data);
+    fs.writeJsonSync(thirdPartyUIListFilePath, availableUIsConf);
+  } catch(e) {
+    self.logger.error('Failed to add UI to UI list file: ' + e);
+  }
+};
+
+
+

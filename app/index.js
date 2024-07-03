@@ -2043,10 +2043,10 @@ CoreCommandRouter.prototype.getMenuItems = function () {
         var menuItems = menuItemsJson['menuItems'];
       }
 
-      if (!fs.existsSync('/data/manifestUI')) {
+      if (process.env.VOLUMIO_ACTIVE_UI_NAME !== 'manifest') {
         menuItems = menuItems.filter(item => item.id !== "browse");
-      } 
-      
+      }
+
       defer.resolve(menuItems);
     });
   return defer.promise;
@@ -2475,3 +2475,12 @@ CoreCommandRouter.prototype.reportBackendEvent = function (event, properties) {
     } catch(e) {}
   }
 };
+
+CoreCommandRouter.prototype.registerThirdPartyUI = function (data) {
+  var self = this;
+
+  this.executeOnPlugin('miscellanea', 'appearance', 'registerThirdPartyUI', data);
+};
+
+
+

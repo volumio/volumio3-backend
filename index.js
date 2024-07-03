@@ -4,6 +4,9 @@ var dotenv = require('dotenv').config({ path: path.join(__dirname, '.env')}); //
 var execSync = require('child_process').execSync;
 var expressInstance = require('./http/index.js');
 var expressApp = expressInstance.app;
+var newWizardDir = '/volumio/http/wizard';
+
+
 /* eslint-disable */
 global.metrics = {
   start: {},
@@ -50,26 +53,14 @@ expressApp.use(function (err, req, res, next) {
 
 var commandRouter = new (require('./app/index.js'))(httpServer); // eslint-disable-line
 
-var volumioManifestUIFlagFile = '/data/manifestUI';
-var volumioManifestUIDisabledFile = '/data/disableManifestUI';
-var volumioWizardFlagFile = '/data/wizard';
-
-var volumioManifestUIDir = '/volumio/http/www4';
 
 expressApp.get('/?*', function (req, res) {
   var userAgent = req.get('user-agent');
-  if (process.env.NEW_WIZARD === 'true' && fs.existsSync(volumioWizardFlagFile)){
-    res.sendFile(path.join(__dirname, 'http', 'wizard', 'index.html'));
+  
+  if (process.env.SHOW_NEW_WIZARD === 'true') {
+    res.sendFile(path.join(newWizardDir, 'index.html'));
   } else {
-    if (fs.existsSync(volumioManifestUIDir) && !fs.existsSync(volumioManifestUIDisabledFile)) {
-      res.sendFile(path.join(__dirname, 'http', 'www4', 'index.html'));
-    } else {
-      if ((userAgent && userAgent.includes('volumiokiosk')) || process.env.VOLUMIO_3_UI === 'false') {
-        res.sendFile(path.join(__dirname, 'http', 'www', 'index.html'));
-      } else {
-        res.sendFile(path.join(__dirname, 'http', 'www3', 'index.html'));
-      }
-    }
+    res.sendFile(path.join(process.env.VOLUMIO_ACTIVE_UI_PATH, 'index.html'));
   }
 });
 

@@ -1,0 +1,17 @@
+[
+  {
+    "uiPrettyName": "Manifest",
+    "uiName": "manifest",
+    "uiPath": "/volumio/http/www4"
+  },
+  {
+    "uiPrettyName": "Contemporary",
+    "uiName": "contemporary",
+    "uiPath": "/volumio/http/www3"
+  },
+  {
+    "uiPrettyName": "Classic",
+    "uiName": "classic",
+    "uiPath": "/volumio/http/www"
+  }
+]

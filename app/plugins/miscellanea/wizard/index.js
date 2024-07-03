@@ -274,7 +274,7 @@ volumioWizard.prototype.setWizardAction = function (data) {
 volumioWizard.prototype.openWizard = function () {
   var self = this;
   if (process.env.NEW_WIZARD === 'true') {
-    execSync('/usr/bin/touch /data/wizard');
+    process.env.SHOW_NEW_WIZARD = 'true';
     self.commandRouter.reloadUi();
   }
 };
@@ -283,7 +283,7 @@ volumioWizard.prototype.setSkip = function () {
   var self = this;
 
   self.logger.info('Wizard skipped');
-  execSync('/bin/rm -f /data/wizard');
+  process.env.SHOW_NEW_WIZARD = 'false';
   self.commandRouter.reloadUi();
   self.commandRouter.executeOnPlugin('system_controller', 'system', 'setShowWizard', false);
   self.commandRouter.broadcastMessage('closeWizard', '');
@@ -301,7 +301,7 @@ volumioWizard.prototype.setReboot = function (data) {
 volumioWizard.prototype.setCloseWizard = function () {
   var self = this;
 
-  execSync('/bin/rm -f /data/wizard');
+  process.env.SHOW_NEW_WIZARD = 'false';
   self.commandRouter.reloadUi();
   self.commandRouter.executeOnPlugin('system_controller', 'system', 'setShowWizard', false);
   self.logger.info('Wizard terminated Successfully');

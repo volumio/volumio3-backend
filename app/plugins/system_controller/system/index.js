@@ -68,11 +68,7 @@ ControllerSystem.prototype.onVolumioStart = function () {
   this.commandRouter.sharedVars.addConfigValue('system.name', 'string', self.config.get('playerName'));
 
   process.env.ADVANCED_SETTINGS_MODE = this.config.get('advanced_settings_mode', true);
-  if (fs.existsSync('/volumio/http/wizard')) {
-    process.env.NEW_WIZARD = 'true';
-  } else {
-    process.env.NEW_WIZARD = 'false';
-  }
+
   setTimeout(()=>{
     self.updateVersionHistoryFile();
   }, 30000);
@@ -261,21 +257,21 @@ ControllerSystem.prototype.getUIConfig = function () {
         if (process.env.ALLOW_LEGACY_UIS_SELECTION === 'false') {
           uiconf.sections[8].hidden = true;
         }
-        var uiValue = "";
-        var uiLabel = "";
-        if (fs.existsSync('/data/disableManifestUI') === false) {
-          uiValue = "MANIFEST";
-          uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_MANIFEST');
-        } else if (process.env.VOLUMIO_3_UI === 'true') {
-          uiValue = "CONTEMPORARY";
-          uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CONTEMPORARY');
-        } else if (fs.existsSync("/data/volumio2ui")) {
-          uiValue = "CLASSIC";
-          uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CLASSIC');
-        }
+
+        var uiValue = process.env.VOLUMIO_ACTIVE_UI_NAME;
+        var uiLabel = process.env.VOLUMIO_ACTIVE_UI_PRETTY_NAME;
+        var availableUIs = self.commandRouter.executeOnPlugin('miscellanea', 'appearance', 'getAvailableUIs');
         self.configManager.setUIConfigParam(uiconf, 'sections[8].content[0].value.value', uiValue);
         self.configManager.setUIConfigParam(uiconf, 'sections[8].content[0].value.label', uiLabel);
-        if (uiValue === "CLASSIC" || uiValue === "CONTEMPORARY") {
+        for (var i in availableUIs) {
+            var ui = availableUIs[i];
+            self.configManager.pushUIConfigParam(uiconf, 'sections[8].content[0].options', {
+                value: ui.uiName,
+                label: ui.uiPrettyName
+            });
+        }
+
+        if (uiValue === "classic" || uiValue === "contemporary") {
           uiconf.sections[9] = {"coreSection": "ui-settings"};
         }
         var additionalConfs = self.getAdditionalUISections();
@@ -287,14 +283,15 @@ ControllerSystem.prototype.getUIConfig = function () {
             }
           }
           defer.resolve(uiconf);
-        }).fail(() => {
+        }).fail((e) => {
+          self.logger.error('Failed to retrieve System UI Config: ' + e);
           defer.resolve(uiconf);
         });
       });
 
     })
     .fail(function (error) {
-      self.logger.info(error);
+      self.logger.error(error);
       defer.reject(new Error());
     });
 
@@ -1504,7 +1501,9 @@ ControllerSystem.prototype.initializeFirstStart = function () {
   // We set default value to false if config not found, so this setting won't affect devices updating from previous versions
   var isFirstStart = self.config.get('first_start', false);
   if (isFirstStart) {
-    execSync('/usr/bin/touch /data/wizard');
+    if (process.env.NEW_WIZARD === 'true') {
+      process.env.SHOW_NEW_WIZARD = 'true';
+    }
     var playerName = self.config.get('playerName');
     var sysShortID = self.getHwuuid().toUpperCase().substring(0,5);
     var newPlayerName = playerName + '-' + sysShortID;
