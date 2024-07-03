@@ -472,7 +472,7 @@ volumioAppearance.prototype.setVolumio3UI = function (data) {
   self.saveActiveUIFile(activeUiJson);
   setTimeout(()=> {
     self.commandRouter.reloadUi();
-  }, 2000);
+  }, 1000);
 };
 
 volumioAppearance.prototype.saveActiveUIFile = function (activeUiJson) {
@@ -491,6 +491,7 @@ volumioAppearance.prototype.saveActiveUIFile = function (activeUiJson) {
       process.env.VOLUMIO_ACTIVE_UI_NAME = activeUiJson.uiName;
       process.env.VOLUMIO_ACTIVE_UI_PATH = activeUiJson.uiPath;
       process.env.VOLUMIO_ACTIVE_UI_PRETTY_NAME = activeUiJson.uiPrettyName;
+      self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_SETTINGS'), self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_SUCCESSFULLY_SET_TO') + ' ' + activeUiJson.uiPrettyName);
     } catch(e) {
       self.logger.error('Failed to write ' + uiFlagFile + ': ' + e);
       self.commandRouter.pushToastMessage('error', self.commandRouter.getI18nString('COMMON.ERROR'), self.commandRouter.getI18nString('APPEARANCE.FAILED_TO_SELECT_USER_INTERFACE'));
