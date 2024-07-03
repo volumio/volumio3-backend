@@ -20,12 +20,7 @@ var status = express();
 /* eslint-disable */
 var plugindir = '/tmp/plugins';
 var backgrounddir = '/data/backgrounds';
-var volumio2UIFlagFile = '/data/volumio2ui';
-var volumioManifestUIFlagFile = '/data/manifestUI';
-var volumioWizardFlagFile = '/data/wizard';
-var volumioManifestUIDisabledFile = '/data/disableManifestUI';
-var volumio3UIFolderPath = '/volumio/http/www3';
-var volumioManifestUIDir = '/volumio/http/www4';
+var newWizardDir = '/volumio/http/wizard';
 process.env.VOLUMIO_SYSTEM_STATUS = 'starting';
 
 var allowCrossDomain = function (req, res, next) {
@@ -53,13 +48,12 @@ dev.use('/', routes);
 
 app.use(compression());
 
-// TODO DELETE THIS
-var staticMiddlewareUI2 = express.static(path.join(__dirname, 'www'));
-var staticMiddlewareUI3 = express.static(path.join(__dirname, 'www3'));
-var staticMiddlewareManifestUI = express.static(path.join(__dirname, 'www4'));
-var staticMiddlewareWizard = express.static(path.join(__dirname, 'wizard'));
+if (fs.existsSync('/volumio/http/wizard')) {
+  process.env.NEW_WIZARD = 'true';
+} else {
+  process.env.NEW_WIZARD = 'false';
+}
 
-// TODO ADD PROVISION FOR WIZARD
 try {
   var availableUIsConf = fs.readJsonSync(path.join('volumio', 'volumioUisList.json'));
   for (var i in availableUIsConf) {
@@ -85,13 +79,13 @@ try {
   }
 } catch(e) {}
 
-for (i = 1; i < 5; i++) {
-
-}
-
 app.use(function (req, res, next) {
   var userAgent = req.get('user-agent');
-  express.static(process.env.VOLUMIO_ACTIVE_UI_PATH)(req, res, next);
+  if (process.env.SHOW_NEW_WIZARD === 'true') {
+    express.static(newWizardDir)(req, res, next);
+  } else {
+    express.static(process.env.VOLUMIO_ACTIVE_UI_PATH)(req, res, next);
+  }
 });
 
 app.use(busboy({ immediate: true }));
