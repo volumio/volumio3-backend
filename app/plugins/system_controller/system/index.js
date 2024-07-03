@@ -255,22 +255,20 @@ ControllerSystem.prototype.getUIConfig = function () {
         if (process.env.ALLOW_LEGACY_UIS_SELECTION === 'false') {
           uiconf.sections[8].hidden = true;
         }
-        // TODO: Delegate this to appearance plugin which will register UIs
+
         var uiValue = process.env.VOLUMIO_ACTIVE_UI_NAME;
         var uiLabel = process.env.VOLUMIO_ACTIVE_UI_PRETTY_NAME;
-        switch(uiValue) {
-            case 'classic':
-                uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CLASSIC');
-                break;
-            case 'contemporary':
-                uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_CONTEMPORARY');
-                break;
-            case 'manifest':
-                uiLabel = self.commandRouter.getI18nString('APPEARANCE.USER_INTERFACE_MANIFEST');
-                break;
-        }
+        var availableUIs = self.commandRouter.executeOnPlugin('miscellanea', 'appearance', 'getAvailableUIs');
         self.configManager.setUIConfigParam(uiconf, 'sections[8].content[0].value.value', uiValue);
         self.configManager.setUIConfigParam(uiconf, 'sections[8].content[0].value.label', uiLabel);
+        for (var i in availableUIs) {
+            var ui = availableUIs[i];
+            self.configManager.pushUIConfigParam(uiconf, 'sections[8].content[0].options', {
+                value: ui.uiName,
+                label: ui.uiPrettyName
+            });
+        }
+        
         if (uiValue === "classic" || uiValue === "contemporary") {
           uiconf.sections[9] = {"coreSection": "ui-settings"};
         }

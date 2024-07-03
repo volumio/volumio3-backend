@@ -577,3 +577,51 @@ volumioAppearance.prototype.isLatestTOSAccepted = function () {
 
   return defer.promise;
 };
+
+volumioAppearance.prototype.getAvailableUIs = function () {
+  var self = this;
+
+  var coreUis = self.getAvailableCoreUIs();
+  var thirdPartyUis = self.getAvailableThirdPartyUIs();
+
+  return coreUis.concat(thirdPartyUis);
+};
+
+volumioAppearance.prototype.getAvailableCoreUIs = function () {
+  var self = this;
+
+  var availableUis = [];
+
+  try {
+    var availableUIsConf = fs.readJsonSync(path.join('volumio', 'volumioUisList.json'));
+    for (var i in availableUIsConf) {
+      if (fs.existsSync(availableUIsConf[i].uiPath)) {
+        availableUis.push(availableUIsConf[i]);
+      }
+    }
+  } catch(e) {
+    self.logger.error('Failed to get available Core UIs: ' + e);
+  }
+
+  return availableUis;
+};
+
+volumioAppearance.prototype.getAvailableThirdPartyUIs = function () {
+  var self = this;
+
+  var availableUis = [];
+
+  try {
+    var availableUIsConf = fs.readJsonSync(path.join('data', 'thirdPartyUisList.json'));
+    for (var i in availableUIsConf) {
+      if (fs.existsSync(availableUIsConf[i].uiPath)) {
+        availableUis.push(availableUIsConf[i]);
+      }
+    }
+  } catch(e) {}
+
+  return availableUis;
+};
+
+
+

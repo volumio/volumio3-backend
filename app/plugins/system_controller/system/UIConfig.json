@@ -304,18 +304,6 @@
             "label": "TRANSLATE.APPEARANCE.USER_INTERFACE_CONTEMPORARY"
           },
           "options": [
-            {
-              "value": "contemporary",
-              "label": "TRANSLATE.APPEARANCE.USER_INTERFACE_CONTEMPORARY"
-            },
-            {
-              "value": "classic",
-              "label": "TRANSLATE.APPEARANCE.USER_INTERFACE_CLASSIC"
-            },
-            {
-              "value": "manifest",
-              "label": "TRANSLATE.APPEARANCE.USER_INTERFACE_MANIFEST"
-            }
           ]
         }
       ]
