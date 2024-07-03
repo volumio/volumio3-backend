@@ -8,6 +8,7 @@ var busboy = require('connect-busboy');
 var fs = require('fs-extra');
 var io = require('socket.io-client');
 const { v4: uuidv4 } = require('uuid');
+var availableUis = [];
 
 var app = express();
 var dev = express();
@@ -52,38 +53,45 @@ dev.use('/', routes);
 
 app.use(compression());
 
-// Serving Volumio3 UI
-// Checking if we use Volumio3 UI
-if (fs.existsSync(volumio2UIFlagFile) || (fs.existsSync(volumioManifestUIFlagFile) && !fs.existsSync(volumioManifestUIDisabledFile)) || !fs.existsSync(volumio3UIFolderPath)) {
-  process.env.VOLUMIO_3_UI = 'false';
-} else {
-  process.env.VOLUMIO_3_UI = 'true';
-}
-
+// TODO DELETE THIS
 var staticMiddlewareUI2 = express.static(path.join(__dirname, 'www'));
 var staticMiddlewareUI3 = express.static(path.join(__dirname, 'www3'));
 var staticMiddlewareManifestUI = express.static(path.join(__dirname, 'www4'));
 var staticMiddlewareWizard = express.static(path.join(__dirname, 'wizard'));
 
-app.use(function (req, res, next) {
-  var userAgent = req.get('user-agent');
-  if (process.env.NEW_WIZARD === 'true' && fs.existsSync(volumioWizardFlagFile)){
-    process.env.VOLUMIO_ACTIVE_UI_NAME = 'wizard';
-    staticMiddlewareWizard(req, res, next);
-  } else {
-    if (fs.existsSync(volumioManifestUIDir) && !fs.existsSync(volumioManifestUIDisabledFile)){
-      process.env.VOLUMIO_ACTIVE_UI_NAME = 'manifest';
-      staticMiddlewareManifestUI(req, res, next);
-    } else {
-      if ((userAgent && userAgent.includes('volumiokiosk')) || process.env.VOLUMIO_3_UI === 'false') {
-        process.env.VOLUMIO_ACTIVE_UI_NAME = 'classic';
-        staticMiddlewareUI2(req, res, next);
-      } else {
-        process.env.VOLUMIO_ACTIVE_UI_NAME = 'contemporary';
-        staticMiddlewareUI3(req, res, next);
-      }
+// TODO ADD PROVISION FOR WIZARD
+try {
+  var availableUIsConf = fs.readJsonSync(path.join('volumio', 'volumioUisList.json'));
+  for (var i in availableUIsConf) {
+    if (fs.existsSync(availableUIsConf[i].uiPath)) {
+      availableUis.push(availableUIsConf[i]);
     }
   }
+  process.env.VOLUMIO_ACTIVE_UI_NAME = availableUis[0].uiName;
+  process.env.VOLUMIO_ACTIVE_UI_PATH = availableUis[0].uiPath;
+  process.env.VOLUMIO_ACTIVE_UI_PRETTY_NAME = availableUis[0].uiPrettyName;
+} catch(e) {
+  process.env.VOLUMIO_ACTIVE_UI_NAME = 'classic';
+  process.env.VOLUMIO_ACTIVE_UI_PATH = '/volumio/http/www';
+  process.env.VOLUMIO_ACTIVE_UI_PRETTY_NAME = 'Classic';
+}
+
+try {
+  var activeUIConf = fs.readJsonSync('/data/active_volumio_ui');
+  if (activeUIConf.uiName !== undefined && activeUIConf.uiPath !== undefined && activeUIConf.uiPrettyName !== undefined && fs.existsSync(activeUIConf.uiPath)) {
+    process.env.VOLUMIO_ACTIVE_UI_NAME = activeUIConf.uiName;
+    process.env.VOLUMIO_ACTIVE_UI_PATH = activeUIConf.uiPath;
+    process.env.VOLUMIO_ACTIVE_UI_PRETTY_NAME = activeUIConf.uiPrettyName;
+  }
+} catch(e) {}
+
+for (i = 1; i < 5; i++) {
+
+}
+
+app.use(function (req, res, next) {
+  var userAgent = req.get('user-agent');
+  express.static(process.env.VOLUMIO_ACTIVE_UI_PATH)(req, res, next);
 });
 
 app.use(busboy({ immediate: true }));

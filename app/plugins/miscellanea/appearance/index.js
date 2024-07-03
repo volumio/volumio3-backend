@@ -468,6 +468,7 @@ volumioAppearance.prototype.setVolumio3UI = function (data) {
 
   self.logger.info('Setting active UI to: ' + JSON.stringify(activeUiJson));
 
+
   self.saveActiveUIFile(activeUiJson);
   setTimeout(()=> {
     self.commandRouter.reloadUi();
@@ -481,13 +482,18 @@ volumioAppearance.prototype.saveActiveUIFile = function (activeUiJson) {
 
   if (fs.existsSync(activeUiJson.uiPath)) {
     try {
-      execSync('[ -f ' + uiFlagFile + ' ] && /usr/bin/sudo /bin/chmod 777 ' + uiFlagFile, { uid: 1000, gid: 1000, encoding: 'utf8'});
-      fs.writeJsonSync(uiFlagFile, activeUiJson);
+      fs.stat(uiFlagFile, function(err, stat) {
+        if (err == null) {
+          execSync('/usr/bin/sudo /bin/chmod 777 ' + uiFlagFile, { uid: 1000, gid: 1000, encoding: 'utf8'});
+        }
+        fs.writeJsonSync(uiFlagFile, activeUiJson);
+      });
       process.env.VOLUMIO_ACTIVE_UI_NAME = activeUiJson.uiName;
       process.env.VOLUMIO_ACTIVE_UI_PATH = activeUiJson.uiPath;
       process.env.VOLUMIO_ACTIVE_UI_PRETTY_NAME = activeUiJson.uiPrettyName;
     } catch(e) {
       self.logger.error('Failed to write ' + uiFlagFile + ': ' + e);
+      self.commandRouter.pushToastMessage('error', self.commandRouter.getI18nString('COMMON.ERROR'), self.commandRouter.getI18nString('APPEARANCE.FAILED_TO_SELECT_USER_INTERFACE'));
     }
   } else {
     self.logger.error('Cannot find UI path: ' + activeUiJson.uiPath);
