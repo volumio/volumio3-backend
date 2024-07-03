@@ -268,7 +268,7 @@ ControllerSystem.prototype.getUIConfig = function () {
                 label: ui.uiPrettyName
             });
         }
-        
+
         if (uiValue === "classic" || uiValue === "contemporary") {
           uiconf.sections[9] = {"coreSection": "ui-settings"};
         }

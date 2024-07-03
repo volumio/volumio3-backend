@@ -2475,3 +2475,12 @@ CoreCommandRouter.prototype.reportBackendEvent = function (event, properties) {
     } catch(e) {}
   }
 };
+
+CoreCommandRouter.prototype.registerThirdPartyUI = function (data) {
+  var self = this;
+
+  this.executeOnPlugin('miscellanea', 'appearance', 'registerThirdPartyUI', data);
+};
+
+
+
