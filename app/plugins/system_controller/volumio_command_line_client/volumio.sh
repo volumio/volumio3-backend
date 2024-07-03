@@ -57,6 +57,7 @@ plugin update                      updates the plugin
 logdump <description>              dump logs to $LOGDUMP instead of uploading
 init-edit <initramfs filename>     unpacks the initramfs, feeds nano with the init script and upon nano exit, rebuilds initramfs
 livelog                            shows live log, same as journalctl -f but with colors
+filetrace                          show live tracing of open files
 
 
 [[VOLUMIO UPDATER]]
@@ -284,7 +285,10 @@ correspondent folder in data"
             livelog)
                 sudo journalctl -f | ccze -A
             ;;
-        *)
+            filetrace)
+                sudo systemctl stop volumio && strace -e trace=file -f node /volumio/index.js 2>&1 | grep -v node_modules | grep /
+            ;;
+            *)
             doc
             exit 1
 
