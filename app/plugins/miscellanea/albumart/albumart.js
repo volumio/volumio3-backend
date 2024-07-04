@@ -10,6 +10,7 @@ var apiKey = '4cb074e4b8ec4ee9ad3eb37d6f7eb240';
 var diskCache = true;
 var variant = 'none';
 const { v4: uuidv4 } = require('uuid');
+var maxage = 2628000; // 30d 10h
 
 var winston = require('winston');
 var logger = winston.createLogger({
@@ -410,12 +411,15 @@ var processRequest = function (web, path, meta) {
 var processExpressRequest = function (req, res) {
   var rawQuery = req._parsedUrl.query;
 
+  if (req.url === '/albumart') {
+    return sendDefaultAlbumart(req, res);
+  }
+
   var web = req.query.web;
   var path = req.query.path;
   var icon = req.query.icon;
   var sourceicon = req.query.sourceicon;
   var sectionimage = req.query.sectionimage;
-  var maxage = 2628000; // 30d 10h
   var meta = false;
   if (req.query.metadata != undefined && req.query.metadata === 'true') {
     meta = true;
@@ -730,11 +734,8 @@ var download = function (uri, dest, cb) {
 
 var sendDefaultAlbumart = function (req, res) {
 
-  try {
-    sendTinyArt(req, res, __dirname + '/default.jpg');
-  } catch (e) {
-    sendTinyArt(req, res, __dirname + '/default.png');
-  }
+  res.setHeader('Cache-Control', 'public, max-age=' + maxage);
+  res.sendFile(__dirname + '/default.jpg');
 };
 
 module.exports.processExpressRequest = processExpressRequest;
