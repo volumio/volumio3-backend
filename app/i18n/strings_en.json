@@ -141,7 +141,8 @@
         "MINUTE": "Minute",
         "MINUTES": "Minutes",
         "HOUR": "Hour",
-        "HOURS": "Hours"
+        "HOURS": "Hours",
+        "CHECK_IF_YOUR_DEVICE_IS_CONNECTED_TO_INTERNET": "Check if your device is connected to the internet"
     },
     "MAIN_MENU": {
         "ALARM": "Alarm",

@@ -1666,8 +1666,9 @@ ControllerWebradio.prototype.listBBCRadios = function () {
       defer.resolve(object);
     }
   }).fail((e) => {
-    defer.reject(new Error('Failed to list BBC Radios: ' + e));
+    var errorObj = {errorMessage: 'Failed to list BBC Radios: ' + self.commandRouter.getI18nString('COMMON.CHECK_IF_YOUR_DEVICE_IS_CONNECTED_TO_INTERNET')};
+    defer.reject(errorObj);
   });
-  
+
   return defer.promise;
 };

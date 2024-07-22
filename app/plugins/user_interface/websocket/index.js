@@ -86,7 +86,7 @@ function InterfaceWebUI (context) {
           self.printToastMessage('success', self.commandRouter.getI18nString('COMMON.ADD_QUEUE_TITLE'), item);
         });
     });
-    
+
     connWebSocket.on('playNext', function (data) {
       if (data === null || data === undefined) {
         console.error('Invalid data: null or undefined');
@@ -415,8 +415,12 @@ function InterfaceWebUI (context) {
             });
           }
         })
-          .fail(function () {
-            self.printToastMessage('error', self.commandRouter.getI18nString('COMMON.ERROR'), self.commandRouter.getI18nString('COMMON.NO_RESULTS'));
+          .fail(function (e) {
+            if (e && e.errorMessage) {
+                self.printToastMessage('error', self.commandRouter.getI18nString('COMMON.NO_RESULTS') + ': ' + e.errorMessage);
+            } else {
+              self.printToastMessage('error', self.commandRouter.getI18nString('COMMON.ERROR'), self.commandRouter.getI18nString('COMMON.NO_RESULTS'));
+            }
           });
       }
     });
@@ -1491,7 +1495,7 @@ function InterfaceWebUI (context) {
         });
       } else self.logger.error('Cannot get UI Settings');
     });
-    
+
     connWebSocket.on('getOnboardingWizard', function () {
     var selfConnWebSocket = this;
 
@@ -1513,8 +1517,8 @@ function InterfaceWebUI (context) {
      self.commandRouter.executeOnPlugin('miscellanea', 'wizard', 'setOnboardingWizardFalse', '');
      self.commandRouter.broadcastMessage('closeOnboardingWizard', '');
     });
-    
-  
+
+
 
     connWebSocket.on('getBackgrounds', function () {
       var selfConnWebSocket = this;
