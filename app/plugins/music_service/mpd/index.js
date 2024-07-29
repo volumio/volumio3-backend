@@ -3726,6 +3726,7 @@ ControllerMpd.prototype.prefetch = function (trackBlock) {
   var self = this;
   this.logger.info('DOING PREFETCH IN MPD');
   var uri = this.sanitizeUri(trackBlock.uri);
+  var defer = libQ.defer();
 
   var urilow = trackBlock.uri.toLowerCase();
   if (urilow.endsWith('.dff') || urilow.endsWith('.dsd') || urilow.endsWith('.dxd') || urilow.endsWith('.dsf')) {
@@ -3736,7 +3737,8 @@ ControllerMpd.prototype.prefetch = function (trackBlock) {
   var safeUri = uri.replace(/"/g, '\\"');
   return this.sendMpdCommand('add "' + safeUri + '"', [])
     .then(function () {
-      return self.sendMpdCommand('consume 1', []);
+      self.sendMpdCommand('consume 1', []);
+      return defer.promise;
     });
 };
 

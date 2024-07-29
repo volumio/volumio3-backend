@@ -438,50 +438,67 @@ CoreStateMachine.prototype.increasePlaybackTimer = function () {
   var now = Date.now();
   this.currentSeek += (now - this.playbackStart);
 
-  if (this.runPlaybackTimer == true) {
+  if (this.runPlaybackTimer === true) {
     this.playbackStart = Date.now();
 
     var remainingTime = this.currentSongDuration - this.currentSeek;
 
-    if (remainingTime >= 0 && remainingTime < 5000 && this.askedForPrefetch == false) {
+    if (remainingTime >= 0 && remainingTime < 10000 && this.askedForPrefetch === false) {
       this.askedForPrefetch = true;
-
+      
       var trackBlock = this.getTrack(this.currentPosition);
-
+      
       var nextIndex = this.getNextIndex();
-
+      
       var nextTrackBlock = this.getTrack(nextIndex);
-      if (nextTrackBlock !== undefined && nextTrackBlock !== null && nextTrackBlock.service == trackBlock.service) {
+      if (nextTrackBlock && nextTrackBlock.service === trackBlock.service) {
         this.commandRouter.pushConsoleMessage('Prefetching next song');
 
         var plugin = this.commandRouter.pluginManager.getPlugin('music_service', trackBlock.service);
-        if (plugin && typeof (plugin.prefetch) === typeof (Function)) {
+
+        if (plugin && typeof plugin.prefetch === 'function') {
           this.prefetchDone = true;
-          plugin.prefetch(nextTrackBlock);
+          var prefetchPromise = plugin.prefetch(nextTrackBlock);
+
+          if (prefetchPromise && typeof prefetchPromise.then === 'function') {
+            prefetchPromise
+              .then(() => {
+                  if (remainingTime >= 0 && remainingTime <= 2000 && this.prefetchDone === true && this.simulateStopStartDone === false) {
+                    this.simulateStopStartDone = true;
+                    this.currentSeek = 0;
+  
+                    if (this.currentRandom) {
+                      this.currentPosition = this.nextRandomIndex;
+                    } else {
+                      this.currentPosition = this.getNextIndex();
+                    }
+  
+                    this.nextRandomIndex = undefined;
+  
+                    this.askedForPrefetch = false;
+                    this.pushState.bind(this);
+                    // Push another state when new track starts after prefetch
+                    setTimeout(this.pushState.bind(this), 600);
+  
+                    this.startPlaybackTimer();
+                  } else {
+                    setTimeout(this.increasePlaybackTimer.bind(this), 150);
+                  }
+              })
+              .catch(error => {
+                this.commandRouter.pushConsoleMessage('Error during prefetchingNextSong: ' + error.message);
+                this.prefetchDone = false;
+                this.askedForPrefetch = false;
+                setTimeout(this.increasePlaybackTimer.bind(this), 150);
+              });
+          } else {
+            this.commandRouter.pushConsoleMessage('Prefetch did not return a promise');
+            this.prefetchDone = false;
+            this.askedForPrefetch = false;
+            setTimeout(this.increasePlaybackTimer.bind(this), 150);
+          }
         }
       }
-    }
-
-    if (remainingTime >= 0 && remainingTime <= 500 && this.prefetchDone == true && this.simulateStopStartDone == false) {
-      this.simulateStopStartDone = true;
-      this.currentSeek = 0;
-
-      if (this.currentRandom) {
-        this.currentPosition = this.nextRandomIndex;
-      } else {
-        this.currentPosition = this.getNextIndex();
-      }
-
-      this.nextRandomIndex = undefined;
-
-      this.askedForPrefetch = false;
-      this.pushState.bind(this);
-      // Push another state when new track starts after prefetch
-      setTimeout(this.pushState.bind(this), 600);
-
-      this.startPlaybackTimer();
-    } else {
-      setTimeout(this.increasePlaybackTimer.bind(this), 250);
     }
   }
 };
