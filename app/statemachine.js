@@ -432,7 +432,7 @@ CoreStateMachine.prototype.getNextIndex = function () {
 };
 
 // Stop playback timer
-CoreStateMachine.prototype.increasePlaybackTimer = async function () {
+CoreStateMachine.prototype.increasePlaybackTimer = function () {
   var self = this;
 
   var now = Date.now();

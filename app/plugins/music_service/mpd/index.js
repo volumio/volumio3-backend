@@ -3736,7 +3736,7 @@ ControllerMpd.prototype.prefetch = function (trackBlock) {
   var safeUri = uri.replace(/"/g, '\\"');
   return this.sendMpdCommand('add "' + safeUri + '"', [])
     .then(function () {
-      self.sendMpdCommand('consume 1', []);
+      return self.sendMpdCommand('consume 1', []);
     });
 };
 
