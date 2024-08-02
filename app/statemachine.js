@@ -384,7 +384,7 @@ CoreStateMachine.prototype.startPlaybackTimer = function (nStartTime) {
     this.askedForPrefetch = false;
     this.simulateStopStartDone = false;
     this.prefetchDone = false;
-    setTimeout(this.increasePlaybackTimer.bind(this), 250);
+    setTimeout(this.increasePlaybackTimer.bind(this), 150);
 
     var isLastTrack = this.checkIfLastTrack();
     if (isLastTrack) {
@@ -441,10 +441,8 @@ CoreStateMachine.prototype.increasePlaybackTimer = function () {
   if (this.runPlaybackTimer === true) {
     this.playbackStart = Date.now();
 
-    setTimeout(() => {
-      this.increasePlaybackTimer.bind(this);
-    }, 250);
-  }
+    setTimeout(this.increasePlaybackTimer.bind(this), 250);
+  }  
 };
 
 // Update Volume Value
