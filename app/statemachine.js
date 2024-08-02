@@ -437,49 +437,14 @@ CoreStateMachine.prototype.increasePlaybackTimer = async function () {
 
   var now = Date.now();
   this.currentSeek += (now - this.playbackStart);
-  this.playbackStart = Date.now();
 
-  var remainingTime = this.currentSongDuration - this.currentSeek;
+  if (this.runPlaybackTimer === true) {
+    this.playbackStart = Date.now();
 
-  if (remainingTime >= 0 && remainingTime < 5000 && !this.prefetchDone) {
-
-    var trackBlock = this.getTrack(this.currentPosition);
-    var nextIndex = this.getNextIndex();
-    var nextTrackBlock = this.getTrack(nextIndex);
-
-    if (nextTrackBlock && nextTrackBlock.service === trackBlock.service) {
-      this.commandRouter.pushConsoleMessage('Prefetching next song');
-
-      var plugin = await this.commandRouter.pluginManager.getPlugin('music_service', trackBlock.service);
-
-      if (plugin && typeof plugin.prefetch === 'function') {
-        await plugin.prefetch(nextTrackBlock);
-        this.prefetchDone = true;
-      }
-    }
-
-  } else if (remainingTime >= 0 && remainingTime <= 200 && this.prefetchDone && this.simulateStopStartDone === false) {
-
-    this.simulateStopStartDone = true;
-    this.currentSeek = 0;
-
-    if (this.currentRandom) {
-      this.currentPosition = this.nextRandomIndex;
-    } else {
-      this.currentPosition = this.getNextIndex();
-    }
-
-    this.nextRandomIndex = undefined;
-    this.askedForPrefetch = false;
-    this.pushState();
-    // Push another state when new track starts after prefetch
-    setTimeout(this.pushState.bind(this), 600);
-
-    this.startPlaybackTimer();
+    setTimeout(() => {
+      this.increasePlaybackTimer.bind(this);
+    }, 250);
   }
-  // } else {
-  //   setTimeout(this.increasePlaybackTimer.bind(this), 2000);
-  // }
 };
 
 // Update Volume Value
