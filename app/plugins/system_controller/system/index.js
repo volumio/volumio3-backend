@@ -1500,10 +1500,13 @@ ControllerSystem.prototype.initializeFirstStart = function () {
 
   // We set default value to false if config not found, so this setting won't affect devices updating from previous versions
   var isFirstStart = self.config.get('first_start', false);
-  if (isFirstStart) {
+  var showWizard = self.config.get('show_wizard', true);
+  if (showWizard) {
     if (process.env.NEW_WIZARD === 'true') {
       process.env.SHOW_NEW_WIZARD = 'true';
     }
+  }
+  if (isFirstStart) {
     var playerName = self.config.get('playerName');
     var sysShortID = self.getHwuuid().toUpperCase().substring(0,5);
     var newPlayerName = playerName + '-' + sysShortID;
