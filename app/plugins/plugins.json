@@ -69,7 +69,17 @@
 		"type": "string",
 		"value": "STARTED"
 	  }
-	}
+	},
+    "radio_paradise": {
+      "enabled": {
+        "type": "boolean",
+        "value": true
+      },
+      "status": {
+        "type": "string",
+        "value": "STARTED"
+      }
+    }
   },
   "audio_interface": {
     "outputs": {
