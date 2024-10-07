@@ -399,7 +399,7 @@ ControllerAlsa.prototype.getUIConfig = function () {
         uiconf.sections[2].content[0].hidden = true;
       }
 
-      if (outdevicename.toLowerCase().includes('pdif')) {
+      if (outdevicename.toLowerCase().includes('pdif') && !outdevicename.toLowerCase().includes('aes/ebu')) {
           value = false;
           uiconf.sections[2].content[0].hidden = true;
       }
