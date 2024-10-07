@@ -1008,9 +1008,17 @@ function InterfaceWebUI (context) {
     connWebSocket.on('deleteUserData', function () {
       var selfConnWebSocket = this;
       self.logger.info('Command Delete User Data Received');
-      self.commandRouter.executeOnPlugin('system_controller', 'system', 'deleteUserData', '');
+
+      // Signalling MCU to perform factory reset
+      self.commandRouter.executeOnPlugin('music_service', 'inputs', 'setMCUFactoryReset', '');
+
+      // Actually executing Factory Reset
+      setTimeout(()=> {
+        self.commandRouter.executeOnPlugin('system_controller', 'system', 'deleteUserData', '');
+      }, 500);
     });
 
+    // NOTE: This is deprecated, we use deleteUserData in place of factory reset now
     connWebSocket.on('factoryReset', function () {
       var selfConnWebSocket = this;
       self.logger.info('Command Factory Reset Received');
