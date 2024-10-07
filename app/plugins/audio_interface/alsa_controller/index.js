@@ -1314,9 +1314,14 @@ ControllerAlsa.prototype.setDefaultMixer = function (device) {
       } else {
         var cardname = carddata.cards[n].prettyname.toString().trim();
         if (cardname == currentcardname) {
-          defaultmixer = carddata.cards[n].defaultmixer;
-          self.logger.info('Found match in Cards Database: setting mixer ' + defaultmixer + ' for card ' + currentcardname);
-          self.commandRouter.sharedVars.set('alsa.outputdevicemixer', defaultmixer);
+            if (carddata.cards[n].ignoreGenmixer === true) {
+                self.logger.info('Found match in Cards Database for ignoring default Mixer');
+                ignoreGenMixers = true;
+            } else {
+                defaultmixer = carddata.cards[n].defaultmixer;
+                self.logger.info('Found match in Cards Database: setting mixer ' + defaultmixer + ' for card ' + currentcardname);
+                self.commandRouter.sharedVars.set('alsa.outputdevicemixer', defaultmixer);
+            }
           break search;
         }
       }
