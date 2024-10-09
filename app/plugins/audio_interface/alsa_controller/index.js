@@ -1219,6 +1219,7 @@ ControllerAlsa.prototype.getMixerControls = function (device) {
 
   var mixers = [];
   var outdev = this.config.get('outputdevice');
+  var outdevicename = this.config.get('outputdevicename');
   if (outdev == 'softvolume') {
     outdev = this.config.get('softvolumenumber');
   }
@@ -1254,6 +1255,10 @@ ControllerAlsa.prototype.getMixerControls = function (device) {
   // We don't show available mixers for MP1 Spdif out
   if (systemInfo && systemInfo.hardware && systemInfo.hardware === 'mp1' && device === '0,2') {
       mixers = [];
+  }
+
+  if (systemInfo && systemInfo.hardware && systemInfo.hardware === 'mp1' && outdevicename && outdevicename.toLowerCase().includes('pdif')) {
+        mixers = [];
   }
 
   return mixers;
