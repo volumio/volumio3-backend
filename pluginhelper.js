@@ -19,7 +19,9 @@ function init() {
     var self = this;
     console.log("Creating a new plugin");
 
-    if(!fs.existsSync("/home/volumio/volumio-plugins-sources")){
+    var pluginsPath = getPluginsPath();
+
+    if(!fs.existsSync("/home/volumio/" + pluginsPath)){
         var question = [
             {
                 type: 'input',
@@ -31,10 +33,10 @@ function init() {
         inquirer.prompt(question).then(function (answer) {
             var name = answer.user;
             console.log("cloning repo:\ngit clone https://github.com/" + name +
-                "/volumio-plugins-sources");
+                "/" + pluginsPath);
             try {
                 execSync("/usr/bin/git clone --depth 5 --no-single-branch https://github.com/" + name +
-                    "/volumio-plugins-sources /home/volumio/volumio-plugins-sources");
+                    "/" + pluginsPath +  " /home/volumio/" + pluginsPath);
                 console.log("Done, please run command again");
             }catch(e){
                 console.log("Unable to find repo, are you sure you forked it?")
@@ -43,7 +45,7 @@ function init() {
         });
     }
     else {
-        process.chdir("/home/volumio/volumio-plugins-sources");
+        process.chdir("/home/volumio/" + pluginsPath);
         exec("git config --get remote.origin.url", function (error, stdout, stderr) {
             if (error) {
                 console.error('exec error: ${error}');
@@ -51,7 +53,7 @@ function init() {
                 return;
             }
             var url = stdout;
-            if (url == "https://github.com/volumio/volumio-plugins-sources\n") {
+            if (url == "https://github.com/volumio/" + pluginsPath + "\n") {
                 exec("git config user.name", function (error, stdout, stderr) {
                     if (error) {
                         console.error('exec error: ${error}');
@@ -126,7 +128,7 @@ function ask_name(categories, answer) {
                 if(name == "")
                     return "insert a proper name";
                 for(var i in categories){
-                    if(fs.existsSync("/home/volumio/volumio-plugins-sources/" +
+                    if(fs.existsSync("/home/volumio/" + getPluginsPath() + "/" +
                             categories[i] + "/" + name) || fs.existsSync("/data/plugins/"+
                             categories[i] + "/" + name) || fs.existsSync("/volumio/app/plugins/"+
                             categories[i] + "/" + name)) {
@@ -152,7 +154,8 @@ function create_plugin(answer, category, prettyName) {
     var name = {};
     name.sysName = answer.name;
     name.prettyName = prettyName;
-    var path = "/home/volumio/volumio-plugins-sources";
+    var pluginsPath = getPluginsPath();
+    var path = "/home/volumio/" + pluginsPath;
     console.log("NAME: " + name.sysName + " CATEGORY: " + category);
     if(!fs.existsSync(path)) {
         fs.mkdirSync(path);
@@ -162,7 +165,7 @@ function create_plugin(answer, category, prettyName) {
 
     console.log("Copying sample files");
 
-    execSync("/bin/cp -rp /home/volumio/volumio-plugins-sources/example_plugin/* " +
+    execSync("/bin/cp -rp /home/volumio/" + pluginsPath + "/example_plugin/* " +
         path);
 
     fs.readFile(path + '/index.js', 'utf8', function (err, data) {
@@ -383,8 +386,8 @@ function finalizing(path, package) {
     catch(e){
         console.log("Error, impossible to update plugins.json: " + e);
     }
-
-    execSync("/bin/cp -rp /home/volumio/volumio-plugins-sources/" + package.name + "/* " +
+    var pluginsPath = getPluginsPath();
+    execSync("/bin/cp -rp /home/volumio/" + pluginsPath + "/" + package.name + "/* " +
         "/data/plugins/" + package.volumio_info.plugin_type + "/" +
         package.name);
 
@@ -476,17 +479,18 @@ function submit() {
     }
 
     function validateGit(package) {
+        var pluginsPath = getPluginsPath();
         exec("git config --get remote.origin.url", function (error, stdout, stderr) {
             if (error) {
-                console.log('Could not determine the plugin\'s remote. A plugin can only submitted from a fork of the volumio-plugins-sources repository' );
+                console.log('Could not determine the plugin\'s remote. A plugin can only submitted from a fork of the ' + pluginsPath + ' repository' );
                 exit(); 
-            } else if (!stdout.includes('volumio-plugins-sources') && stdout.includes('https://github.com/volumio/volumio-plugins-sources')) {
-                console.log('A plugin can only submitted from a fork of the volumio-plugins-sources repository (https://github.com/volumio/volumio-plugins-sources)' );
+            } else if (!stdout.includes(pluginsPath) && stdout.includes('https://github.com/volumio/' + pluginsPath)) {
+                console.log('A plugin can only submitted from a fork of the ' + pluginsPath + ' repository (https://github.com/volumio/' + pluginsPath + ')' );
                 exit();
             } else {
                 exec("git status", function (error, stdout, stderr) {
                     if (error) {
-                        console.log('Could not determine the plugin\'s git status. A plugin can only submitted from a fork of the volumio-plugins-sources repository' );
+                        console.log('Could not determine the plugin\'s git status. A plugin can only submitted from a fork of the ' + pluginsPath + ' repository' );
                         exit(); 
                     } else if (stdout.includes('Changes not staged for commit') || stdout.includes('Untracked files')) {
                         console.log('Your repository contains unstaged changes. Please stage and commit your changes. Use \'git add *\' to stage all changes.' );
@@ -507,6 +511,7 @@ function submit() {
     }
 
     function validatePackage() {
+        var pluginsPath = getPluginsPath();
         try {
             var package = fs.readJsonSync("package.json");
             if (!package){
@@ -553,8 +558,8 @@ function submit() {
                 console.log('Package.json does not contain license field. Adding default: "license": "ISC". See https://opensource.org/licenses for license types.' );  
             }
             if (!package.repository){
-                package.repository = "https://github.com/volumio/volumio-plugins-sources"
-                console.log('Package.json does not contain repository field. Adding default: "repository": "https://github.com/volumio/volumio-plugins-sources"' );     
+                package.repository = "https://github.com/volumio/" + pluginsPath;
+                console.log('Package.json does not contain repository field. Adding default: "repository": "https://github.com/volumio/"' + pluginsPath );
             }
             if (!package.volumio_info){
                 package.volumio_info = {};
@@ -572,14 +577,14 @@ function submit() {
                     }
                 });
             }
-            if (!package.volumio_info.os){                
-                package.volumio_info.os = new Array('buster');
-                console.log('Package.json does not contain volumio_info.os field, please add it. Adding default: "os": ["buster"]' );    
+            var osVersionCodename = getVersionCodename();
+            if (!package.volumio_info.os){
+                package.volumio_info.os = new Array(osVersionCodename);
+                console.log('Package.json does not contain volumio_info.os field, please add it. Adding default: ' + osVersionCodename);
             } else {
-                //TODO: Get valid os's from db
                 package.volumio_info.os.forEach(os => {
-                    if (!new Array("buster").includes(os)){
-                        console.log('Invalid os: ' + os + '. Valid values: "buster"' );
+                    if (!new Array(osVersionCodename).includes(os)){
+                        console.log('Invalid os: ' + os + '. Valid values: ' + osVersionCodename );
                         exit();
                     }
                 });
@@ -894,4 +899,28 @@ switch (argument){
         break;
     default:
         help()
+}
+
+// ================================ UTILS =====================================
+
+function getVersionCodename () {
+
+    try {
+        var versionCodeName = execSync("grep '^VERSION_CODENAME=' /etc/os-release | cut -d'=' -f2").toString().replace('\n', '');
+    } catch (e) {
+        var versionCodeName = 'buster';
+    }
+    return versionCodeName;
+}
+
+function getPluginsPath() {
+    var versionCodename = getVersionCodename();
+    switch (versionCodename) {
+        case 'buster':
+            return 'volumio-plugins-sources';
+        case 'bookworm':
+            return 'volumio-plugins-sources-bookworm';
+        default:
+            return 'volumio-plugins-sources';
+    }
 }

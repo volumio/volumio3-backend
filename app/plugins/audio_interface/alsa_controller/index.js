@@ -399,7 +399,7 @@ ControllerAlsa.prototype.getUIConfig = function () {
         uiconf.sections[2].content[0].hidden = true;
       }
 
-      if (outdevicename.toLowerCase().includes('pdif')) {
+      if (outdevicename.toLowerCase().includes('pdif') && !outdevicename.toLowerCase().includes('aes/ebu')) {
           value = false;
           uiconf.sections[2].content[0].hidden = true;
       }
@@ -1219,6 +1219,7 @@ ControllerAlsa.prototype.getMixerControls = function (device) {
 
   var mixers = [];
   var outdev = this.config.get('outputdevice');
+  var outdevicename = this.config.get('outputdevicename');
   if (outdev == 'softvolume') {
     outdev = this.config.get('softvolumenumber');
   }
@@ -1254,6 +1255,10 @@ ControllerAlsa.prototype.getMixerControls = function (device) {
   // We don't show available mixers for MP1 Spdif out
   if (systemInfo && systemInfo.hardware && systemInfo.hardware === 'mp1' && device === '0,2') {
       mixers = [];
+  }
+
+  if (systemInfo && systemInfo.hardware && systemInfo.hardware === 'mp1' && outdevicename && outdevicename.toLowerCase().includes('pdif')) {
+        mixers = [];
   }
 
   return mixers;
@@ -1314,9 +1319,14 @@ ControllerAlsa.prototype.setDefaultMixer = function (device) {
       } else {
         var cardname = carddata.cards[n].prettyname.toString().trim();
         if (cardname == currentcardname) {
-          defaultmixer = carddata.cards[n].defaultmixer;
-          self.logger.info('Found match in Cards Database: setting mixer ' + defaultmixer + ' for card ' + currentcardname);
-          self.commandRouter.sharedVars.set('alsa.outputdevicemixer', defaultmixer);
+            if (carddata.cards[n].ignoreGenmixer === true) {
+                self.logger.info('Found match in Cards Database for ignoring default Mixer');
+                ignoreGenMixers = true;
+            } else {
+                defaultmixer = carddata.cards[n].defaultmixer;
+                self.logger.info('Found match in Cards Database: setting mixer ' + defaultmixer + ' for card ' + currentcardname);
+                self.commandRouter.sharedVars.set('alsa.outputdevicemixer', defaultmixer);
+            }
           break search;
         }
       }

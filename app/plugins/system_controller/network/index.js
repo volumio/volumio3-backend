@@ -4,6 +4,7 @@ var libQ = require('kew');
 var fs = require('fs-extra');
 var exec = require('child_process').exec;
 var execSync = require('child_process').execSync;
+var spawn = require('child_process').spawn;
 var iwlist = require('./lib/iwlist.js');
 var ifconfig = require('./lib/ifconfig.js');
 var config = new (require('v-conf'))();
@@ -43,6 +44,7 @@ ControllerNetwork.prototype.onVolumioStart = function () {
     config.delete('wlanpass');
   }
 
+  self.initializeNetworkMonitor();
   self.getWirelessNetworks();
   self.restoreNetworkBackup();
 
@@ -322,7 +324,7 @@ ControllerNetwork.prototype.getWirelessNetworks = function (defer) {
         defer.resolve(networkresults);
       }
     });
-  } 
+  }
 
   return defer.promise;
 };
@@ -1298,4 +1300,34 @@ ControllerNetwork.prototype.checkIfValidIPAddress = function (ipAddress) {
   } else {
     return false;
   }
+};
+
+ControllerNetwork.prototype.initializeNetworkMonitor = function () {
+  var self = this;
+  var monitorProcess = spawn(__dirname + '/network_monitor.sh');
+  var networkStatus = '';
+
+  monitorProcess.stdout.on('data', (data) => {
+
+    const output = data.toString().trim();
+    const status = parseInt(output, 10);
+
+    if (!isNaN(status)) {
+      if (status !== networkStatus) {
+        networkStatus = status;
+        self.commandRouter.sharedVars.set('network.networkstatus', networkStatus);
+        self.logger.info('Volumio Network Manager: Network status updated: ' + networkStatus);
+      }
+    } else {
+      self.logger.error('Volumio Network Manager: Received invalid data from the watcher script');
+    }
+  });
+
+  monitorProcess.stderr.on('data', (data) => {
+    self.logger.error('Volumio Network Manager: Error from the watcher script: ' + data.toString());
+  });
+
+  monitorProcess.on('close', (code) => {
+    self.logger.error('Volumio Network Manager: Watcher script exited with code ' + code);
+  });
 };

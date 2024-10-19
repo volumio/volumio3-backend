@@ -2307,3 +2307,42 @@ ControllerSystem.prototype.getAdditionalUISections = function () {
 
   return defer.promise;
 };
+
+
+ControllerSystem.prototype.enableHDMIDisplayStandby = function () {
+  var self = this;
+  var defer = libQ.defer();
+
+  exec('export DISPLAY=:0; /usr/bin/sudo /usr/bin/xset dpms force off', function (error, stdout, stderr) {
+    if (error) {} else {
+      self.logger.info('Enabling Screen Saver via dpms');
+      defer.resolve('OK');
+    }
+  });
+  return defer.promise;
+};
+
+ControllerSystem.prototype.disableHDMIDisplayStandby = function () {
+  var self = this;
+  var defer = libQ.defer();
+
+  if (self.config.get('hdmi_enabled', true)) {
+    exec('export DISPLAY=:0; /usr/bin/sudo /usr/bin/xset dpms force on', function (error, stdout, stderr) {
+      if (error) {}
+      self.disableScreenStandby();
+      defer.resolve('OK');
+    });
+  } else {
+    defer.resolve('OK');
+  }
+
+  return defer.promise;
+};
+
+ControllerSystem.prototype.disableScreenStandby = function () {
+  var self = this;
+
+  exec('export DISPLAY=:0; /usr/bin/sudo /usr/bin/xset dpms 0 0 0', function (error, stdout, stderr) {
+    if (error) {}
+  });
+};

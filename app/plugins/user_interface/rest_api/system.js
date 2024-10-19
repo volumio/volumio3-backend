@@ -72,3 +72,31 @@ RESTApiSystem.prototype.getInstalledPlugins = function (req, res) {
     });
   }
 };
+
+RESTApiSystem.prototype.enableHDMIDisplayStandby = function (req, res) {
+  var self = this;
+
+  var returnedData = self.commandRouter.executeOnPlugin('system_controller', 'system', 'enableHDMIDisplayStandby');
+
+  if (returnedData != undefined) {
+    returnedData.then(function (data) {
+      if (data != undefined) {
+        res.send(data);
+      }
+    });
+  }
+};
+
+RESTApiSystem.prototype.disableHDMIDisplayStandby = function (req, res) {
+  var self = this;
+
+  var returnedData = self.commandRouter.executeOnPlugin('system_controller', 'system', 'disableHDMIDisplayStandby');
+
+  if (returnedData != undefined) {
+    returnedData.then(function (data) {
+      if (data != undefined) {
+        res.send(data);
+      }
+    });
+  }
+};

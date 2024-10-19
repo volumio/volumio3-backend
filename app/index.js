@@ -504,11 +504,23 @@ CoreCommandRouter.prototype.replaceAndPlay = function (data) {
         	});
     }
   } else if (data.list && data.index !== undefined) {
-    this.stateMachine.addQueueItems(data.list)
-      .then(() => {
+    var itemsToAddUntilIndex = data.list.slice(0, data.index + 1);
+    var itemsToAddAfterIndex = data.list.slice(data.index + 1);
+    if (itemsToAddUntilIndex.length > 0 && itemsToAddAfterIndex.length > 0) {
+      this.stateMachine.addQueueItems(itemsToAddUntilIndex).then(() => {
         this.volumioPlay(data.index);
-        		defer.resolve();
+        this.stateMachine.addQueueItems(itemsToAddAfterIndex).then(() => {
+            defer.resolve();
+        });
       });
+
+    } else {
+      this.stateMachine.addQueueItems(data.list).then(() => {
+        this.volumioPlay(data.index);
+        defer.resolve();
+      });
+    }
+
   } else if (data.item != undefined && data.item.uri != undefined) {
     this.stateMachine.addQueueItems(data.item)
       .then((e) => {
