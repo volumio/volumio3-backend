@@ -20,7 +20,7 @@
     {"id":"bassfly-mic","name":"BassFly-uHAT with I2S Mic","overlay":"googlevoicehat-soundcard","alsanum":"2","alsacard":"sndrpigooglevoi","mixer":"","modules":"","script":"bassfly-init.sh","needsreboot":"yes"},
     {"id":"bassmantis","name":"BassMantis-uHAT","overlay":"i2s-dac","alsanum":"2","alsacard":"sndrpirpidac","mixer":"","modules":"","script":"bassmantis-init.sh","needsreboot":"yes"},
     {"id":"bassmantis-mic","name":"BassMantis-uHAT with I2S Mic","overlay":"googlevoicehat-soundcard","alsanum":"2","alsacard":"sndrpigooglevoi","mixer":"","modules":"","script":"bassmantis-init.sh","needsreboot":"yes"},
-    {"id":"bassowl","name":"BassOwl-HAT","overlay":"bassowl","alsanum":"2","alsacard":"bassowl","mixer":"Master","modules":"","script":"","needsreboot":"yes"},
+    {"id":"bassowl","name":"BassOwl-HAT","overlay":"i2s-dac","alsanum":"2","alsacard":"sndrpirpidac","mixer":"","modules":"","script":"bassowl-init.sh","needsreboot":"yes"},
     {"id":"chipdip-master-dac","name":"ChipDip DAC","overlay":"chipdip-dac","alsanum":"2","alsacard":"ChipDipDAC","mixer":"","modules":"","script":"","eeprom_name":"DSP Machine","needsreboot":"yes"},
     {"id":"fe-pi-audio","name":"Fe-Pi Audio","overlay":"fe-pi-audio","alsanum":"2","alsacard":"Audio","mixer":"PCM","modules":"","script":"","needsreboot":"yes"},
     {"id":"generic-dac","name":"Generic I2S DAC","overlay":"hifiberry-dac","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"","modules":"","script":"","needsreboot":"yes"},
