@@ -24,6 +24,7 @@ var singleBrowse = false;
 var startup = true;
 var stickingMusicLibrary = false;
 var collectionStats = {};
+var nextMoveToNextTrackDebounce;
 
 // Define the ControllerMpd class
 module.exports = ControllerMpd;
@@ -336,7 +337,7 @@ ControllerMpd.prototype.sendMpdCommand = function (sCommand, arrayParameters) {
       // If there's an error show an alert on UI
       if ('error' in respobject) {
         self.commandRouter.broadcastToastMessage('error', 'Error', respobject.error);
-
+        self.handleMPDPlaybackError(respobject);
         self.sendMpdCommand('clearerror', []);
       }
       const stop=Date.now()
@@ -4037,3 +4038,36 @@ ControllerMpd.prototype.checkIfMpdRequiresRescan = function () {
     }
   });
 };
+
+ControllerMpd.prototype.handleMPDPlaybackError = function (statusOBJ) {
+  var self = this;
+
+  // Handle tidal and qobuz failed to decode stream errors
+  if (statusOBJ.error &&
+      statusOBJ.error.includes('Failed to decode')&&
+      statusOBJ.error.includes('http') &&
+      (statusOBJ.error.includes('tidal') || statusOBJ.error.includes('qobuz')) ) {
+    self.logger.error('MPD Playback Error: Failed to decode stream, moving to next track');
+    self.moveToNextTrackAfterPlaybackError();
+  }
+
+};
+
+ControllerMpd.prototype.moveToNextTrackAfterPlaybackError = function () {
+  var self = this;
+
+  if (nextMoveToNextTrackDebounce) {
+    clearTimeout(nextMoveToNextTrackDebounce);
+  }
+
+    nextMoveToNextTrackDebounce = setTimeout(function () {
+      var nextTrackPosition = self.commandRouter.stateMachine.getNextIndex();
+      if (nextTrackPosition !== undefined) {
+        self.logger.info('Moving to next track after playback error');
+        self.commandRouter.volumioPlay(nextTrackPosition);
+      }
+    }, 1000);
+};
+
+
+
