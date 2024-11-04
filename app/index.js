@@ -66,12 +66,14 @@ function CoreCommandRouter (server) {
   // Wait for plugin startup to complete before playing the startup sound as the
   // plugins may need to be fully active before sound can play properly
   pluginPromise.then(() => {
-	  this.pushConsoleMessage('BOOT COMPLETED');
-      process.env.VOLUMIO_SYSTEM_STATUS = 'ready';
 	  metrics.log('CommandRouter');
 	  this.setStartupVolume();
 	  this.startupSound();
 	  this.closeModals();
+      setTimeout(() => {
+        this.pushConsoleMessage('BOOT COMPLETED');
+        process.env.VOLUMIO_SYSTEM_STATUS = 'ready';
+      }, 7000);
   });
 }
 
