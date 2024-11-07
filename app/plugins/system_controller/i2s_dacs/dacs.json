@@ -33,6 +33,8 @@
     {"id":"hifiberry-amp3","name":"HiFiBerry Amp3","overlay":"hifiberry-amp3","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"","modules":"","script":"","needsreboot":"yes"},
     {"id":"hifiberry-amp4","name":"HiFiBerry Amp4","overlay":"hifiberry-dacplus","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Digital","modules":"","script":"","eeprom_name":"HiFiBerry DAC+","i2c_address":"4d","needsreboot":"yes"},
     {"id":"hifiberry-amp4-pi5","name":"HiFiBerry Amp4 [Pi5]","overlay":"hifiberry-dacplus-std","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Digital","modules":"","script":"","eeprom_name":"HiFiBerry DAC+","i2c_address":"4d","needsreboot":"yes"},
+    {"id":"hifiberry-amp4-pro","name":"HiFiBerry Amp4 Pro","overlay":"hifiberry-amp4pro","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Digital","modules":"","script":"","needsreboot":"yes"},
+    {"id":"hifiberry-amp4-pro-pi5","name":"HiFiBerry Amp4 Pro [Pi5]","overlay":"hifiberry-amp4pro,slave","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Digital","modules":"","script":"","needsreboot":"yes"},
     {"id":"hifiberry-dac","name":"HiFiBerry DAC","overlay":"hifiberry-dac","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"","modules":"","script":"","needsreboot":"yes"},
     {"id":"hifiberry-dacplus","name":"HiFiBerry DAC Plus","overlay":"hifiberry-dacplus","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Digital","modules":"","script":"","eeprom_name":"HiFiBerry DAC+","i2c_address":"4d","needsreboot":"yes"},
     {"id":"hifiberry-dacplus-pi5","name":"HiFiBerry DAC Plus [Pi5]","overlay":"hifiberry-dacplus-std","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Digital","modules":"","script":"","eeprom_name":"HiFiBerry DAC+","i2c_address":"4d","needsreboot":"yes"},
