@@ -56,6 +56,8 @@
     {"id":"innomaker-dac-pro","name":"Innomaker Dac Pro","overlay":"allo-katana-dac-audio","alsanum":"2","alsacard":"Katana","mixer":"Master","modules":"","script":"","needsreboot":"yes"},
     {"id":"innomaker-amp","name":"Innomaker Amp","overlay":"hifiberry-amp","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Master","modules":"","script":"","needsreboot":"yes"},
     {"id":"innomaker-amp-pro","name":"Innomaker Amp Pro","overlay":"merus-amp","alsanum":"2","alsacard":"sndrpimerusamp","mixer":"","modules":"","script":"","needsreboot":"yes"},
+    {"id":"interludeaudio-digital","name":"Interlude Audio Digital Hat","overlay":"interludeaudio-digital","alsanum":"2","alsacard":"snd_IA_Anlog_Hat","mixer":"","modules":"","script":"","needsreboot":"yes"},
+    {"id":"interludeaudio-analog","name":"Interlude Audio Analog Hat","overlay":"interludeaudio-analog","alsanum":"2","alsacard":"snd_IA_Digital_Hat","mixer":"","modules":"","script":"","needsreboot":"yes"},
     {"id":"iqaudio-dacplus","name":"IQaudIO DAC Plus","overlay":"iqaudio-dacplus,unmute_amp ","alsanum":"2","alsacard":"IQaudIODAC","mixer":"Digital","modules":"","script":"iqamp-unmute.sh","i2c_address":"4c","needsreboot":"yes"},
     {"id":"iqaudio-digiplus","name":"IQaudIO Pi-Digi+","overlay":"iqaudio-digi-wm8804-audio","alsanum":"2","alsacard":"IQAudIODigi","mixer":"","modules":"","script":"","needsreboot":"yes"},
     {"id":"iqaudio-amp","name":"IQaudIO Pi-DigiAMP+","overlay":"iqaudio-dacplus,unmute_amp ","alsanum":"2","alsacard":"IQaudIODAC","mixer":"Digital","modules":"","script":"iqamp-unmute.sh","needsreboot":"yes"},
