@@ -309,7 +309,6 @@ CoreCommandRouter.prototype.volumioImportServicePlaylists = function () {
 // Volumio Search
 CoreCommandRouter.prototype.volumioSearch = function (data) {
   this.pushConsoleMessage('CoreCommandRouter::Search ' + data);
-  var asd = this.musicLibrary.search(data);
 
   return this.musicLibrary.search(data);
 };
