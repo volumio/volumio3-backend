@@ -4,7 +4,6 @@ var path = require('path');
 var bodyParser = require('body-parser');
 var routes = require('./routes.js');
 var restapi = require('./restapi.js');
-var busboy = require('connect-busboy');
 var fs = require('fs-extra');
 var io = require('socket.io-client');
 const { v4: uuidv4 } = require('uuid');
@@ -88,7 +87,6 @@ app.use(function (req, res, next) {
   }
 });
 
-app.use(busboy({ immediate: true }));
 app.use(allowCrossDomain);
 
 app.use('/dev', dev);
@@ -151,166 +149,220 @@ dev.use(function (err, req, res, next) {
 });
 
 app.route('/plugin-upload')
-  .post(function (req, res, next) {
-    this.fileData = null;
+    .post(function (req, res, next) {
+      let fileData = [];
 
-    req.busboy.on('file', (fieldname, file, filename) => {
-      this.filename = filename;
-      file.on('data', (data) => {
-        if (this.fileData === null) {
-          this.fileData = data;
-        } else {
-          this.fileData = Buffer.concat([this.fileData, data]);
-        }
+      req.on('data', chunk => {
+        fileData.push(chunk);
       });
-    });
 
-    req.busboy.on('finish', () => {
-      if (!this.filename) {
-        console.log('Plugin Upload No file attached');
-        return res.status(500);
-      }
-      if (this.fileData) {
-        console.log('Uploading: ' + this.filename);
-        this.uniquename = uuidv4() + '.zip';
-        console.log("Created safe filename as '" + this.uniquename + "'");
+      req.on('end', () => {
+        const bodyBuffer = Buffer.concat(fileData);
+        const boundary = '--' + req.headers['content-type'].split('; ')[1].split('=')[1];
+        const parts = bodyBuffer.toString().split(boundary);
+
+        // Find the file data part
+        const filePart = parts.find(part => part.includes('Content-Type'));
+        if (!filePart) {
+          console.log('Plugin Upload No file attached');
+          return res.status(500);
+        }
+
+        // Extract filename and file content
+        const fileNameMatch = filePart.match(/filename="(.+?)"/);
+        const fileName = fileNameMatch ? fileNameMatch[1] : null;
+
+        if (!fileName) {
+          console.log('Plugin Upload No filename found');
+          return res.status(500);
+        }
+
+        // Extract binary data
+        const fileContentStart = filePart.indexOf('\r\n\r\n') + 4;
+        const fileContentEnd = filePart.lastIndexOf('\r\n');
+        const fileContent = bodyBuffer.slice(
+            bodyBuffer.indexOf(Buffer.from('\r\n\r\n')) + 4,
+            bodyBuffer.lastIndexOf(Buffer.from('\r\n' + boundary))
+        );
+
+        const uniquename = uuidv4() + '.zip';
+        console.log("Created safe filename as '" + uniquename + "'");
+
         try {
           fs.ensureDirSync(plugindir);
         } catch (err) {
           console.log('Cannot Create Plugin Dir ' + plugindir);
-        }
-        fs.writeFile(plugindir + '/' + this.uniquename, this.fileData, (err) => {
-          if (err) {
-            console.log('Plugin upload failed: ' + err);
-          } else {
-            var socket = io.connect('http://localhost:3000');
-            var pluginurl = 'http://127.0.0.1:3000/plugin-serve/' + this.uniquename;
-            socket.emit('installPlugin', {url: pluginurl});
-            res.sendStatus(200);
-          }
-        });
-      }
-    });
-  });
-
-app.route('/backgrounds-upload')
-  .post(function (req, res, next) {
-    this.fileData = null;
-
-    req.busboy.on('file', (fieldname, file, filename) => {
-      this.filename = filename;
-      file.on('data', (data) => {
-        if (this.fileData === null) {
-          this.fileData = data;
-        } else {
-          this.fileData = Buffer.concat([this.fileData, data]);
-        }
-      });
-    });
-
-    req.busboy.on('finish', () => {
-      if (!this.filename) {
-        console.log('Background upload No file attached');
-        return res.status(500);
-      }
-      if (this.fileData && this.fileData.length > 3000000) {
-        console.log('Background upload size exceeds 3 MB, aborting');
-        var socket = io.connect('http://localhost:3000');
-        socket.emit('callMethod', {'endpoint': 'miscellanea/appearance', 'method': 'sendSizeErrorToasMessage', 'data': '3'});
-        return res.status(500);
-      }
-      var allowedExtensions = ['jpg', 'jpeg', 'png'];
-      var extension = this.filename.split('.').pop().toLowerCase();
-      if (allowedExtensions.indexOf(extension) > -1) {
-        console.log('Uploading: ' + this.filename);
-        try {
-          fs.ensureDirSync(backgrounddir);
-        } catch (err) {
-          console.log('Cannot Create Background DIR ');
-        }
-        var properfilename = this.filename.replace(/ /g, '-');
-        var bgFileName = '/data/backgrounds/' + properfilename;
-        if (this.fileData) {
-          fs.writeFile(bgFileName, this.fileData, (err) => {
-            if (err) {
-              console.log('Error Saving Custom Albumart: ' + err);
-            } else {
-              console.log('Background Successfully Uploaded');
-              var socket = io.connect('http://localhost:3000');
-              socket.emit('regenerateThumbnails', '');
-              res.status(201);
-            }
-          });
-        } else {
-          console.log('Failed to upload background file: no file received');
-        }
-      }
-    });
-  });
-
-app.route('/albumart-upload')
-  .post(function (req, res, next) {
-    var artist;
-    var album;
-    var filePath;
-    this.fileData = null;
-
-    req.busboy.on('file', (fieldname, file, filename) => {
-      this.filename = filename;
-      file.on('data', (data) => {
-        if (this.fileData === null) {
-          this.fileData = data;
-        } else {
-          this.fileData = Buffer.concat([this.fileData, data]);
-        }
-      });
-    });
-
-    req.busboy.on('field', (fieldName, value) => {
-      if (fieldName === 'artist' && value !== undefined) {
-        this.artist = value;
-      }
-      if (fieldName === 'album' && value !== undefined) {
-        this.album = value;
-      }
-      if (fieldName === 'filePath' && value !== undefined) {
-        this.filePath = value;
-      }
-    });
-
-    req.busboy.on('finish', () => {
-      if (!this.filename) {
-        console.log('Albumart upload No file attached');
-        return res.status(500);
-      }
-      if (this.fileData && this.fileData.length > 1000000) {
-        console.log('Albumart upload size exceeds 1MB, aborting');
-        var socket = io.connect('http://localhost:3000');
-        socket.emit('callMethod', {'endpoint': 'miscellanea/appearance', 'method': 'sendSizeErrorToasMessage', 'data': '1'});
-        return res.status(500);
-      }
-      console.log('Uploading albumart: ' + this.filename);
-      extension = this.filename.split('.').pop().toLowerCase();
-      var allowedExtensions = ['jpg', 'jpeg', 'png'];
-      if (allowedExtensions.indexOf(extension) > -1) {
-        this.filename = 'cover' + '.' + extension;
-        var albumartDir = '/data/albumart';
-        var cacheId = Math.floor(Math.random() * 1001);
-        if (this.filePath !== undefined) {
-          var customAlbumartPath = encodeURI(path.join(albumartDir, 'personal', 'path', this.filePath));
-          var returnAlbumartPath = '/albumart?cacheid=' + cacheId + '&web=' + '/extralarge';
-        } else if (this.artist !== undefined && this.album !== undefined) {
-          var customAlbumartPath = encodeURI(path.join(albumartDir, 'personal', 'album', this.artist, this.album));
-          var returnAlbumartPath = '/albumart?cacheid=' + cacheId + '&web=' + encodeURI(this.artist + '/' + this.album) + '/extralarge';
-        } else if (this.artist !== undefined) {
-          var customAlbumartPath = encodeURI(path.join(albumartDir, 'personal', 'artist', this.artist));
-          var returnAlbumartPath = '/albumart?cacheid=' + cacheId + '&web=' + encodeURI(this.artist) + '/extralarge';
-        } else {
-          console.log('Error: no path, artist or album specified');
           return res.status(500);
         }
 
-        if (this.fileData !== null) {
+        fs.writeFile(plugindir + '/' + uniquename, fileContent, (err) => {
+          if (err) {
+            console.log('Plugin upload failed: ' + err);
+            return res.status(500);
+          }
+          var socket = io.connect('http://localhost:3000');
+          var pluginurl = 'http://127.0.0.1:3000/plugin-serve/' + uniquename;
+          socket.emit('installPlugin', {url: pluginurl});
+          res.sendStatus(200);
+        });
+      });
+    });
+
+app.route('/backgrounds-upload')
+    .post(function (req, res, next) {
+      let fileData = [];
+
+      req.on('data', chunk => {
+        fileData.push(chunk);
+      });
+
+      req.on('end', () => {
+        const bodyBuffer = Buffer.concat(fileData);
+        const boundary = '--' + req.headers['content-type'].split('; ')[1].split('=')[1];
+        const parts = bodyBuffer.toString().split(boundary);
+
+        // Find the file data part
+        const filePart = parts.find(part => part.includes('Content-Type'));
+        if (!filePart) {
+          console.log('Background upload No file attached');
+          return res.status(500);
+        }
+
+        // Extract filename and file content
+        const fileNameMatch = filePart.match(/filename="(.+?)"/);
+        const fileName = fileNameMatch ? fileNameMatch[1] : null;
+
+        if (!fileName) {
+          console.log('Background upload No filename found');
+          return res.status(500);
+        }
+
+        // Extract binary data
+        const fileContentStart = filePart.indexOf('\r\n\r\n') + 4;
+        const fileContentEnd = filePart.lastIndexOf('\r\n');
+        const fileContent = bodyBuffer.slice(
+            bodyBuffer.indexOf(Buffer.from('\r\n\r\n')) + 4,
+            bodyBuffer.lastIndexOf(Buffer.from('\r\n' + boundary))
+        );
+
+        if (fileContent.length > 3000000) {
+          console.log('Background upload size exceeds 3 MB, aborting');
+          var socket = io.connect('http://localhost:3000');
+          socket.emit('callMethod', {'endpoint': 'miscellanea/appearance', 'method': 'sendSizeErrorToasMessage', 'data': '3'});
+          return res.status(500);
+        }
+
+        const extension = fileName.split('.').pop().toLowerCase();
+        const allowedExtensions = ['jpg', 'jpeg', 'png'];
+
+        if (allowedExtensions.indexOf(extension) > -1) {
+          console.log('Uploading: ' + fileName);
+          try {
+            fs.ensureDirSync(backgrounddir);
+          } catch (err) {
+            console.log('Cannot Create Background DIR ');
+            return res.status(500);
+          }
+
+          const properfilename = fileName.replace(/ /g, '-');
+          const bgFileName = '/data/backgrounds/' + properfilename;
+
+          fs.writeFile(bgFileName, fileContent, (err) => {
+            if (err) {
+              console.log('Error Saving Custom Albumart: ' + err);
+              return res.status(500);
+            }
+            console.log('Background Successfully Uploaded');
+            var socket = io.connect('http://localhost:3000');
+            socket.emit('regenerateThumbnails', '');
+            res.sendStatus(201);
+          });
+        }
+      });
+    });
+
+app.route('/albumart-upload')
+    .post(function (req, res, next) {
+      let fileData = [];
+      let artist, album, filePath;
+
+      req.on('data', chunk => {
+        fileData.push(chunk);
+      });
+
+      req.on('end', () => {
+        const bodyBuffer = Buffer.concat(fileData);
+        const boundary = '--' + req.headers['content-type'].split('; ')[1].split('=')[1];
+        const parts = bodyBuffer.toString().split(boundary);
+
+        // Extract form fields
+        parts.forEach(part => {
+          if (part.includes('name="artist"')) {
+            artist = part.split('\r\n\r\n')[1].split('\r\n')[0];
+          }
+          if (part.includes('name="album"')) {
+            album = part.split('\r\n\r\n')[1].split('\r\n')[0];
+          }
+          if (part.includes('name="filePath"')) {
+            filePath = part.split('\r\n\r\n')[1].split('\r\n')[0];
+          }
+        });
+
+        // Find the file data part
+        const filePart = parts.find(part => part.includes('Content-Type'));
+        if (!filePart) {
+          console.log('Albumart upload No file attached');
+          return res.status(500);
+        }
+
+        // Extract filename and file content
+        const fileNameMatch = filePart.match(/filename="(.+?)"/);
+        const fileName = fileNameMatch ? fileNameMatch[1] : null;
+
+        if (!fileName) {
+          console.log('Albumart upload No filename found');
+          return res.status(500);
+        }
+
+        // Extract binary data
+        const fileContentStart = filePart.indexOf('\r\n\r\n') + 4;
+        const fileContentEnd = filePart.lastIndexOf('\r\n');
+        const fileContent = bodyBuffer.slice(
+            bodyBuffer.indexOf(Buffer.from('\r\n\r\n')) + 4,
+            bodyBuffer.lastIndexOf(Buffer.from('\r\n' + boundary))
+        );
+
+        if (fileContent.length > 1000000) {
+          console.log('Albumart upload size exceeds 1MB, aborting');
+          var socket = io.connect('http://localhost:3000');
+          socket.emit('callMethod', {'endpoint': 'miscellanea/appearance', 'method': 'sendSizeErrorToasMessage', 'data': '1'});
+          return res.status(500);
+        }
+
+        console.log('Uploading albumart: ' + fileName);
+        const extension = fileName.split('.').pop().toLowerCase();
+        const allowedExtensions = ['jpg', 'jpeg', 'png'];
+
+        if (allowedExtensions.indexOf(extension) > -1) {
+          const newFilename = 'cover' + '.' + extension;
+          const albumartDir = '/data/albumart';
+          const cacheId = Math.floor(Math.random() * 1001);
+          let customAlbumartPath, returnAlbumartPath;
+
+          if (filePath !== undefined) {
+            customAlbumartPath = encodeURI(path.join(albumartDir, 'personal', 'path', filePath));
+            returnAlbumartPath = '/albumart?cacheid=' + cacheId + '&web=' + '/extralarge';
+          } else if (artist !== undefined && album !== undefined) {
+            customAlbumartPath = encodeURI(path.join(albumartDir, 'personal', 'album', artist, album));
+            returnAlbumartPath = '/albumart?cacheid=' + cacheId + '&web=' + encodeURI(artist + '/' + album) + '/extralarge';
+          } else if (artist !== undefined) {
+            customAlbumartPath = encodeURI(path.join(albumartDir, 'personal', 'artist', artist));
+            returnAlbumartPath = '/albumart?cacheid=' + cacheId + '&web=' + encodeURI(artist) + '/extralarge';
+          } else {
+            console.log('Error: no path, artist or album specified');
+            return res.status(500);
+          }
+
           try {
             fs.ensureDirSync(customAlbumartPath);
           } catch (err) {
@@ -324,24 +376,24 @@ app.route('/albumart-upload')
             console.log('Could not clear personal albumart folder: ' + e);
           }
 
-          var personalCoverPath = path.join(customAlbumartPath, this.filename);
+          const personalCoverPath = path.join(customAlbumartPath, newFilename);
 
-          fs.writeFile(personalCoverPath, this.fileData, (err) => {
+          fs.writeFile(personalCoverPath, fileContent, (err) => {
             if (err) {
               console.log('Error Saving Custom Albumart: ' + err);
-            } else {
-              console.log('Custom Albumart Upload Finished');
-              var socket = io.connect('http://localhost:3000');
-              socket.emit('callMethod', {'endpoint': 'miscellanea/albumart', 'method': 'clearAlbumartCache', 'data': ''});
-              res.json({'path': returnAlbumartPath});
+              return res.status(500);
             }
+            console.log('Custom Albumart Upload Finished');
+            var socket = io.connect('http://localhost:3000');
+            socket.emit('callMethod', {'endpoint': 'miscellanea/albumart', 'method': 'clearAlbumartCache', 'data': ''});
+            res.json({'path': returnAlbumartPath});
           });
+        } else {
+          console.log('Albumart file format not allowed ' + fileName);
+          return res.status(500);
         }
-      } else {
-        console.log('Albumart file format not allowed ' + filename);
-      }
+      });
     });
-  });
 
 plugin.use(express.static(path.join(plugindir)));
 background.use(express.static(path.join(backgrounddir)));

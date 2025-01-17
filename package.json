@@ -24,7 +24,6 @@
     "chromecast-api": "^0.3.4",
     "compare-versions": "^3.0.1",
     "compression": "^1.6.2",
-    "connect-busboy": "0.0.2",
     "cue-parser": "^0.2.1",
     "daap-parser": "^0.1.1",
     "dotenv": "^8.2.0",
