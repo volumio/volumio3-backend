@@ -8,6 +8,7 @@
     {"id":"allo-boss2-dac","name":"Allo BOSS2","overlay":"allo-boss2-dac-audio","alsanum":"2","alsacard":"Boss2","mixer":"Master","modules":"","script":"","needsreboot":"yes"},
     {"id":"allo-digione","name":"Allo DigiOne","overlay":"allo-digione","alsanum":"2","alsacard":"sndallodigione","mixer":"","modules":"","script":"","needsreboot":"yes"},
     {"id":"allo-katana-dac","name":"Allo Katana","overlay":"allo-katana-dac-audio","alsanum":"2","alsacard":"Katana","mixer":"Master","modules":"","script":"","needsreboot":"yes"},
+    {"id":"audio-injector-stereo","name":"AudioInjector Stereo","overlay":"audioinjector-wm8731-audio","alsanum":"2","alsacard":"audioinjectorpi","mixer":"Master","modules":"","script":"aistereo-unmute.sh","needsreboot":"yes"},
     {"id":"audio-injector-bare","name":"AudioInjector bare I2S","overlay":"audioinjector-bare-i2s","alsanum":"2","alsacard":"audioinjectorba","mixer":"","modules":"","script":"","needsreboot":"yes"},
     {"id":"audio-injector-isolated","name":"AudioInjector Isolated","overlay":"audioinjector-isolated-soundcard","alsanum":"2","alsacard":"audioinjectoris","mixer":"Master","modules":"","script":"","needsreboot":"yes"},
     {"id":"audio-injector-pro","name":"AudioInjector Pro","overlay":"audioinjector-isolated-soundcard","alsanum":"2","alsacard":"audioinjectoris","mixer":"Master","modules":"","script":"","needsreboot":"yes"},
