@@ -38,6 +38,14 @@ function AirPlayInterface (context) {
   };
 }
 
+function debounce(func, time = 100) {
+  var timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => { func.apply(this, args); }, time);
+  };
+}
+
 AirPlayInterface.prototype.onVolumioStart = function () {
   var self = this;
   self.logger.info('Starting Shairport Sync');
@@ -307,12 +315,13 @@ AirPlayInterface.prototype.startShairportSyncMeta = function () {
     self.pushAirplayMeta();
   });
 
-  pipeReader.on('pvol', function (pvol) {
+  pipeReader.on('pvol', debounce((pvol) => {
+    // Airplay volume goes from -30 to 0; -144 indicates mute
+    var normalizedVolume = Math.round( 100 * (pvol.airplay + 30) / 30 );
 
-    // if (pvol.airplay === -144) {
-    //    self.commandRouter.volumiosetvolume('mute');
-    // }
-  });
+    self.logger.info('Updating volume from AirPlay: ' + pvol.airplay + '; ' + normalizedVolume + '%');
+    self.commandRouter.volumiosetvolume(pvol.airplay === -144 ? 'mute' : normalizedVolume)
+  }, 50));
 
   pipeReader.on('pend', function (pend) {
     self.obj.title = '';
