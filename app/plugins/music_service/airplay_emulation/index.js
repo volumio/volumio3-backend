@@ -11,6 +11,7 @@ var pipeReader;
 var seekTimer;
 var onDemand = false;
 var airplayActive = false;
+var lastSetAirplayVolume = undefined;
 
 // Define the UpnpInterface class
 module.exports = AirPlayInterface;
@@ -317,10 +318,21 @@ AirPlayInterface.prototype.startShairportSyncMeta = function () {
 
   pipeReader.on('pvol', debounce((pvol) => {
     // Airplay volume goes from -30 to 0; -144 indicates mute
-    var normalizedVolume = Math.round( 100 * (pvol.airplay + 30) / 30 );
-
-    self.logger.info('Updating volume from AirPlay: ' + pvol.airplay + '; ' + normalizedVolume + '%');
-    self.commandRouter.volumiosetvolume(pvol.airplay === -144 ? 'mute' : normalizedVolume)
+    if (pvol.airplay === -144) {
+      var normalizedVolume = 'mute';
+    } else {
+      try {
+        var normalizedVolume = Math.round( 100 * (pvol.airplay + 30) / 30 );
+      } catch(e) {
+        self.logger.error('Error normalizing airplay volume: ' + e);
+        return;
+      }
+    }
+    if (lastSetAirplayVolume !== normalizedVolume) {
+        self.logger.info('Updating volume from AirPlay: ' + pvol.airplay + '; ' + normalizedVolume + '%');
+        self.commandRouter.volumiosetvolume(normalizedVolume)
+        lastSetAirplayVolume = normalizedVolume;
+    }
   }, 50));
 
   pipeReader.on('pend', function (pend) {
