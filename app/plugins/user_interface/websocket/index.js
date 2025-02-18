@@ -859,6 +859,12 @@ function InterfaceWebUI (context) {
       return self.commandRouter.shutdown();
     });
 
+    connWebSocket.on('standby', function () {
+      // console.log('Received Shutdown Command');
+
+      return self.commandRouter.standby();
+    });
+
     connWebSocket.on('reboot', function () {
       // console.log('Received Reboot Command');
       return self.commandRouter.reboot();

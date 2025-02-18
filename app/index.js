@@ -1325,16 +1325,22 @@ CoreCommandRouter.prototype.pushAirplay = function (data) {
 CoreCommandRouter.prototype.shutdown = function () {
   var self = this;
 
+  self.pluginManager.onVolumioShutdown().then(function () {
+    self.platformspecific.shutdown();
+  }).fail(function (e) {
+    self.logger.info('Error in onVolumioShutdown Plugin Promise handling: ' + e);
+    self.platformspecific.shutdown();
+  });
+};
+
+CoreCommandRouter.prototype.standby = function () {
+  var self = this;
+
   if (self.standByHandler && self.standByHandler.category && self.standByHandler.name && self.standByHandler.method) {
     self.logger.info('Executing Standby mode with handler plugin ' + self.standByHandler.name);
     self.executeOnPlugin(self.standByHandler.category, self.standByHandler.name, self.standByHandler.method, '');
   } else {
-    self.pluginManager.onVolumioShutdown().then(function () {
-      self.platformspecific.shutdown();
-    }).fail(function (e) {
-      self.logger.info('Error in onVolumioShutdown Plugin Promise handling: ' + e);
-      self.platformspecific.shutdown();
-    });
+    self.logger.error('No Standby handler defined, not executing standby');
   }
 };
 
@@ -2353,11 +2359,16 @@ CoreCommandRouter.prototype.registerStandByHandler = function (data) {
 CoreCommandRouter.prototype.getShutdownOrStandbyMode = function () {
   var self = this;
 
-  if (self.standByHandler && self.standByHandler.category && self.standByHandler.name && self.standByHandler.method) {
-    return 'standby';
-  } else {
-    return 'shutdown';
+  var data = {
+    "hasPowerOffMode": true,
+    "hasStandbyMode": false,
   }
+
+  if (self.standByHandler && self.standByHandler.category && self.standByHandler.name && self.standByHandler.method) {
+    data.hasStandbyMode = true;
+  }
+
+  return data;
 };
 
 CoreCommandRouter.prototype.addDSPSignalPathElement = function (data) {
