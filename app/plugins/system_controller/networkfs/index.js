@@ -925,24 +925,6 @@ ControllerNetworkfs.prototype.umountAllShares = function () {
   return defer.promise;
 };
 
-ControllerNetworkfs.prototype.umountShare = function (data) {
-  var self = this;
-
-  var defer = libQ.defer();
-  var key = 'NasMounts.' + data['id'];
-
-  if (config.has(key)) {
-    var mountidraw = config.get(key + '.name');
-    var mountid = mountidraw.replace(/[\s\n\\]/g, '_');
-    var mountpoint = '/mnt/NAS/' + mountid;
-    try {
-      execSync('/usr/bin/sudo /bin/umount -f ' + mountpoint, { uid: 1000, gid: 1000, encoding: 'utf8', timeout: 10000 });
-    } catch (e) {
-      self.logger.error('Cannot umount share ' + mountid + ' : ' + e);
-    }
-  }
-};
-
 // FS AUTOMOUNT
 
 ControllerNetworkfs.prototype.umountShare = function (data) {
