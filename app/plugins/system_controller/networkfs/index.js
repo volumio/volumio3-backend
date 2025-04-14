@@ -397,7 +397,6 @@ ControllerNetworkfs.prototype.addShare = function (data) {
   }
 
   var uuid = self.getShare(name, ip, path);
-  var response;
   if (uuid != undefined) {
     self.logger.info('Share ' + name + ' has already been configured, with uuid ' + uuid);
     defer.resolve({
@@ -410,9 +409,50 @@ ControllerNetworkfs.prototype.addShare = function (data) {
   uuid = uuidv4();
   self.logger.info('No correspondence found in configuration for share ' + name + ' on IP ' + ip);
 
-  var saveshare = self.saveShareConf('NasMounts', uuid, name, ip, path, fstype, username, password, options);
+  var res;
+  if (fstype == 'cifs') {
+    res = self.getSharesPerDevice({host: ip, name: name}).then(function (device) {
+      self.logger.info('Detected device ' + device.name + ' with version ' + device.version);
+      return device.version;
+    });
+  } else {
+    res = libQ.resolve('');
+  }
 
-  saveshare.then(function () {
+  res = res.then(function (version) {
+    if (!version)
+      return;
+
+    if (options.includes('vers=')) {
+      self.logger.info('Version ' + version + ' detected, but user has specified version in options');
+    } else {
+      // https://wiki.sharewiz.net/doku.php?id=ubuntu:samba:smb_protocol_versions
+      var versionNum = {
+        'SMB3_11': '3.11',
+        'SMB3_10': '3.10',
+        'SMB3_02': '3.2',
+        'SMB3': '3.0',
+        'SMB2_24': '2.24',
+        'SMB2_22': '2.22',
+        'SMB2_10': '2.10',
+        'SMB2_02': '2.02',
+        'SMB1': '1.0',
+        'NT1': '1.0'
+      }[version];
+      if (versionNum) {
+        if (options) options += ','
+        options += 'vers=' + versionNum;
+
+        self.logger.info('Set version number ' + versionNum + ' in CIFS options: ' + options);
+      } else {
+        self.logger.warn('Could not determine version number from ' + version);
+      }
+    }
+  })
+
+  res.then(function () {
+    return self.saveShareConf('NasMounts', uuid, name, ip, path, fstype, username, password, options)
+  }).then(function () {
     var mountshare = self.mountShare({key: uuid});
     if (mountshare != undefined) {
       mountshare.then(function (data) {
@@ -761,7 +801,6 @@ ControllerNetworkfs.prototype.editShare = function (data) {
 ControllerNetworkfs.prototype.discoverShares = function () {
   var self = this;
   var defer = libQ.defer();
-  var sharesjson = {'nas': []};
   var scannedNasArray = [];
   var systemShare = self.commandRouter.sharedVars.get('system.name').toUpperCase();
 
@@ -792,12 +831,13 @@ ControllerNetworkfs.prototype.getSharesPerDevice = function (device) {
   var self = this;
   var defer = libQ.defer();
 
-  exec('echo volumio | smbclient -L ' + device.host, {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+  exec('echo volumio | smbclient --debuglevel 4 -L ' + device.host, {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
     if (error != null) {
       self.logger.info('Error browsing device  ' + device.name + ' for shares : ' + error);
     } else {
       var shares = self.parseSmbClientResult(stdout);
-      var nasObj = { 'name': device.name, 'shares': shares };
+      var version = self.parseSmbClientNegotiatedVersion(stderr);
+      var nasObj = { 'name': device.name, 'version': version, 'shares': shares };
       if (device.addresses && device.addresses[0] && device.addresses[0].length) {
           nasObj.ip = device.addresses[0];
       }
@@ -805,6 +845,19 @@ ControllerNetworkfs.prototype.getSharesPerDevice = function (device) {
     }
   });
   return defer.promise;
+};
+
+ControllerNetworkfs.prototype.parseSmbClientNegotiatedVersion = function (data) {
+  var self = this;
+
+  var lines = data.split('\n');
+  for (var i in lines) {
+    if (lines[i].includes('negotiated dialect')) {
+      var match = lines[i].match(/dialect\[(.+?)]/);
+      if (match) return match[1]
+    }
+  }
+  return '';
 };
 
 ControllerNetworkfs.prototype.parseSmbClientResult = function (data) {
@@ -923,24 +976,6 @@ ControllerNetworkfs.prototype.umountAllShares = function () {
   defer.resolve('');
 
   return defer.promise;
-};
-
-ControllerNetworkfs.prototype.umountShare = function (data) {
-  var self = this;
-
-  var defer = libQ.defer();
-  var key = 'NasMounts.' + data['id'];
-
-  if (config.has(key)) {
-    var mountidraw = config.get(key + '.name');
-    var mountid = mountidraw.replace(/[\s\n\\]/g, '_');
-    var mountpoint = '/mnt/NAS/' + mountid;
-    try {
-      execSync('/usr/bin/sudo /bin/umount -f ' + mountpoint, { uid: 1000, gid: 1000, encoding: 'utf8', timeout: 10000 });
-    } catch (e) {
-      self.logger.error('Cannot umount share ' + mountid + ' : ' + e);
-    }
-  }
 };
 
 // FS AUTOMOUNT
