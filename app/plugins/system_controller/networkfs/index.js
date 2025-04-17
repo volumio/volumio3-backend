@@ -440,15 +440,18 @@ ControllerNetworkfs.prototype.addShare = function (data) {
         'NT1': '1.0'
       }[version];
       if (versionNum) {
-        if (options) options += ','
-        options += 'vers=' + versionNum;
+        if (!options || options.trim() === '') {
+          options = 'vers=' + versionNum;
+        } else {
+          options += ',vers=' + versionNum;
+        }
 
         self.logger.info('Set version number ' + versionNum + ' in CIFS options: ' + options);
       } else {
         self.logger.warn('Could not determine version number from ' + version);
       }
     }
-  })
+  });
 
   res.then(function () {
     return self.saveShareConf('NasMounts', uuid, name, ip, path, fstype, username, password, options)
