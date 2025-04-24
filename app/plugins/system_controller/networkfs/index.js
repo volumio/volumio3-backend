@@ -336,14 +336,11 @@ ControllerNetworkfs.prototype.addShare = function (data) {
 
   var defer = libQ.defer();
 
-  var name = data['name'];
+  var name = data['name'] || '';
   /*
 	 * A name is required. In the ui this field is called 'alias'.
 	 */
-  if (name == undefined) name = '';
-  var blankname_regex = /^\s*$/;
-  var matches = blankname_regex.exec(name);
-  if (matches) {
+  if (/^\s*$/.test(name)) {
     self.logger.info('Share alias is blank');
     self.commandRouter.pushToastMessage('warning', self.commandRouter.getI18nString('COMMON.MY_MUSIC'), self.commandRouter.getI18nString('NETWORKFS.ALIAS_DOC'));
     defer.reject(new Error('Shares must have an alias'));
@@ -371,113 +368,108 @@ ControllerNetworkfs.prototype.addShare = function (data) {
   var ip = data['ip'];
   var path = data['path'];
   var fstype = data['fstype'];
-  var username = data['username'];
-  var password = data['password'];
-  var options = data['options'];
+  var username = data['username'] || '';
+  var password = data['password'] || '';
+  var options = data['options'] || '';
 
-  if (username == undefined) username = '';
-  if (password == undefined) password = '';
-  if (options == undefined) options = '';
-
-  if (fstype == 'cifs') {
+  if (fstype === 'cifs') {
     /* when the share is mounted the ip and path are joined with '/'.
 		 * mount.cifs can fail if given '//server//path', so let's avoid that.
 		 */
-    path = path.replace(/\/+/g, '/');
-    path = path.replace(/^\//, '');
-  }
-  if (fstype === 'nfs') {
+    path = path.replace(/\/+/g, '/').replace(/^\//, '');
+  } else if (fstype === 'nfs') {
     /* NFS mounts require an absolute path for the exported directory -
 		 * enforce a leading / on the path.
 		 */
-    path = path.replace(/^\s+/, '');
-    if (!path.startsWith('/')) {
-      path = '/' + path;
-    }
+    path = path.trimStart();
+    if (!path.startsWith('/')) path = '/' + path;
   }
 
   var uuid = self.getShare(name, ip, path);
-  if (uuid != undefined) {
+  if (uuid !== undefined) {
     self.logger.info('Share ' + name + ' has already been configured, with uuid ' + uuid);
-    defer.resolve({
-      success: false,
-      reason: 'This share has already been configured'
-    });
+    defer.resolve({ success: false, reason: 'This share has already been configured' });
     return defer.promise;
   }
 
   uuid = uuidv4();
   self.logger.info('No correspondence found in configuration for share ' + name + ' on IP ' + ip);
 
-  var res;
-  if (fstype == 'cifs') {
-    res = self.getSharesPerDevice({host: ip, name: name}).then(function (device) {
-      self.logger.info('Detected device ' + device.name + ' with version ' + device.version);
-      return device.version;
-    });
-  } else {
-    res = libQ.resolve('');
-  }
+  var res = (fstype === 'cifs')
+    ? self.getSharesPerDevice({ host: ip, name: name, requestVersion: true }).then(device => {
+        self.logger.info('Detected device ' + device.name + ' with version ' + device.version);
+        return device.version;
+      })
+    : libQ.resolve('');
 
-  res = res.then(function (version) {
-    if (!version)
-      return;
+  res = res.then(version => {
+    if (!version) return;
 
     if (options.includes('vers=')) {
       self.logger.info('Version ' + version + ' detected, but user has specified version in options');
-    } else {
-      // https://wiki.sharewiz.net/doku.php?id=ubuntu:samba:smb_protocol_versions
-      var versionNum = {
-        'SMB3_11': '3.11',
-        'SMB3_10': '3.10',
-        'SMB3_02': '3.2',
-        'SMB3': '3.0',
-        'SMB2_24': '2.24',
-        'SMB2_22': '2.22',
-        'SMB2_10': '2.10',
-        'SMB2_02': '2.02',
-        'SMB1': '1.0',
-        'NT1': '1.0'
-      }[version];
-      if (versionNum) {
-        if (!options || options.trim() === '') {
-          options = 'vers=' + versionNum;
-        } else {
-          options += ',vers=' + versionNum;
-        }
+      return;
+    }
 
-        self.logger.info('Set version number ' + versionNum + ' in CIFS options: ' + options);
+    const versionMap = {
+      'SMB3_11': '3.11',
+      'SMB3_10': '3.10',
+      'SMB3_02': '3.2',
+      'SMB3': '3.0',
+      'SMB2_24': '2.24',
+      'SMB2_22': '2.22',
+      'SMB2_10': '2.10',
+      'SMB2_02': '2.02',
+      'SMB1': '1.0',
+      'NT1': '1.0'
+    };
+    const versionNum = versionMap[version];
+    if (versionNum) {
+      if (username === '' && password === '') {
+        // Older versions may allow guest, but SMB3.11 likely won't
+        if (parseFloat(versionNum) >= 3.0) {
+          options += (options ? ',' : '') + 'vers=2.1'; // fallback
+          self.logger.info(`Guest mount: forcing fallback SMB version 2.1 for ${name}`);
+        } else {
+          options += (options ? ',' : '') + `vers=${versionNum}`;
+        }
       } else {
-        self.logger.warn('Could not determine version number from ' + version);
+        options += (options ? ',' : '') + `vers=${versionNum}`;
       }
+      self.logger.info(`Set SMB version ${versionNum} in CIFS options: ${options}`);
+    } else {
+      self.logger.warn('Could not determine version number from ' + version);
     }
   });
 
-  res.then(function () {
-    return self.saveShareConf('NasMounts', uuid, name, ip, path, fstype, username, password, options)
-  }).then(function () {
-    var mountshare = self.mountShare({key: uuid});
-    if (mountshare != undefined) {
-      mountshare.then(function (data) {
-        var responsemessage = {};
-        if (data.status == 'success') {
-          responsemessage = {emit: 'pushToastMessage', data: { type: 'success', title: 'Success', message: name + ' mounted successfully'}};
+  res.then(() => {
+    return self.saveShareConf('NasMounts', uuid, name, ip, path, fstype, username, password, options);
+  }).then(() => {
+    var mountshare = self.mountShare({ key: uuid });
+    if (mountshare) {
+      mountshare.then(data => {
+        let responsemessage = {};
+        if (data.status === 'success') {
+          responsemessage = { emit: 'pushToastMessage', data: { type: 'success', title: 'Success', message: name + ' mounted successfully' } };
           defer.resolve(responsemessage);
           self.scanDatabase();
-        } else if (data.status === 'fail') {
-          if (data.reason) {
-            if (data.reason == 'Permission denied') {
-              responsemessage = {emit: 'nasCredentialsCheck', data: { 'id': uuid, 'title': 'Network Drive Authentication', 'message': 'This drive requires password', 'name': name, 'username': username, 'password': password }};
-              self.logger.info('Permission denied for ' + name + ' on IP ' + ip);
-              defer.resolve(responsemessage);
-            } else {
-              responsemessage = {emit: 'pushToastMessage', data: { type: 'error', title: 'Error in mounting share ' + name, message: data.reason}};
-              self.logger.info('Error mounting  ' + name + ' on IP ' + ip + ' : ' + data.reason);
-              defer.resolve(responsemessage);
-            }
+        } else {
+          if (data.reason === 'Permission denied') {
+            responsemessage = {
+              emit: 'nasCredentialsCheck',
+              data: {
+                id: uuid,
+                title: 'Network Drive Authentication',
+                message: 'This drive requires password',
+                name: name,
+                username: username,
+                password: password
+              }
+            };
+            self.logger.info(`Permission denied for ${name} on IP ${ip}`);
+            defer.resolve(responsemessage);
           } else {
-            responsemessage = {emit: 'pushToastMessage', data: { type: 'error', title: 'Error in mounting share ' + name, message: 'Unknown error'}};
-            self.logger.info('Unknown error mounting  ' + name + ' on IP ' + ip);
+            responsemessage = { emit: 'pushToastMessage', data: { type: 'error', title: 'Error in mounting share ' + name, message: data.reason || 'Unknown error' } };
+            self.logger.info(`Error mounting ${name} on IP ${ip} : ${data.reason || 'Unknown'}`);
             defer.resolve(responsemessage);
           }
         }
@@ -834,32 +826,76 @@ ControllerNetworkfs.prototype.getSharesPerDevice = function (device) {
   var self = this;
   var defer = libQ.defer();
 
-  exec('echo volumio | smbclient --debuglevel 4 -L ' + device.host, {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
-    if (error != null) {
-      self.logger.info('Error browsing device  ' + device.name + ' for shares : ' + error);
+  var detectVersion = device.requestVersion === true;
+
+  // Default to guest access
+  var username = device.username || '';
+  var password = device.password || '';
+
+  // Construct smbclient command
+  var cmd;
+  if (detectVersion) {
+    if (username) {
+      // Use supplied credentials
+      cmd = `smbclient --debuglevel=4 -L ${device.host} -U ${username}%${password}`;
+    } else {
+      // Attempt guest session
+      cmd = `smbclient --debuglevel=4 -L ${device.host} -N`;
+    }
+  } else {
+    cmd = `smbclient --no-pass --debuglevel=0 -L ${device.host}`;
+  }
+
+  // Secure logging: obfuscate password if present
+  let redactedCmd = cmd.replace(/-U\s+([^%]+)%([^ ]+)/, '-U $1%******');
+  self.logger.info(`Executing SMB command: ${redactedCmd}`);
+
+  exec(cmd, { uid: 1000, gid: 1000 }, function (error, stdout, stderr) {
+    if (error) {
+      self.logger.info(`Error browsing device ${device.name} for shares: ${error.message || error}`);
+      defer.resolve({ name: device.name, shares: [], version: null });
     } else {
       var shares = self.parseSmbClientResult(stdout);
-      var version = self.parseSmbClientNegotiatedVersion(stderr);
-      var nasObj = { 'name': device.name, 'version': version, 'shares': shares };
-      if (device.addresses && device.addresses[0] && device.addresses[0].length) {
-          nasObj.ip = device.addresses[0];
+      var nasObj = { name: device.name, shares: shares };
+
+      if (detectVersion) {
+        var version = self.parseSmbClientNegotiatedVersion(stderr);
+        nasObj.version = version;
+        self.logger.info(`Negotiated SMB version with ${device.name}: ${version}`);
       }
+
+      if (device.addresses && device.addresses[0]) {
+        nasObj.ip = device.addresses[0];
+      }
+
       defer.resolve(nasObj);
     }
   });
+
   return defer.promise;
 };
 
 ControllerNetworkfs.prototype.parseSmbClientNegotiatedVersion = function (data) {
   var self = this;
 
-  var lines = data.split('\n');
-  for (var i in lines) {
-    if (lines[i].includes('negotiated dialect')) {
-      var match = lines[i].match(/dialect\[(.+?)]/);
-      if (match) return match[1]
+  const lines = data.split('\n');
+  for (let line of lines) {
+    const match = line.match(/negotiated dialect\[(SMB[0-9_]+)]/i);
+    if (match && match[1]) {
+      return match[1];
     }
   }
+
+  // Fall back: look for known dialect strings anywhere
+  const knownDialects = ['SMB3_11', 'SMB3_10', 'SMB3_02', 'SMB3', 'SMB2_24', 'SMB2_22', 'SMB2_10', 'SMB2_02', 'SMB1', 'NT1'];
+  for (let line of lines) {
+    for (let dialect of knownDialects) {
+      if (line.includes(dialect)) {
+        return dialect;
+      }
+    }
+  }
+
   return '';
 };
 
