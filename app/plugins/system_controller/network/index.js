@@ -106,7 +106,7 @@ ControllerNetwork.prototype.getUIConfig = function () {
       // dhcp
 
       if (config.get('wirelessdhcp') == undefined) {
-    	uiconf.sections[2].content[1].value = true;
+        uiconf.sections[2].content[1].value = true;
       } else {
         uiconf.sections[2].content[1].value = config.get('wirelessdhcp');
       }
@@ -299,7 +299,7 @@ ControllerNetwork.prototype.getWirelessNetworks = function (defer) {
                     found = true;
                   }
                 }
-                if (found === false) {
+                if (!found) {
                   networksarray.push(network);
                 }
               } else {
@@ -355,7 +355,7 @@ ControllerNetwork.prototype.processWirelessNetworksArray = function (networks) {
         addTowirelessNetworksArray = false;
       }
       for (var k in wirelessNetworksArray) {
-        if (wirelessNetworksArray[k].ssid === ssid ) {
+        if (wirelessNetworksArray[k].ssid === ssid) {
           if (wirelessNetworksArray[k].signal <= signal) {
             wirelessNetworksArray[k].signal = signal;
           }
@@ -380,7 +380,9 @@ ControllerNetwork.prototype.searchNetworkInConfig = function (ssid) {
 
     if (configuredSSID == ssid) {
       return j;
-    } else j++;
+    } else {
+      j++;
+    }
   }
 
   return -1;
@@ -424,7 +426,17 @@ ControllerNetwork.prototype.saveWiredNet = function (data) {
           name: self.commandRouter.getI18nString('COMMON.CONTINUE'),
           class: 'btn btn-info',
           emit: 'callMethod',
-          payload: {'endpoint': 'system_controller/network', 'method': 'saveWiredNet', 'data': {'confirm': true, 'dhcp': data.dhcp, 'static_ip': data.static_ip, 'static_netmask': data.static_netmask, 'static_gateway': data.static_gateway}}
+          payload: {
+            'endpoint': 'system_controller/network',
+            'method': 'saveWiredNet',
+            'data': {
+              'confirm': true,
+              'dhcp': data.dhcp,
+              'static_ip': data.static_ip,
+              'static_netmask': data.static_netmask,
+              'static_gateway': data.static_gateway
+            }
+          }
         }
       ]
     };
@@ -488,7 +500,18 @@ ControllerNetwork.prototype.saveWirelessNet = function (data) {
           name: self.commandRouter.getI18nString('COMMON.CONTINUE'),
           class: 'btn btn-info',
           emit: 'callMethod',
-          payload: {'endpoint': 'system_controller/network', 'method': 'saveWirelessNet', 'data': {'confirm': true, 'wireless_dhcp': dhcp, 'wireless_static_ip': static_ip, 'wireless_static_netmask': static_netmask, 'wireless_static_gateway': static_gateway, 'wireless_enabled': wireless_enabled}}
+          payload: {
+            'endpoint': 'system_controller/network',
+            'method': 'saveWirelessNet',
+            'data': {
+              'confirm': true,
+              'wireless_dhcp': dhcp,
+              'wireless_static_ip': static_ip,
+              'wireless_static_netmask': static_netmask,
+              'wireless_static_gateway': static_gateway,
+              'wireless_enabled': wireless_enabled
+            }
+          }
         }
       ]
     };
@@ -617,7 +640,7 @@ ControllerNetwork.prototype.rebuildHotspotConfig = function (forceHotspotConfigu
       }
     });
   } catch (e) {
-    // No /etd/hostapd/hostapd-edimax.conf
+    // No /etc/hostapd/hostapd-edimax.conf
   }
 
   exec('/usr/bin/sudo /bin/chmod 777 ' + hostapd, {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
@@ -650,7 +673,7 @@ ControllerNetwork.prototype.rebuildHotspotConfig = function (forceHotspotConfigu
         hs.end();
         self.commandRouter.wirelessRestart();
       } catch (err) {
-
+        // Ignore
       }
     }
   });
@@ -671,7 +694,7 @@ ControllerNetwork.prototype.wirelessConnect = function (data) {
 ControllerNetwork.prototype.writeWpaSupplicantConf = function (netstring, data) {
   var self = this;
 
-  this.getAdditionalWpaSupplicantConf(netstring, data).then((wpaSupplicantConf)=> {
+  this.getAdditionalWpaSupplicantConf(netstring, data).then((wpaSupplicantConf) => {
     exec('/usr/bin/sudo /bin/chmod 777 /etc/wpa_supplicant/wpa_supplicant.conf', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
       if (error !== null) {
         self.logger.error('Cannot set permissions for /etc/network/interfaces: ' + error);
@@ -682,7 +705,7 @@ ControllerNetwork.prototype.writeWpaSupplicantConf = function (netstring, data) 
           }
           fs.writeFile('/data/configuration/netconfigured', ' ', function (err) {
             if (err) {
-              self.logger.error('Cannot write netconfigured ' + error);
+              self.logger.error('Cannot write netconfigured ' + err);
             }
           });
           self.commandRouter.wirelessRestart();
@@ -692,8 +715,7 @@ ControllerNetwork.prototype.writeWpaSupplicantConf = function (netstring, data) 
   }).fail(function (err) {
     self.logger.error('Cannot get additional WPA Supplicant Networks: ' + err);
   });
-
-}
+};
 
 ControllerNetwork.prototype.getAdditionalWpaSupplicantConf = function (netstring, data) {
   var defer = libQ.defer();
@@ -710,7 +732,7 @@ ControllerNetwork.prototype.getAdditionalWpaSupplicantConf = function (netstring
         var configuredPASS = config.get('wirelessNetworksPASSWD[' + index + ']');
         augmentedNetstring += self.getNetworkWpaSupplicantEntry(configuredSSID, configuredPASS, 0);
       }
-      if (index == savedWirelessNetworks.length-1) {
+      if (index == savedWirelessNetworks.length - 1) {
         defer.resolve(augmentedNetstring);
       }
     }
@@ -719,7 +741,7 @@ ControllerNetwork.prototype.getAdditionalWpaSupplicantConf = function (netstring
   }
 
   return defer.promise;
-}
+};
 
 ControllerNetwork.prototype.getNetworkWpaSupplicantEntry = function (ssid, pass, priority) {
   var self = this;
@@ -744,8 +766,8 @@ ControllerNetwork.prototype.getNetworkWpaSupplicantEntry = function (ssid, pass,
       self.logger.error('Not saving Password for network ' + ssid + ': shorter than 8 chars');
     }
   }
-    return netEntry;
-}
+  return netEntry;
+};
 
 ControllerNetwork.prototype.rebuildNetworkConfig = function (networkInterfaceToRestart) {
   var self = this;
@@ -796,6 +818,7 @@ ControllerNetwork.prototype.rebuildNetworkConfig = function (networkInterfaceToR
         ws.write('iface wlan0 inet manual\n');
 
         if (config.get('wirelessdhcp') == true || config.get('wirelessdhcp') == 'true') {
+          // leave it dhcp
         } else if (config.get('wirelessdhcp') == false || config.get('wirelessdhcp') == 'false') {
           staticconf.write('interface wlan0\n');
           staticconf.write('static ip_address=' + config.get('wirelessip') + '/24\n');
@@ -859,13 +882,19 @@ ControllerNetwork.prototype.saveDnsSettings = function (data) {
     return;
   }
 
-  if (data.enable_custom_dns) { customdnsfile = 'nameserver ' + data.primary_dns + os.EOL + 'nameserver ' + data.secondary_dns + os.EOL; }
+  if (data.enable_custom_dns) { 
+    customdnsfile = 'nameserver ' + data.primary_dns + os.EOL + 'nameserver ' + data.secondary_dns + os.EOL; 
+  }
 
   fs.writeFile('/etc/resolv.conf.head', customdnsfile, function (err) {
     if (err) {
       self.logger.error('Cannot write custom DNS File' + error);
     } else {
-      if (data.enable_custom_dns) { exec('/usr/bin/sudo /usr/bin/unlink /etc/resolv.conf.tail', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {}); } else { exec('/usr/bin/sudo /bin/ln -s /etc/resolv.conf.tail.tmpl /etc/resolv.conf.tail', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {}); }
+      if (data.enable_custom_dns) { 
+        exec('/usr/bin/sudo /usr/bin/unlink /etc/resolv.conf.tail', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {}); 
+      } else { 
+        exec('/usr/bin/sudo /bin/ln -s /etc/resolv.conf.tail.tmpl /etc/resolv.conf.tail', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {}); 
+      }
 
       config.set('enable_custom_dns', data.enable_custom_dns);
       config.set('primary_dns', data.primary_dns);
@@ -887,13 +916,13 @@ ControllerNetwork.prototype.isWEPHEX = function (data) {
   var self = this;
 
   if (self.isHex(data)) {
-    	if ((data.length === 10) || (data.length === 26) || (data.length === 32)) {
-    		return true;
+    if ((data.length === 10) || (data.length === 26) || (data.length === 32)) {
+      return true;
     } else {
-    		return false;
+      return false;
     }
   } else {
-    	return false;
+    return false;
   }
 };
 
@@ -915,10 +944,10 @@ ControllerNetwork.prototype.isWPA = function (data) {
   var self = this;
 
   if ((data.length >= 8) && (data.length <= 63)) {
-     	return true;
-	 } else {
-     	return false;
-	 }
+    return true;
+  } else {
+    return false;
+  }
 };
 
 ControllerNetwork.prototype.isWPAHashed = function (data) {
@@ -1007,8 +1036,8 @@ ControllerNetwork.prototype.getHashedWPAPassphrase = function (ssid, passphrase)
   try {
     var hashedWPAPassphrase = 'hash::' + crypto.pbkdf2Sync(passphrase, ssid, 4096, 32, 'sha1').toString('hex');
   } catch (e) {
-    	self.logger.error('Could not hash passphrase: ' + e);
-    	self.logger.info('Using clear passphrase');
+    self.logger.error('Could not hash passphrase: ' + e);
+    self.logger.info('Using clear passphrase');
     var hashedWPAPassphrase = passphrase;
   }
 
@@ -1035,9 +1064,9 @@ ControllerNetwork.prototype.getEthernetSpeed = function () {
   var defer = libQ.defer();
 
   exec("/usr/bin/sudo /sbin/ethtool eth0 | grep -i speed | tr -d 'Speed:' | xargs", { encoding: 'utf8' }, function (error, data) {
-    	if (error) {
-    		self.logger.error('Could not parse Etherned Speed: ' + error);
-    		defer.resolve('');
+    if (error) {
+      self.logger.error('Could not parse Ethernet Speed: ' + error);
+      defer.resolve('');
     } else {
       if (data.replace('\n', '') == '1000Mb/s') {
         data = '1Gb/s';
@@ -1094,7 +1123,17 @@ ControllerNetwork.prototype.getWirelessQuality = function () {
         var wirelessQualityPercentage = 0;
       }
 
-      if (wirelessQualityPercentage >= 65) { wirelessquality = 5; } else if (wirelessQualityPercentage >= 50) { wirelessquality = 4; } else if (wirelessQualityPercentage >= 40) { wirelessquality = 3; } else if (wirelessQualityPercentage >= 30) { wirelessquality = 2; } else if (wirelessQualityPercentage >= 1) { wirelessquality = 1; }
+      if (wirelessQualityPercentage >= 65) {
+        wirelessquality = 5;
+      } else if (wirelessQualityPercentage >= 50) {
+        wirelessquality = 4;
+      } else if (wirelessQualityPercentage >= 40) {
+        wirelessquality = 3;
+      } else if (wirelessQualityPercentage >= 30) {
+        wirelessquality = 2;
+      } else if (wirelessQualityPercentage >= 1) {
+        wirelessquality = 1;
+      }
 
       defer.resolve(wirelessquality);
     }
@@ -1110,7 +1149,7 @@ ControllerNetwork.prototype.getEthernetIPAddress = function () {
   ifconfig.status('eth0', function (err, status) {
     if (!err && status != undefined && status.ipv4_address != undefined && self.checkIfValidIPAddress(status.ipv4_address)) {
       cachedEth0IPAddress = status.ipv4_address;
-        	defer.resolve(status.ipv4_address);
+      defer.resolve(status.ipv4_address);
     } else {
       defer.resolve('');
     }
@@ -1146,13 +1185,13 @@ ControllerNetwork.prototype.parseInfoNetworkResults = function (data) {
   var wirelessIP = data[5];
 
   if (ethIP) {
-    response.push({type: 'Wired', ip: ethIP, status: 'connected', speed: ethSpeed});
+    response.push({ type: 'Wired', ip: ethIP, status: 'connected', speed: ethSpeed });
   }
 
   if (wirelessIP && wirelessIP === hotspotIP) {
-    response.push({type: 'Wireless', ip: wirelessIP, ssid: 'Hotspot', signal: 5});
+    response.push({ type: 'Wireless', ip: wirelessIP, ssid: 'Hotspot', signal: 5 });
   } else if (wirelessIP) {
-    response.push({type: 'Wireless', ip: wirelessIP, ssid: wirelessSSID, signal: wirelessQuality, status: 'connected', speed: wirelessSpeed});
+    response.push({ type: 'Wireless', ip: wirelessIP, ssid: wirelessSSID, signal: wirelessQuality, status: 'connected', speed: wirelessSpeed });
   }
 
   return response;
@@ -1179,7 +1218,7 @@ ControllerNetwork.prototype.forceHotspot = function () {
 
   fs.writeFile('/tmp/forcehotspot', '', function (err) {
     if (err) {
-      self.logger.error('Cannot write /tmp/forcehotspot ' + error);
+      self.logger.error('Cannot write /tmp/forcehotspot ' + err);
     } else {
       self.logger.error('Forcing Hotspot mode');
       self.rebuildHotspotConfig(true);
@@ -1191,16 +1230,16 @@ ControllerNetwork.prototype.getCurrentIPAddresses = function () {
   var self = this;
   var defer = libQ.defer();
   var defers = [
-    	self.getEthernetIPAddress(),
+    self.getEthernetIPAddress(),
     self.getWirelessIPAddress()
   ];
 
   libQ.all(defers)
     .then(function (result) {
-        	defer.resolve({'eth0': result[0], 'wlan0': result[1]});
+      defer.resolve({ 'eth0': result[0], 'wlan0': result[1] });
     })
     .fail(function (err) {
-      defer.resolve({'eth0': '', 'wlan0': ''});
+      defer.resolve({ 'eth0': '', 'wlan0': '' });
     });
 
   return defer.promise;
@@ -1208,12 +1247,11 @@ ControllerNetwork.prototype.getCurrentIPAddresses = function () {
 
 ControllerNetwork.prototype.getCachedIPAddresses = function () {
   var self = this;
-  var defer = libQ.defer();
 
   // The purpose of this function is to quickly return the last known IP Addresses
   // Useful for plugins which require this information very often
   var response = {
-    	'eth0': cachedEth0IPAddress,
+    'eth0': cachedEth0IPAddress,
     'wlan0': cachedWlan0IPAddress
   };
   return response;
@@ -1224,7 +1262,10 @@ ControllerNetwork.prototype.refreshCachedPAddresses = function () {
 
   self.logger.info('Refreshing Cached IP Addresses');
 
-  return libQ.all(self.getEthernetIPAddress(), self.getWirelessIPAddress());
+  return libQ.all([
+    self.getEthernetIPAddress(),
+    self.getWirelessIPAddress()
+  ]);
 };
 
 ControllerNetwork.prototype.restoreNetworkBackup = function () {
@@ -1233,11 +1274,13 @@ ControllerNetwork.prototype.restoreNetworkBackup = function () {
   var networkBackupPath = '/imgpart/networkconfig.json';
 
   fs.access(networkBackupPath, fs.F_OK, (err) => {
-    if (err) {} else {
+    if (err) {
+      // No backup found
+    } else {
       self.logger.info('Network Backup Found, restore started');
-      exec('/usr/bin/sudo /bin/chmod 777 ' + networkBackupPath, {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
-        if (err) {
-          self.logger.error('Could not set ownership of network backup: ' + err);
+      exec('/usr/bin/sudo /bin/chmod 777 ' + networkBackupPath, { uid: 1000, gid: 1000 }, function (error, stdout, stderr) {
+        if (error) {
+          self.logger.error('Could not set ownership of network backup: ' + error);
         } else {
           var backupConfig = new (require('v-conf'))();
           backupConfig.loadFile(networkBackupPath);
@@ -1250,7 +1293,7 @@ ControllerNetwork.prototype.restoreNetworkBackup = function () {
         }
       });
     }
-  })
+  });
 };
 
 ControllerNetwork.prototype.applyNetworkBackup = function (data) {
@@ -1276,26 +1319,26 @@ ControllerNetwork.prototype.applyNetworkBackup = function (data) {
       }
     } else {
       if (data[key] && data[key].type !== undefined && data[key].value !== undefined) {
-        self.logger.info('Restoring Setting ' + key)
+        self.logger.info('Restoring Setting ' + key);
         config.addConfigValue(key, data[key].type, data[key].value);
       }
     }
   }
 
-  setTimeout(()=>{
+  setTimeout(() => {
     //self.rebuildNetworkConfig();
     self.wirelessConnect();
     self.rebuildHotspotConfig();
-  }, 2000)
+  }, 2000);
 };
 
 ControllerNetwork.prototype.checkIfValidIPAddress = function (ipAddress) {
   var self = this;
-  var nonDHCPIPIP = '169.254';
+  var nonDHCPIPPrefix = '169.254';
 
-  // If no DHCP lease can be obtained, DHCP provides IP like 169.254.83.162 or 169.254.118.153.
-  // If that's the case, the IP cannot be considered valid
-  if (ipAddress && ipAddress.indexOf(nonDHCPIPIP) !== 0) {
+  // If no DHCP lease can be obtained, DHCP provides IP like 169.254.x.x.
+  // These are considered invalid
+  if (ipAddress && ipAddress.indexOf(nonDHCPIPPrefix) !== 0) {
     return true;
   } else {
     return false;
