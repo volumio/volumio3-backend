@@ -61,80 +61,23 @@ PlatformSpecific.prototype.networkRestart = function () {
 
 PlatformSpecific.prototype.wirelessRestart = function () {
   var self = this;
-
-  // Log that the wireless restart process has begun
-  self.coreCommand.pushConsoleMessage('[wirelessRestart] Starting safe wireless stack restart');
-
-  const MAX_WAIT = 8000; // Max wait time in ms for wlan0 to be released
-  const INTERVAL = 1000; // Polling interval
-  let waited = 0;
-
-  // Helper function to log to Volumio console
-  const log = (msg) => {
-    self.coreCommand.pushConsoleMessage('[wirelessRestart] ' + msg);
-  };
-
-  // Attempt to stop the hotspot service cleanly
-  try {
-    log('Stopping hotspot.service...');
-    execSync('sudo systemctl stop hotspot.service');
-  } catch (e) {
-    log('Failed to stop hotspot.service: ' + e);
-  }
-
-  // Check if wlan0 is released
-  const checkInterfaceReleased = () => {
-    try {
-      const output = execSync('ip link show wlan0').toString();
-      return output.includes('state DOWN') || output.includes('NO-CARRIER');
-    } catch (e) {
-      return false;
-    }
-  };
-
-  // Recursive wait function until wlan0 is free or timeout reached
-  const waitUntilReleased = () => {
-    if (checkInterfaceReleased()) {
-      log('wlan0 interface released. Proceeding with wireless restart.');
-      doRestart();
-    } else if (waited >= MAX_WAIT) {
-      log('Timeout waiting for wlan0 release. Proceeding anyway.');
-      doRestart();
+  exec('sudo /bin/systemctl restart wireless.service', function (error, stdout, stderr) {
+    if (error !== null) {
+      self.coreCommand.pushToastMessage('error', self.coreCommand.getI18nString('NETWORK.WIRELESS_RESTART_TITLE'),
+        self.coreCommand.getI18nString('NETWORK.WIRELESS_RESTART_ERROR') + error);
     } else {
-      waited += INTERVAL;
-      setTimeout(waitUntilReleased, INTERVAL);
+      self.coreCommand.pushToastMessage('success', self.coreCommand.getI18nString('NETWORK.WIRELESS_RESTART_TITLE'),
+        self.coreCommand.getI18nString('NETWORK.WIRELESS_RESTART_SUCCESS'));
+      setTimeout(function () {
+        self.coreCommand.executeOnPlugin('miscellanea', 'wizard', 'reportWirelessConnection', '');
+      }, 5000);
+      // Restart Upmpdcli
+      setTimeout(function () {
+        self.coreCommand.executeOnPlugin('audio_interface', 'upnp', 'onRestart', '');
+        self.coreCommand.executeOnPlugin('system_controller', 'network', 'onNetworkingRestart', '');
+      }, 10000);
     }
-  };
-
-  // Actual restart command, unchanged from original logic
-  const doRestart = () => {
-    log('Restarting wireless.service...');
-    exec('sudo /bin/systemctl restart wireless.service', function (error, stdout, stderr) {
-      if (error !== null) {
-        self.coreCommand.pushToastMessage('error', self.coreCommand.getI18nString('NETWORK.WIRELESS_RESTART_TITLE'),
-          self.coreCommand.getI18nString('NETWORK.WIRELESS_RESTART_ERROR') + error);
-        log('Wireless service restart failed: ' + error);
-      } else {
-        self.coreCommand.pushToastMessage('success', self.coreCommand.getI18nString('NETWORK.WIRELESS_RESTART_TITLE'),
-          self.coreCommand.getI18nString('NETWORK.WIRELESS_RESTART_SUCCESS'));
-        log('Wireless service restarted successfully.');
-
-        // Report connection status to wizard
-        setTimeout(function () {
-          self.coreCommand.executeOnPlugin('miscellanea', 'wizard', 'reportWirelessConnection', '');
-        }, 5000);
-
-        // Restart Upmpdcli
-        setTimeout(function () {
-          self.coreCommand.executeOnPlugin('audio_interface', 'upnp', 'onRestart', '');
-          self.coreCommand.executeOnPlugin('system_controller', 'network', 'onNetworkingRestart', '');
-        }, 10000);
-      }
-    });
-  };
-
-  // Begin waiting loop
-  waitUntilReleased();
+  });
 };
 
 PlatformSpecific.prototype.startupSound = function () {
