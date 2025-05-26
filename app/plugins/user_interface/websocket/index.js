@@ -2049,6 +2049,12 @@ function InterfaceWebUI (context) {
         }
       });
     });
+
+    connWebSocket.on('setUpdaterChannel', function (data) {
+      var selfConnWebSocket = this;
+
+      self.commandRouter.executeOnPlugin('system_controller', 'system', 'setUpdaterChannel', data);
+    });
   });
 }
 

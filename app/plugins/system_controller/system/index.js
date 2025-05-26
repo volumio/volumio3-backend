@@ -702,6 +702,50 @@ ControllerSystem.prototype.getCurrentUpdaterChannel = function (data) {
   return defer.promise;
 };
 
+ControllerSystem.prototype.setUpdaterChannel = function (channel) {
+  var self = this;
+  var defer = libQ.defer();
+
+  switch (channel) {
+    case 'stable':
+      exec('rm -f /data/test /data/alpha', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+        if (error !== null) {
+          self.logger.error('Cannot set stable updater channel: ' + error);
+        } else {
+          self.logger.info('Updater channel set to stable');
+        }
+      });
+      break;
+    case 'test':
+      exec('rm -f /data/alpha && touch /data/test', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+        if (error !== null) {
+          self.logger.error('Cannot set test updater channel: ' + error);
+        } else {
+          self.logger.info('Updater channel set to test');
+        }
+      });
+      break;
+    case 'alpha':
+      exec('rm -f /data/test && touch /data/alpha', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+        if (error !== null) {
+          self.logger.error('Cannot set alpha updater channel: ' + error);
+        } else {
+          self.logger.info('Updater channel set to alpha');
+        }
+      });
+      break;
+    default:
+      self.logger.error('Invalid updater channel specified, setting to stable');
+      exec('rm -f /data/test /data/alpha', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+        if (error !== null) {
+          self.logger.error('Cannot set stable updater channel: ' + error);
+        } else {
+          self.logger.info('Updater channel set to stable');
+        }
+      });
+  }
+};
+
 ControllerSystem.prototype.getAvailableUpdaterChannels = function () {
   var self = this;
   var defer = libQ.defer();
