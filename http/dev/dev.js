@@ -37,6 +37,9 @@ socket.on('connect', function () {
   // Get the HW UUID
   socket.emit('getDeviceHWUUID', '');
 
+  // Get the current updater channel
+  socket.emit('getUpdaterChannel', '');
+
   // Get if serial communication is active on the system
   socket.emit('callMethod', {endpoint: 'music_service/inputs', method: 'serialMonitorAction', data: {action: 'get'}});
 

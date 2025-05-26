@@ -569,7 +569,8 @@ ControllerSystem.prototype.getSystemVersion = function () {
     'systemversion': null,
     'builddate': null,
     'variant': null,
-    'hardware': null
+    'hardware': null,
+    'os': null
   };
 
   var nLines = file.length;
@@ -590,6 +591,10 @@ ControllerSystem.prototype.getSystemVersion = function () {
     if (file[l].match(/VOLUMIO_HARDWARE/i)) {
       str = file[l].split('=');
       releaseinfo.hardware = str[1].replace(/\"/gi, '');
+    }
+    if (file[l].match(/VERSION_ID/i)) {
+      str = file[l].split('=');
+      releaseinfo.os = str[1].replace(/\"/gi, '');
     }
   }
 
@@ -654,6 +659,62 @@ ControllerSystem.prototype.setTestSystem = function (data) {
   }
 
   self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'checkUpdates');
+};
+
+ControllerSystem.prototype.getUpdaterChannel = function () {
+  var self = this;
+  var defer = libQ.defer();
+
+  var updaterChannelObject = {
+    avalableChannels: [],
+    currentChannel: 'stable'
+  }
+  var updatesPromise = [self.getAvailableUpdaterChannels(), self.getCurrentUpdaterChannel()];
+
+  libQ.all(updatesPromise).then((updaterResults)=>{
+    updaterChannelObject.avalableChannels = updaterResults[0];
+    updaterChannelObject.currentChannel = updaterResults[1];
+    defer.resolve(updaterChannelObject);
+  }).fail(function (error) {
+    self.logger.error('Error retrieving updater channel: ' + error);
+    defer.reject(error);
+  });
+  return defer.promise;
+};
+
+ControllerSystem.prototype.getCurrentUpdaterChannel = function (data) {
+  var self = this;
+  var defer = libQ.defer();
+
+  var currentChannel = 'stable';
+
+  try {
+    fs.accessSync('/data/test');
+    currentChannel = 'test';
+  } catch {}
+
+  try {
+    fs.accessSync('/data/alpha');
+    currentChannel = 'alpha';
+  } catch {}
+
+  defer.resolve(currentChannel);
+  return defer.promise;
+};
+
+ControllerSystem.prototype.getAvailableUpdaterChannels = function () {
+  var self = this;
+  var defer = libQ.defer();
+
+  self.getSystemVersion().then(function (infos) {
+    if (infos && infos.os !== undefined && parseInt(infos.os) >= 12) {
+      var availableChannels = ['stable', 'test', 'alpha'];
+    } else {
+      var availableChannels = ['stable', 'test'];
+    }
+    defer.resolve(availableChannels);
+  });
+  return defer.promise;
 };
 
 ControllerSystem.prototype.setTestPlugins = function (data) {
