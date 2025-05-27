@@ -56,9 +56,10 @@
 		<br />
 
 		<div<%if (process.env.HIDE_TESTMODE_SELECTOR === 'true'){%> style="visibility:hidden"<%}%>>
-		<h3>Test Mode</h3>
-		<button id='button-testtrue' class='control-websocket' disabled>TRUE</button>
-		<button id='button-testfalse' class='control-websocket' disabled>FALSE</button>
+		<h3>Update Channel Selection</h3>
+			<select id="updateChannelDropdown">
+				<option value="">Loading...</option>
+			</select>
 		</div>
 
 		<h3>Plugins Test Mode</h3>

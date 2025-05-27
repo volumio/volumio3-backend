@@ -8,8 +8,6 @@ var nLibraryHistoryPosition = 0;
 var nPlaylistHistoryPosition = 0;
 
 // Define button actions --------------------------------------------
-document.getElementById('button-testtrue').onclick = function () { socket.emit('callMethod', {endpoint: 'system_controller/system', method: 'setTestSystem', data: 'true'}); };
-document.getElementById('button-testfalse').onclick = function () { socket.emit('callMethod', {endpoint: 'system_controller/system', method: 'setTestSystem', data: 'false'}); };
 document.getElementById('button-plugintesttrue').onclick = function () { socket.emit('callMethod', {endpoint: 'system_controller/system', method: 'setTestPlugins', data: 'true'}); };
 document.getElementById('button-plugintestfalse').onclick = function () { socket.emit('callMethod', {endpoint: 'system_controller/system', method: 'setTestPlugins', data: 'false'}); };
 document.getElementById('button-sshenable').onclick = function () { socket.emit('callMethod', {endpoint: 'system_controller/system', method: 'enableSSH', data: 'true'}); };
@@ -117,10 +115,13 @@ socket.on('pushSerialConsole',data => {
 })
 
 socket.on('pushDisplaySelection',data => {
-  console.log(data)
   if (data === 'enabled') {
     document.getElementById('display-selection-div').style.display = "block";
   }
+})
+
+socket.on('pushUpdaterChannel',data => {
+  populateUpdateChannelDropdown(data);
 })
 
 // Define internal functions ----------------------------------------------
@@ -280,3 +281,45 @@ for (var i = 0; i < btns.length; i++) {
     e.currentTarget.removeAttribute('aria-label');
   });
 }
+
+// Update channel
+function populateUpdateChannelDropdown(data) {
+  const dropdown = document.getElementById('updateChannelDropdown');
+
+  if (!data || !Array.isArray(data.availableChannels)) {
+    console.error('Invalid data structure - availableChannels must be an array');
+    return false;
+  }
+
+  dropdown.innerHTML = '';
+
+  data.availableChannels.forEach(function(channel) {
+    if (typeof channel === 'string' && channel.trim()) {
+      const displayName = channel.charAt(0).toUpperCase() + channel.slice(1);
+
+      const option = document.createElement('option');
+      option.value = channel;
+      option.textContent = displayName;
+      dropdown.appendChild(option);
+    }
+  });
+
+  if (data.currentChannel) {
+    dropdown.value = data.currentChannel;
+  }
+
+  dropdown.addEventListener('change', function() {
+    setChannel(this.value);
+  });
+}
+
+function setChannel(channel) {
+  if (!channel || typeof channel !== 'string') {
+    console.error('Invalid channel value');
+    return false;
+  }
+
+  socket.emit('callMethod', {endpoint: 'system_controller/system', method: 'setUpdaterChannel', data: channel});
+  console.log(`Updater channel set to: ${channel}`);
+}
+

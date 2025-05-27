@@ -666,13 +666,13 @@ ControllerSystem.prototype.getUpdaterChannel = function () {
   var defer = libQ.defer();
 
   var updaterChannelObject = {
-    avalableChannels: [],
+    availableChannels: [],
     currentChannel: 'stable'
   }
   var updatesPromise = [self.getAvailableUpdaterChannels(), self.getCurrentUpdaterChannel()];
 
   libQ.all(updatesPromise).then((updaterResults)=>{
-    updaterChannelObject.avalableChannels = updaterResults[0];
+    updaterChannelObject.availableChannels = updaterResults[0];
     updaterChannelObject.currentChannel = updaterResults[1];
     defer.resolve(updaterChannelObject);
   }).fail(function (error) {
