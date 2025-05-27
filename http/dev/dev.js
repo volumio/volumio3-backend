@@ -319,7 +319,7 @@ function setChannel(channel) {
     return false;
   }
 
-  socket.emit('callMethod', {endpoint: 'system_controller/system', method: 'setUpdaterChannel', data: channel});
+  socket.emit('setUpdaterChannel', channel);
   console.log(`Updater channel set to: ${channel}`);
 }
 
