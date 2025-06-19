@@ -1,0 +1,7 @@
+#!/bin/sh
+
+### BASSFLY-uHAT I2C ADDRESS
+ES9039_ADDR=0x48
+sudo i2cset -y 1 $ES9039_ADDR 0x00 0x02
+
+echo "VOLUMIO ZERO INIT DONE!"
