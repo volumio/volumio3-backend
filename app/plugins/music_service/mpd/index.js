@@ -1049,7 +1049,8 @@ ControllerMpd.prototype.createMPDFile = function (callback) {
 
       if (mixer) {
         if (mixer.length > 0 && mpdvolume) {
-          mixerstrings = 'mixer_device    "' + mixerdev + '"' + os.EOL + '                mixer_control   "' + mixer + '"' + os.EOL + '                mixer_type      "hardware"' + os.EOL;
+          var mixerType = (mixerdev === 'SoftMaster') ? 'software' : 'hardware';
+          mixerstrings = 'mixer_device    "' + mixerdev + '"' + os.EOL + '                mixer_control   "' + mixer + '"' + os.EOL + '                mixer_type      "' + mixerType + '"' + os.EOL;
         }
       }
 
@@ -4068,6 +4069,3 @@ ControllerMpd.prototype.moveToNextTrackAfterPlaybackError = function () {
       }
     }, 1000);
 };
-
-
-
