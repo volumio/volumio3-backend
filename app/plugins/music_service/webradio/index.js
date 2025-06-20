@@ -236,6 +236,19 @@ ControllerWebradio.prototype.listRoot = function () {
   return defer.promise;
 };
 
+function xmlGetAttribute(node, attribute) {
+  if (!node)
+    return null;
+
+  if (typeof node.getAttribute === 'function') {
+    return node.getAttribute(attribute);
+  } else if (typeof node.attr === 'function') {
+    return node.attr(attribute);
+  } else {
+    throw new Error('xmlGetAttribute: node does not have attr or getAttribute method');
+  }
+}
+
 ControllerWebradio.prototype.listRadioGenres = function () {
   var self = this;
 
@@ -276,14 +289,14 @@ ControllerWebradio.prototype.listRadioGenres = function () {
     return promise;
   })
     .then(function (xml) {
-      if (xml.ok) {
+      if (xml.ok && xml.body) {
         var xmlDoc = libxmljs.parseXml(xml.body);
 
         var children = xmlDoc.root().childNodes();
         if (children.length == 0) { self.logger.info('No genres returned by Shoutcast'); }
 
         for (var i in children) {
-          var name = children[i].attr('name').value();
+          var name = xmlGetAttribute(children[i], 'name').value();
           var category = {
             type: 'radio-category',
             title: name,
@@ -342,7 +355,7 @@ ControllerWebradio.prototype.listRadioForGenres = function (curUri) {
     return promise;
   })
     .then(function (xml) {
-      if (xml.ok) {
+      if (xml.ok && xml.body) {
         var xmlDoc = libxmljs.parseXml(xml.body);
 
         var children = xmlDoc.root().childNodes();
@@ -350,12 +363,12 @@ ControllerWebradio.prototype.listRadioForGenres = function (curUri) {
 
         for (var i in children) {
           if (children[i].name() === 'tunein') {
-            base = (children[i].attr('base').value()).replace('.pls', '.m3u');
+            base = xmlGetAttribute(children[i], 'base').value().replace('.pls', '.m3u');
           } else if (children[i].name() === 'station') {
-            var name = children[i].attr('name').value();
-            var id = children[i].attr('id').value();
-            var bitrate = children[i].attr('br').value();
-            var streamcodec = children[i].attr('mt').value();
+            var name = xmlGetAttribute(children[i], 'name').value();
+            var id = xmlGetAttribute(children[i], 'id').value();
+            var bitrate = xmlGetAttribute(children[i], 'br').value();
+            var streamcodec = xmlGetAttribute(children[i], 'mt').value();
 
             var category = {
               service: 'webradio',
@@ -417,7 +430,7 @@ ControllerWebradio.prototype.listTop500Radios = function (curUri) {
     return promise;
   })
     .then(function (xml) {
-      if (xml.ok) {
+      if (xml.ok && xml.body) {
         var xmlDoc = libxmljs.parseXml(xml.body);
 
         var children = xmlDoc.root().childNodes();
@@ -425,12 +438,12 @@ ControllerWebradio.prototype.listTop500Radios = function (curUri) {
 
         for (var i in children) {
           if (children[i].name() === 'tunein') {
-            base = (children[i].attr('base').value()).replace('.pls', '.m3u');
+            base = xmlGetAttribute(children[i], 'base').value().replace('.pls', '.m3u');
           } else if (children[i].name() === 'station') {
-            var name = children[i].attr('name').value();
-            var id = children[i].attr('id').value();
-            var bitrate = children[i].attr('br').value();
-            var streamcodec = children[i].attr('mt').value();
+            var name = xmlGetAttribute(children[i], 'name').value();
+            var id = xmlGetAttribute(children[i], 'id').value();
+            var bitrate = xmlGetAttribute(children[i], 'br').value();
+            var streamcodec = xmlGetAttribute(children[i], 'mt').value();
 
             var category = {
               service: 'webradio',
@@ -441,7 +454,7 @@ ControllerWebradio.prototype.listTop500Radios = function (curUri) {
               uri: 'http://yp.shoutcast.com' + base + '?id=' + id
             };
             try {
-              var albumart = children[i].attr('logo').value();
+              var albumart = xmlGetAttribute(children[i], 'logo').value();
               if (albumart != undefined && albumart.length > 0) {
                 category.albumart = albumart;
               } else {
@@ -945,7 +958,7 @@ ControllerWebradio.prototype.searchWithShoutcast = function (search) {
     return promise;
   })
     .then(function (xml) {
-      if (xml.ok) {
+      if (xml.ok && xml.body) {
         var xmlDoc = libxmljs.parseXml(xml.body);
 
         var children = xmlDoc.root().childNodes();
@@ -953,12 +966,12 @@ ControllerWebradio.prototype.searchWithShoutcast = function (search) {
 
         for (var i in children) {
           if (children[i].name() === 'tunein') {
-            base = (children[i].attr('base').value()).replace('.pls', '.m3u');
+            base = xmlGetAttribute(children[i], 'base').value().replace('.pls', '.m3u');
           } else if (children[i].name() === 'station') {
-            var name = children[i].attr('name').value();
-            var id = children[i].attr('id').value();
-            var bitrate = children[i].attr('br').value();
-            var streamcodec = children[i].attr('mt').value();
+            var name = xmlGetAttribute(children[i], 'name').value();
+            var id = xmlGetAttribute(children[i], 'id').value();
+            var bitrate = xmlGetAttribute(children[i], 'br').value();
+            var streamcodec = xmlGetAttribute(children[i], 'mt').value();
 
 
             var category = {
@@ -970,8 +983,8 @@ ControllerWebradio.prototype.searchWithShoutcast = function (search) {
               uri: 'http://yp.shoutcast.com' + base + '?id=' + id
             };
 
-            if (children[i].attr('logo') && children[i].attr('logo').value()) {
-              category.albumart = children[i].attr('logo').value();
+            if (xmlGetAttribute(children[i], 'logo') && xmlGetAttribute(children[i], 'logo').value()) {
+              category.albumart = xmlGetAttribute(children[i], 'logo').value();
             } else {
               category.icon = 'fa fa-microphone';
             }
