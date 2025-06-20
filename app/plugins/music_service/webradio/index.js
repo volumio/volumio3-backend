@@ -289,7 +289,7 @@ ControllerWebradio.prototype.listRadioGenres = function () {
     return promise;
   })
     .then(function (xml) {
-      if (xml.ok) {
+      if (xml.ok && xml.body) {
         var xmlDoc = libxmljs.parseXml(xml.body);
 
         var children = xmlDoc.root().childNodes();
@@ -355,7 +355,7 @@ ControllerWebradio.prototype.listRadioForGenres = function (curUri) {
     return promise;
   })
     .then(function (xml) {
-      if (xml.ok) {
+      if (xml.ok && xml.body) {
         var xmlDoc = libxmljs.parseXml(xml.body);
 
         var children = xmlDoc.root().childNodes();
@@ -430,7 +430,7 @@ ControllerWebradio.prototype.listTop500Radios = function (curUri) {
     return promise;
   })
     .then(function (xml) {
-      if (xml.ok) {
+      if (xml.ok && xml.body) {
         var xmlDoc = libxmljs.parseXml(xml.body);
 
         var children = xmlDoc.root().childNodes();
@@ -958,7 +958,7 @@ ControllerWebradio.prototype.searchWithShoutcast = function (search) {
     return promise;
   })
     .then(function (xml) {
-      if (xml.ok) {
+      if (xml.ok && xml.body) {
         var xmlDoc = libxmljs.parseXml(xml.body);
 
         var children = xmlDoc.root().childNodes();
