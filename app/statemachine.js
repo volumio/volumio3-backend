@@ -108,7 +108,7 @@ CoreStateMachine.prototype.getState = function () {
       stream: this.volatileState.stream,
       updatedb: this.currentUpdate,
       volatile: true,
-      disableUiControls: this.volatileState.disableUiControls,
+      disableUiControls: this.isUpnp ? true : this.volatileState.disableUiControls,
       service: this.volatileState.service
     };
   } else if (this.isConsume) {
@@ -150,6 +150,7 @@ CoreStateMachine.prototype.getState = function () {
         dbVolume: this.currentDbVolume,
         mute: this.currentMute,
         disableVolumeControl: this.currentDisableVolumeControl,
+        disableUiControls: this.isUpnp ? true : this.volatileState.disableUiControls,
         stream: this.consumeState.stream,
         updatedb: this.currentUpdate,
         volatile: false,
@@ -190,6 +191,7 @@ CoreStateMachine.prototype.getState = function () {
         volume: this.currentVolume,
         dbVolume: this.currentDbVolume,
         disableVolumeControl: this.currentDisableVolumeControl,
+        disableUiControls: this.isUpnp ? true : this.volatileState.disableUiControls,
         mute: this.currentMute,
         stream: trackBlock.trackType,
         updatedb: this.currentUpdate,
