@@ -317,6 +317,19 @@ ControllerNetworkfs.prototype.listShares = function () {
  ###############################
  */
 
+const smbVersionsMap = {
+  'SMB3_11': '3.11',
+  'SMB3_10': '3.10',
+  'SMB3_02': '3.2',
+  'SMB3': '3.0',
+  'SMB2_24': '2.24',
+  'SMB2_22': '2.22',
+  'SMB2_10': '2.10',
+  'SMB2_02': '2.02',
+  'SMB1': '1.0',
+  'NT1': '1.0'
+}
+
 /**
  * This method adds a new share into the configuration
  * @param data {
@@ -403,6 +416,29 @@ ControllerNetworkfs.prototype.addShare = function (data) {
     : libQ.resolve('');
 
   res = res.then(version => {
+    if (!version) return '';
+
+    // If running SMB 2.0 or 2.1 no need to perform downgrade for performance reasons
+    const versionNum = parseInt(smbVersionsMap[version]);
+    if (versionNum <= 3.0) return version;
+
+    // For SMB 3.0 and above, we can try to downgrade to 2.1 for compatibility
+    self.logger.info(`Detected SMB version ${version}, attempting to downgrade to 2.1 for compatibility`);
+
+    return self.getSharesPerDevice({ host: ip, name: name, requestVersion: true, maxVersion: 'SMB2_10' }).then(device => {
+      // Could not downgrade version to 2.10, use the original version
+      if (!device.version) {
+        self.logger.info(`Could not downgrade SMB version, using original version ${version}`);
+        return version;
+      }
+
+      // Downgrade was successful, use the new version
+      self.logger.info(`Downgraded to SMB version ${device.version}`);
+      return device.version
+    })
+  })
+
+  res = res.then(version => {
     if (!version) return;
 
     if (options.includes('vers=')) {
@@ -410,19 +446,7 @@ ControllerNetworkfs.prototype.addShare = function (data) {
       return;
     }
 
-    const versionMap = {
-      'SMB3_11': '3.11',
-      'SMB3_10': '3.10',
-      'SMB3_02': '3.2',
-      'SMB3': '3.0',
-      'SMB2_24': '2.24',
-      'SMB2_22': '2.22',
-      'SMB2_10': '2.10',
-      'SMB2_02': '2.02',
-      'SMB1': '1.0',
-      'NT1': '1.0'
-    };
-    const versionNum = versionMap[version];
+    const versionNum = smbVersionsMap[version];
     if (versionNum) {
       if (username === '' && password === '') {
         // Older versions may allow guest, but SMB3.11 likely won't
@@ -827,6 +851,7 @@ ControllerNetworkfs.prototype.getSharesPerDevice = function (device) {
   var defer = libQ.defer();
 
   var detectVersion = device.requestVersion === true;
+  var maxVersion = device.maxVersion || 'SMB3_11';
 
   // Default to guest access
   var username = device.username || '';
@@ -837,13 +862,13 @@ ControllerNetworkfs.prototype.getSharesPerDevice = function (device) {
   if (detectVersion) {
     if (username) {
       // Use supplied credentials
-      cmd = `smbclient --debuglevel=4 -L ${device.host} -U ${username}%${password}`;
+      cmd = `smbclient --debuglevel=4 -L ${device.host} -U ${username}%${password} -m ${maxVersion}`;
     } else {
       // Attempt guest session
-      cmd = `smbclient --debuglevel=4 -L ${device.host} -N`;
+      cmd = `smbclient --debuglevel=4 -L ${device.host} -N -m ${maxVersion}`;
     }
   } else {
-    cmd = `smbclient --no-pass --debuglevel=0 -L ${device.host}`;
+    cmd = `smbclient --no-pass --debuglevel=0 -L ${device.host} -m ${maxVersion}`;
   }
 
   // Secure logging: obfuscate password if present
