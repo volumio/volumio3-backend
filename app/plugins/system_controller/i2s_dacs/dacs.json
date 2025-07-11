@@ -96,7 +96,7 @@
     {"id":"waveshare-wm8960","name":"Waveshare WM8960 Audio HAT","overlay":"wm8960-soundcard","alsanum":"2","alsacard":"wm8960soundcard","mixer":"Playback","modules":"","script":"","needsreboot":"yes"},
     {"id":"wisdpi-hifi-dac","name":"wisdPi Hifi DAC","overlay":"hifiberry-dacplus","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Digital","modules":"","script":"","needsreboot":"yes"},
     {"id":"wisdpi-hifi-dac-pi5","name":"wisdPi Hifi DAC [Pi5]","overlay":"hifiberry-dacplus-std","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Digital","modules":"","script":"","needsreboot":"yes"},
-    {"id":"volumio-zero","name":"Volumio Zero ES9039 DAC","overlay":"hifiberry-dac","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"","modules":"","script":"volumio-zero-init.sh","needsreboot":"yes"},
+    {"id":"volumio-zero","name":"Volumio Zero ES9039 DAC","overlay":"es9039q2m-i2s","alsanum":"2","alsacard":"es9039q2m","mixer":"","modules":"","script":"volumio-zero-init.sh","needsreboot":"yes"},
     {"id":"52pi-nvdac","name":"52Pi NVDAC","overlay":"hifiberry-dacplus","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Digital","modules":"","script":"","needsreboot":"yes"},
     {"id":"52pi-nvdac-pi5","name":"52Pi NVDAC [Pi5]","overlay":"hifiberry-dacplus-std","alsanum":"2","alsacard":"sndrpihifiberry","mixer":"Digital","modules":"","script":"","needsreboot":"yes"}
   ]},
