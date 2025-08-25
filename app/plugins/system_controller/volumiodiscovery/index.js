@@ -317,7 +317,7 @@ ControllerVolumioDiscovery.prototype.connectToRemoteVolumio = function (uuid, ip
 ControllerVolumioDiscovery.prototype.updateMultiroomDevice = function (uuid, data) {
   var self = this;
   foundVolumioInstances.set(uuid + '.status', data.status);
-  if (data.volume === undefined) {
+  if (!data.volume) {
     data.volume = 0;
   }
   foundVolumioInstances.set(uuid + '.volume', data.volume);
