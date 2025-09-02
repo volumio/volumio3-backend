@@ -2362,3 +2362,13 @@ ControllerAlsa.prototype.getSystemInfo = function () {
         systemInfo = info;
     });
 };
+
+ControllerAlsa.prototype.getExtendedOutputDevices = function () {
+    var self = this;
+    var defer = libQ.defer();
+
+
+    defer.resolve({});
+
+    return defer.promise;
+};

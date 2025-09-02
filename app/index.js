@@ -2227,17 +2227,6 @@ CoreCommandRouter.prototype.removeAudioOutput = function (id) {
   }
 };
 
-CoreCommandRouter.prototype.getExtendedAudioOutputs = function () {
-  var self = this;
-
-  var audioOutputPlugin = this.pluginManager.getPlugin('audio_interface', 'outputs');
-  if (audioOutputPlugin != undefined && typeof audioOutputPlugin.getExtendedAudioOutputs === 'function') {
-    return audioOutputPlugin.getExtendedAudioOutputs();
-  } else {
-    this.logger.error('WARNING: No Audio Output plugin found');
-  }
-};
-
 CoreCommandRouter.prototype.getAudioOutputs = function () {
   var self = this;
 
