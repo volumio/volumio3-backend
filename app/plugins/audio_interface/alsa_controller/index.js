@@ -1106,6 +1106,11 @@ ControllerAlsa.prototype.getAlsaCards = function () {
   }
 
   try {
+    var extendedCardsInfo = fs.readJsonSync(('/volumio/app/plugins/audio_interface/alsa_controller/extendedOutputDevices.json'), 'utf8', {throws: false});
+      carddata.cards = extendedCardsInfo.concat(carddata.cards);
+  } catch (e) {}
+
+  try {
     var aplaycards = self.getAplayInfo();
     aplay: for (var k = 0; k < aplaycards.length; k++) {
       var aplaycard = aplaycards[k];
@@ -2367,8 +2372,175 @@ ControllerAlsa.prototype.getExtendedOutputDevices = function () {
     var self = this;
     var defer = libQ.defer();
 
+    var carddata = fs.readJsonSync(('/volumio/app/plugins/audio_interface/alsa_controller/cards.json'), 'utf8', {throws: false});
+    try {
+      var extendedCardsInfo = fs.readJsonSync(('/volumio/app/plugins/audio_interface/alsa_controller/extendedOutputDevices.json'), 'utf8', {throws: false});
+      carddata.cards = extendedCardsInfo.concat(carddata.cards);
+    } catch (e) {}
 
-    defer.resolve({});
+    var outputDevices = self.getAudioDevices();
+    outputDevices.then((devices) => {
+        var devicesToPopulate = [self.matchCardWithExtendedOutputDevicesProperties(devices.devices.active, carddata)];
+        for (var i in devices.devices.available) {
+            devicesToPopulate.push(self.matchCardWithExtendedOutputDevicesProperties(devices.devices.available[i], carddata));
+        };
+        libQ.all(devicesToPopulate).then((populatedDevices) => {
+            var response = {'devices': {'active': populatedDevices[0], 'available': populatedDevices.slice(1)}};
+            defer.resolve(response);
+        });
+    }).fail((error) => {
+        self.logger.error('Failed to get extended output devices: ' + error);
+        defer.resolve({});
+    });
 
     return defer.promise;
 };
+
+ControllerAlsa.prototype.matchCardWithExtendedOutputDevicesProperties = function (card, carddata) {
+    var self = this;
+    var defer = libQ.defer();
+    var cardMatched = false;
+    for (var i in carddata.cards) {
+        if (carddata.cards[i].prettyname === card.name) {
+            var extendedCard = {};
+            extendedCard.id = card.id;
+            Object.assign(extendedCard, carddata.cards[i]);
+            extendedCard.name = card.name;
+            cardMatched = true;
+            break;
+        }
+    }
+    if (cardMatched) {
+        defer.resolve(extendedCard);
+    } else {
+        return self.retrieveExtendedOutputDevicesProperties(card);
+    }
+
+    return defer.promise;
+};
+
+ControllerAlsa.prototype.retrieveExtendedOutputDevicesProperties = function (card) {
+    var self = this;
+    var defer = libQ.defer();
+
+    self.readAudioCardDeviceCapabilities(card).then((capabilities) => {
+        card.extendedAudioOutputInfos = [];
+        card.extendedAudioOutputInfos.push(capabilities)
+        defer.resolve(card);
+    }).fail((error) => {
+        self.logger.error('Failed to read Audio Device Capabilities: ' + error);
+        defer.resolve(card);
+    });
+
+    return defer.promise;
+};
+
+ControllerAlsa.prototype.readAudioCardDeviceCapabilities = function(card) {
+    var self = this;
+    var defer = libQ.defer();
+
+    var outputdevice = card.id;
+    if (outputdevice.includes(',')) {
+        var card = outputdevice.split(',')[0];
+        var device = outputdevice.split(',')[1];
+        var aplayCardParam = '-C ' + card + ' -D ' + device;
+    } else {
+        var aplayCardParam = '-C ' + outputdevice;
+    }
+
+    var advancedAudioCapabilities = {
+        "type": "TYPE_UNSPECIFIED",
+        "maxSampleRate": 44100,
+        "maxBitDepth": 16,
+        "maxChannels": 2,
+        "supportedFormats": [
+            "SUPPORTED_FORMAT_PCM",
+        ],
+        "hasVolumeControl": false
+    };
+
+    var aplayCommand = '/usr/local/bin/alsacap ' + aplayCardParam;
+    exec(aplayCommand, { uid: 1000, gid: 1000}, function(error, stdout, stderr) {
+        if (error) {
+            self.logger.error("Cannot read Audio Device Capabilities", error);
+            defer.resolve(advancedAudioCapabilities);
+        } else {
+            if (self.parseAudioCardDeviceDSDCapabilities(stdout)) {
+                advancedAudioCapabilities.supportedFormats.push('SUPPORTED_FORMAT_DSD_DIRECT');
+            }
+            if (self.isUSBAudioCard(stdout)) {
+                advancedAudioCapabilities.type = 'TYPE_USB';
+            }
+            advancedAudioCapabilities.maxSampleRate = self.parseAudioCardDeviceMaxRates(stdout);
+            advancedAudioCapabilities.maxBitDepth = self.parseAudioCardDeviceMaxBitDepth(stdout);
+            advancedAudioCapabilities.hasVolumeControl = self.checkIfDeviceHasVolumeControl(card.id);
+            defer.resolve(advancedAudioCapabilities);
+        }
+    });
+
+    return defer.promise;
+};
+
+ControllerAlsa.prototype.parseAudioCardDeviceDSDCapabilities = function(data) {
+    var self = this;
+
+    var isDSDSupported = false;
+    if (data.includes('DSD')) {
+        isDSDSupported = true;
+    }
+    return isDSDSupported;
+};
+
+ControllerAlsa.prototype.isUSBAudioCard = function(data) {
+    var self = this;
+
+    var isUSB = false;
+    if (data.includes('USB Audio')) {
+        isUSB = true;
+    }
+    return isUSB;
+};
+
+ControllerAlsa.prototype.parseAudioCardDeviceMaxRates = function(data) {
+    var self = this;
+
+    var supportedMaxRate = 44100;
+
+    try {
+        var lines = data.split('\n');
+        let ratesLine = lines.find((line) => line.includes('sampling rate'));
+        var ratesParse = ratesLine.split('sampling rate ')[1].split(' Hz')[0].split('..');
+        var supportedMaxRate = ratesParse[1];
+    } catch(e) {}
+
+    return supportedMaxRate;
+};
+
+ControllerAlsa.prototype.parseAudioCardDeviceMaxBitDepth = function(data) {
+    var self = this;
+
+    var maxBitDepth = 16;
+    if (data.includes('S24')) {
+        maxBitDepth = 24;
+    }
+    if (data.includes('S32')) {
+        maxBitDepth = 32;
+    }
+    return maxBitDepth;
+};
+
+ControllerAlsa.prototype.checkIfDeviceHasVolumeControl = function(cardNumber) {
+    var self = this;
+
+    var hasVolumeControl = false;
+    try {
+        var hasVolumeControlCommand = execSync('amixer -c ' + cardNumber + ' scontents | grep Playback', {encoding: 'utf8'});
+        if (hasVolumeControlCommand && hasVolumeControlCommand.length > 0) {
+            hasVolumeControl = true;
+        }
+    } catch(e) {};
+
+    return hasVolumeControl;
+};
+
+
