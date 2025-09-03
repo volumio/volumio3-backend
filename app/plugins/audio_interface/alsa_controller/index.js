@@ -2402,6 +2402,9 @@ ControllerAlsa.prototype.matchCardWithExtendedOutputDevicesProperties = function
     var cardMatched = false;
     for (var i in carddata.cards) {
         if (carddata.cards[i].prettyname === card.name) {
+            if (carddata.cards[i].multidevice) {
+                delete carddata.cards[i].devices;
+            }
             var extendedCard = {};
             extendedCard.id = card.id;
             extendedCard.isAvailable = self.checkIfSelectedCardIsAvailable(carddata.cards[i].name, card.id);
@@ -2547,6 +2550,11 @@ ControllerAlsa.prototype.checkIfDeviceHasVolumeControl = function(cardNumber) {
 
 ControllerAlsa.prototype.checkIfSelectedCardIsAvailable = function(alsaCardName, cardNumber) {
     var self = this;
+
+    if (cardNumber.includes(',')) {
+        // For devices with multiple subdevices we assume they are always available, since typically this is applied to internal cards
+        return true;
+    }
 
     var isAvailable = false;
     try {
