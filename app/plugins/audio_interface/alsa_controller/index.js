@@ -2512,7 +2512,7 @@ ControllerAlsa.prototype.parseAudioCardDeviceMaxRates = function(data) {
         var lines = data.split('\n');
         let ratesLine = lines.find((line) => line.includes('sampling rate'));
         var ratesParse = ratesLine.split('sampling rate ')[1].split(' Hz')[0].split('..');
-        var supportedMaxRate = ratesParse[1];
+        var supportedMaxRate = parseInt(ratesParse[1]);
     } catch(e) {}
 
     return supportedMaxRate;
