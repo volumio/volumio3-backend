@@ -2404,6 +2404,7 @@ ControllerAlsa.prototype.matchCardWithExtendedOutputDevicesProperties = function
         if (carddata.cards[i].prettyname === card.name) {
             var extendedCard = {};
             extendedCard.id = card.id;
+            extendedCard.isAvailable = self.checkIfSelectedCardIsAvailable(carddata.cards[i].name, card.id);
             Object.assign(extendedCard, carddata.cards[i]);
             extendedCard.name = card.name;
             cardMatched = true;
@@ -2424,6 +2425,7 @@ ControllerAlsa.prototype.retrieveExtendedOutputDevicesProperties = function (car
     var defer = libQ.defer();
 
     self.readAudioCardDeviceCapabilities(card).then((capabilities) => {
+        card.isAvailable = self.checkIfSelectedCardIsAvailable(card.name, card.id);
         card.extendedAudioOutputInfos = [];
         card.extendedAudioOutputInfos.push(capabilities)
         defer.resolve(card);
@@ -2453,10 +2455,10 @@ ControllerAlsa.prototype.readAudioCardDeviceCapabilities = function(card) {
         "maxSampleRate": 44100,
         "maxBitDepth": 16,
         "maxChannels": 2,
+        "hasVolumeControl": false,
         "supportedFormats": [
             "SUPPORTED_FORMAT_PCM",
-        ],
-        "hasVolumeControl": false
+        ]
     };
 
     var aplayCommand = '/usr/local/bin/alsacap ' + aplayCardParam;
@@ -2543,4 +2545,19 @@ ControllerAlsa.prototype.checkIfDeviceHasVolumeControl = function(cardNumber) {
     return hasVolumeControl;
 };
 
+ControllerAlsa.prototype.checkIfSelectedCardIsAvailable = function(alsaCardName, cardNumber) {
+    var self = this;
+
+    var isAvailable = false;
+    try {
+        console.log('amixer -c ' + cardNumber + ' info | grep "' + alsaCardName + '"')
+        var isAvailableCommand = execSync('amixer -c ' + cardNumber + ' info | grep "' + alsaCardName + '"', {encoding: 'utf8'});
+        console.log(isAvailableCommand);
+        if (isAvailableCommand && isAvailableCommand.length > 0) {
+            isAvailable = true;
+        }
+    } catch (e) {};
+
+    return isAvailable;
+};
 
