@@ -338,7 +338,7 @@ ControllerUPNPBrowser.prototype.listUPNP = function (data) {
           'type': 'song',
           'albumart': albumart
         };
-        if (artistsList.length === 1 && albumsList.length === 1) {
+        if (artistsList && artistsList.length === 1 && albumsList && albumsList.length === 1) {
           obj.navigation.info.album = albumsList[0];
           obj.navigation.info.artist = artistsList[0];
         } else if (artist && artist.length) {
