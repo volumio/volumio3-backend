@@ -25,6 +25,7 @@ var startup = true;
 var stickingMusicLibrary = false;
 var collectionStats = {};
 var nextMoveToNextTrackDebounce;
+var stateDebounceTimeout = 100;
 
 // Define the ControllerMpd class
 module.exports = ControllerMpd;
@@ -718,6 +719,7 @@ ControllerMpd.prototype.mpdEstablish = function () {
 
     if (!ignoreupdate && status != 'playlist' && status != undefined) {
       self.logStart('MPD announces state update: ' + status)
+        .then(self.stateDebounceSleep.bind(self))
         .then(self.getState.bind(self))
         .then(self.pushState.bind(self))
         .fail(self.pushError.bind(self))
@@ -4069,5 +4071,14 @@ ControllerMpd.prototype.moveToNextTrackAfterPlaybackError = function () {
     }, 1000);
 };
 
+ControllerMpd.prototype.stateDebounceSleep = function () {
+  var self = this;
+  var defer = libQ.defer();
+
+  setTimeout(() => {
+    defer.resolve('');
+  }, stateDebounceTimeout);
+  return defer.promise;
+};
 
 
