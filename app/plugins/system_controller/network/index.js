@@ -665,33 +665,86 @@ ControllerNetwork.prototype.wirelessConnect = function (data) {
     netstring += self.getNetworkWpaSupplicantEntry(data.ssid, data.pass, 2);
   }
 
-  self.writeWpaSupplicantConf(netstring, data);
+  self.writeWpaSupplicantConf(netstring, data).then(()=>{
+    self.pushSaveWirelessNetworkSettings(data.ssid);
+  }).fail((err)=>{
+    var payload = {'status': 'failed', 'message': err, 'ssid': data.ssid};
+    self.broadCastPushSaveWirelessNetworkSettings(payload);
+  });
 };
 
 ControllerNetwork.prototype.writeWpaSupplicantConf = function (netstring, data) {
   var self = this;
+  var defer = libQ.defer();
 
   this.getAdditionalWpaSupplicantConf(netstring, data).then((wpaSupplicantConf)=> {
     exec('/usr/bin/sudo /bin/chmod 777 /etc/wpa_supplicant/wpa_supplicant.conf', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
       if (error !== null) {
-        self.logger.error('Cannot set permissions for /etc/network/interfaces: ' + error);
+        var errorMessage = 'Cannot set permissions for /etc/wpa_supplicant/wpa_supplicant.conf: ' + error;
+        self.logger.error(errorMessage);
+        defer.reject(errorMessage);
       } else {
         fs.writeFile('/etc/wpa_supplicant/wpa_supplicant.conf', wpaSupplicantConf, function (err) {
           if (err) {
-            self.logger.error('Cannot write wpasupplicant.conf ' + err);
+            var errorMessage = 'Cannot write wpasupplicant.conf ' + err;
+            self.logger.error(errorMessage);
+            defer.reject(errorMessage);
           }
           fs.writeFile('/data/configuration/netconfigured', ' ', function (err) {
             if (err) {
-              self.logger.error('Cannot write netconfigured ' + error);
+              var errorMessage = 'Cannot write netconfigured ' + err;
+              self.logger.error(errorMessage);
+              defer.reject(errorMessage);
             }
           });
           self.commandRouter.wirelessRestart();
+          defer.resolve({success: true});
         });
       }
     });
   }).fail(function (err) {
-    self.logger.error('Cannot get additional WPA Supplicant Networks: ' + err);
+    var errorMessage = 'Cannot get additional WPA Supplicant Networks: ' + err;
+    self.logger.error(errorMessage);
+    defer.reject(errorMessage);
   });
+
+  return defer.promise;
+}
+
+ControllerNetwork.prototype.pushSaveWirelessNetworkSettings = function (ssid) {
+  var self = this;
+
+  var payload = {'status': '', 'message': '', 'ssid': ssid};
+  var startTime = Date.now();
+  var status = 'none';
+  var checkConnection = setInterval(function () {
+    self.getWirelessInfo().then((data)=>{
+      if (Date.now()-startTime > 30000) {
+        status = 'failed';
+        payload = {'status': 'failed', 'message': self.commandRouter.getI18nString('NETWORK.WIRELESS_NETWORK_CONNECTION_ERROR'), 'ssid': ssid};
+        self.broadCastPushSaveWirelessNetworkSettings(payload);
+        clearInterval(checkConnection);
+        return;
+      }
+      if (data && data.connected && data.connected === true && data.ssid === ssid) {
+        status = 'connected';
+        payload = {'status': 'connected', 'message': self.commandRouter.getI18nString('NETWORK.WIRELESS_NETWORK_CONNECTION_SUCCESSFUL'), 'ssid': ssid};
+        self.broadCastPushSaveWirelessNetworkSettings(payload);
+        clearInterval(checkConnection);
+        return;
+      } else if (status !== 'connecting') {
+        status = 'connecting';
+        payload = {'status': 'connecting', 'message': self.commandRouter.getI18nString('NETWORK.WIRELESS_NETWORK_CONNECTING_TO'), 'ssid': ssid};
+        self.broadCastPushSaveWirelessNetworkSettings(payload);
+      }
+    });
+  }, 1000);
+}
+
+ControllerNetwork.prototype.broadCastPushSaveWirelessNetworkSettings = function (payload) {
+  var self = this;
+
+  self.commandRouter.broadcastMessage('pushSaveWirelessNetworkSettings', payload);
 
 }
 
@@ -942,7 +995,7 @@ ControllerNetwork.prototype.getWirelessInfo = function () {
         cachedWlan0IPAddress = status.ipv4_address;
         if (status.ipv4_address != '192.168.211.1') {
           response.connected = true;
-          response.ssid = execSync('/usr/bin/sudo /sbin/iwconfig wlan0 | grep ESSID | cut -d\\" -f2', { encoding: 'utf8' });
+          response.ssid = execSync('/usr/bin/sudo /sbin/iwconfig wlan0 | grep ESSID | cut -d\\" -f2 | tr -d "\\n"', { encoding: 'utf8' });
         } else {
 
         }
