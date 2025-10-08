@@ -471,8 +471,8 @@
         "DISPLAY_ZOOM_FACTOR": "Display Zoom Factor",
         "DISPLAY_ZOOM_FACTOR_DOC": "Allow to change the display Zoom factor to increase the size of displayed elements",
         "DISPLAY_UI": "User Interface Display",
-        "DAC_NOS_MODE": "DAC NOS Mode",
-        "DAC_NOS_MODE_DOC": "Set the DAC to Non-Oversampling mode"
+        "DAC_NOS_MODE": "Internal DAC NOS Mode",
+        "DAC_NOS_MODE_DOC": "Set the Internal DAC to Non-Oversampling mode"
     },
     "UPDATER": {
         "CHECKING_FOR_UPDATES": "Checking for Updates",
