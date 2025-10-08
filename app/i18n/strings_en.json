@@ -472,7 +472,9 @@
         "DISPLAY_ZOOM_FACTOR_DOC": "Allow to change the display Zoom factor to increase the size of displayed elements",
         "DISPLAY_UI": "User Interface Display",
         "DAC_NOS_MODE": "Internal DAC NOS Mode",
-        "DAC_NOS_MODE_DOC": "Set the Internal DAC to Non-Oversampling mode"
+        "DAC_NOS_MODE_DOC": "Set the Internal DAC to Non-Oversampling mode",
+        "DAC_OUTPUT_LEVEL": "Internal DAC Output Level",
+        "DAC_OUTPUT_LEVEL_DOC": "Set the Internal DAC Output Level in Volt RMS, to match your amplifier input sensitivity"
     },
     "UPDATER": {
         "CHECKING_FOR_UPDATES": "Checking for Updates",
