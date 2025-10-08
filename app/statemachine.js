@@ -123,7 +123,9 @@ CoreStateMachine.prototype.getState = function () {
         this.consumeState.bitdepth = '';
         if (this.consumeState.uri && this.consumeState.title && this.consumeState.uri.includes(this.consumeState.title)) {
           var trackBlock = this.getTrack(this.currentPosition);
-          this.consumeState.title = trackBlock.name || '';
+          if (trackBlock) {
+            this.consumeState.title = trackBlock.name || '';
+          }
         }
       }
 
