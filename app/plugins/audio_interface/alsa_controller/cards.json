@@ -39,6 +39,7 @@
     {"name": "HDA Intel PCH", "multidevice": true, "devices":[{"number":0, "prettyname": "Analog Out", "defaultmixer": ""},{"number":1, "prettyname": "SPDIF", "defaultmixer": ""},{"number":3, "prettyname": "HDMI", "defaultmixer": ""}]},
     {"name": "HDA Intel", "multidevice": true, "devices":[{"number":0, "prettyname": "Analog Out", "defaultmixer": ""},{"number":1, "prettyname": "SPDIF", "defaultmixer": ""},{"number":3, "prettyname": "HDMI", "defaultmixer": ""}]},
     {"name": "HDA C-Media", "multidevice": true, "devices":[{"number":0, "prettyname": "C-Media Analog Out", "defaultmixer": ""},{"number":1, "prettyname": "C-Media SPDIF/Toslink", "defaultmixer": ""}]},
+    {"name": "HDA Creative", "multidevice": true, "devices":[{"number":0, "prettyname": "CA0132 Analog", "defaultmixer": ""},{"number":1, "prettyname": "CA0132 SPDIF/Toslink", "defaultmixer": ""}]},
     {"name": "HD-Audio Generic", "multidevice": true, "devices":[{"number":0, "prettyname": "Analog Out", "defaultmixer": ""},{"number":1, "prettyname": "SPDIF", "defaultmixer": ""},{"number":3, "prettyname": "HDMI", "defaultmixer": ""}]},
     {"name": "HDA ATI SB", "multidevice": true, "devices":[{"number":0, "prettyname": "Analog Out", "defaultmixer": ""},{"number":1, "prettyname": "SPDIF", "defaultmixer": ""}]},
     {"name": "HDA ATI HDMI", "multidevice": true, "devices":[{"number":3, "prettyname": "HDMI 0", "defaultmixer": ""},{"number":7, "prettyname": "HDMI 1", "defaultmixer": ""}],"type":"integrated"},
