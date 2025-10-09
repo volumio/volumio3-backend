@@ -476,7 +476,7 @@
         "DAC_OUTPUT_LEVEL": "Internal DAC Output Level",
         "DAC_OUTPUT_LEVEL_DOC": "Set the maximum output level of the Internal DAC, to match your amplifier input capabilities",
         "DISPLAY_UI2": "Display User Interface",
-        "DISPLAY_UI2_DOC": "Select the type of User Interface for the display"
+        "DISPLAY_UI2_DOC": "Select the User Interface style to be shown on the display"
     },
     "UPDATER": {
         "CHECKING_FOR_UPDATES": "Checking for Updates",
