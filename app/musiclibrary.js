@@ -237,7 +237,7 @@ CoreMusicLibrary.prototype.addToBrowseSources = function (data) {
     // searching for existing browse source
     for (var i in self.browseSources) {
       var source = self.browseSources[i];
-      if (source.name === data.name) {
+      if (source.name === data.name || source.uri === data.uri) {
         source.uri = data.uri;
         source.plugin_type = data.plugin_type;
         source.plugin_name = data.plugin_name;
