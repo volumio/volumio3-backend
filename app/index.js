@@ -24,6 +24,7 @@ function CoreCommandRouter (server) {
   this.pluginsRestEndpoints = [];
   this.standByHandler = {};
   this.dspSignalPathElements = [];
+  this.dynamicMenuItems = [];
   this.sharedVars = new vconf();
   this.sharedVars.registerCallback('language_code', this.loadI18nStrings.bind(this));
   this.sharedVars.addConfigValue('selective_search', 'boolean', true);
@@ -259,6 +260,36 @@ CoreCommandRouter.prototype.volumioAddToBrowseSources = function (data) {
 CoreCommandRouter.prototype.volumioRemoveToBrowseSources = function (data) {
   this.pushConsoleMessage('CoreCommandRouter::volumioRemoveToBrowseSources' + data);
   return this.musicLibrary.removeBrowseSource(data);
+};
+
+CoreCommandRouter.prototype.volumioAddToMenuItems = function (items) {
+  var self = this;
+  
+  if (!Array.isArray(items)) {
+    items = [items];
+  }
+  
+  items.forEach(function(item) {
+    // Remove existing item with same ID and name to prevent duplicates
+    self.dynamicMenuItems = self.dynamicMenuItems.filter(function(existing) {
+      return !(existing.id === item.id && existing.name === item.name);
+    });
+    
+    // Add new item
+    self.dynamicMenuItems.push(item);
+  });
+  
+  this.logger.info('[CommandRouter] Dynamic menu items updated: ' + self.dynamicMenuItems.length + ' items');
+};
+
+CoreCommandRouter.prototype.volumioRemoveFromMenuItems = function (id, name) {
+  var self = this;
+  
+  self.dynamicMenuItems = self.dynamicMenuItems.filter(function(item) {
+    return !(item.id === id && item.name === name);
+  });
+  
+  this.logger.info('[CommandRouter] Removed menu item: ' + id + '/' + name);
 };
 
 CoreCommandRouter.prototype.volumioUpdateToBrowseSources = function (name, data) {
@@ -2066,6 +2097,11 @@ CoreCommandRouter.prototype.getMenuItems = function () {
         menuItems = menuItems.filter(item => item.id !== "browse");
       }
 
+      // Merge dynamic menu items from plugins
+      if (self.dynamicMenuItems && self.dynamicMenuItems.length > 0) {
+        menuItems = menuItems.concat(self.dynamicMenuItems);
+      }
+
       defer.resolve(menuItems);
     });
   return defer.promise;
@@ -2505,6 +2541,3 @@ CoreCommandRouter.prototype.registerThirdPartyUI = function (data) {
 
   this.executeOnPlugin('miscellanea', 'appearance', 'registerThirdPartyUI', data);
 };
-
-
-
