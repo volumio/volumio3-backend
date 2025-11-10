@@ -919,12 +919,22 @@ function InterfaceWebUI (context) {
     });
 
     // Updater
-    connWebSocket.on('updateCheck', function () {
+    connWebSocket.on('updateCheck', function (data) {
       var selfConnWebSocket = this;
 
-      var checkingMessage = {'changeLogLink': '', 'description': self.commandRouter.getI18nString('UPDATER.CHECKING_FOR_UPDATES_WAIT'), 'title': self.commandRouter.getI18nString('UPDATER.CHECKING_FOR_UPDATES'), 'updateavailable': false};
-      selfConnWebSocket.emit('updateWaitMsg', checkingMessage);
-      self.sendUpdateReady = true;
+      var hideModal = data && !!data.hideModal;
+
+      if (!hideModal) {
+        var checkingMessage = {
+          'changeLogLink': '',
+          'description': self.commandRouter.getI18nString('UPDATER.CHECKING_FOR_UPDATES_WAIT'),
+          'title': self.commandRouter.getI18nString('UPDATER.CHECKING_FOR_UPDATES'),
+          'updateavailable': false
+        };
+        selfConnWebSocket.emit('updateWaitMsg', checkingMessage);
+      }
+
+      self.sendUpdateReady = !hideModal;
       self.commandRouter.broadcastMessage('ClientUpdateCheck', 'search-for-upgrade');
     });
 
@@ -972,6 +982,7 @@ function InterfaceWebUI (context) {
          }
       }
       self.commandRouter.executeOnPlugin('system_controller', 'updater_comm', 'setUpdateMessageCache', updateMessage);
+      self.commandRouter.broadcastMessage('updateReadyForDaemon', updateMessage);
       if (self.sendUpdateReady) {
         self.commandRouter.broadcastMessage('updateReady', updateMessage);
       }
