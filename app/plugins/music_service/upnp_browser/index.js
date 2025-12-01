@@ -434,7 +434,7 @@ ControllerUPNPBrowser.prototype.clearAddPlayTrack = function (track) {
       return self.mpdPlugin.sendMpdCommand('add "' + safeUri + '"', []);
     })
     .then(function () {
-      self.commandRouter.stateMachine.setConsumeUpdateService('mpd', false, false);
+      self.commandRouter.stateMachine.setConsumeUpdateService('mpd', true, false);
       return self.mpdPlugin.sendMpdCommand('play', []);
     });
 };
@@ -463,6 +463,22 @@ ControllerUPNPBrowser.prototype.resume = function () {
 
   // TODO don't send 'toggle' if already playing
   return self.mpdPlugin.sendMpdCommand('play', []);
+};
+
+// Skip to next track - required by statemachine
+ControllerUPNPBrowser.prototype.next = function () {
+  var self = this;
+  self.commandRouter.pushConsoleMessage('[' + Date.now() + '] ' + 'ControllerUPNPBrowser::next');
+
+  return self.mpdPlugin.sendMpdCommand('next', []);
+};
+
+// Skip to previous track - required by statemachine
+ControllerUPNPBrowser.prototype.previous = function () {
+  var self = this;
+  self.commandRouter.pushConsoleMessage('[' + Date.now() + '] ' + 'ControllerUPNPBrowser::previous');
+
+  return self.mpdPlugin.sendMpdCommand('previous', []);
 };
 
 ControllerUPNPBrowser.prototype.seek = function (position) {
