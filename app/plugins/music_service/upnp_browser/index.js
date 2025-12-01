@@ -27,6 +27,7 @@ function ControllerUPNPBrowser (context) {
   this.ssdpStarted = false;
   this.currentNetworkStatus = '0';
   this.searchInterval = null;
+  this.startupPollInterval = null;
 }
 
 ControllerUPNPBrowser.prototype.getConfigurationFiles = function () {
@@ -62,10 +63,51 @@ ControllerUPNPBrowser.prototype.onStart = function () {
     self.initializeSsdp();
   } else {
     self.logger.info('UPNP Browser: Waiting for network to become available');
+    // Start polling as fallback - sharedVars callback can be unreliable at boot
+    self.startNetworkPolling();
   }
 
   // this.startDjmount();
   return libQ.resolve();
+};
+
+ControllerUPNPBrowser.prototype.startNetworkPolling = function () {
+  var self = this;
+
+  // Don't start if already polling or SSDP already started
+  if (self.startupPollInterval || self.ssdpStarted) {
+    return;
+  }
+
+  self.logger.info('UPNP Browser: Starting network polling fallback');
+
+  self.startupPollInterval = setInterval(function () {
+    var status = self.commandRouter.sharedVars.get('network.networkstatus');
+
+    if (status && status !== '0') {
+      self.logger.info('UPNP Browser: Network ready detected via polling (status: ' + status + ')');
+      self.stopNetworkPolling();
+      self.currentNetworkStatus = status;
+      self.initializeSsdp();
+    }
+  }, 2000);
+
+  // Stop polling after 60 seconds regardless
+  setTimeout(function () {
+    if (self.startupPollInterval) {
+      self.logger.info('UPNP Browser: Network polling timeout, stopping');
+      self.stopNetworkPolling();
+    }
+  }, 60000);
+};
+
+ControllerUPNPBrowser.prototype.stopNetworkPolling = function () {
+  var self = this;
+
+  if (self.startupPollInterval) {
+    clearInterval(self.startupPollInterval);
+    self.startupPollInterval = null;
+  }
 };
 
 ControllerUPNPBrowser.prototype.onNetworkStatusChange = function (data) {
@@ -75,15 +117,16 @@ ControllerUPNPBrowser.prototype.onNetworkStatusChange = function (data) {
   self.logger.info('UPNP Browser: Network status changed from ' + self.currentNetworkStatus + ' to ' + newStatus);
 
   // Network became available
-  if (newStatus !== '0' && self.currentNetworkStatus === '0') {
+  if (newStatus !== '0' && !self.ssdpStarted) {
+    self.stopNetworkPolling();
     self.currentNetworkStatus = newStatus;
     self.initializeSsdp();
   // Network interface changed (e.g., ethernet to wifi or vice versa)
-  } else if (newStatus !== '0' && newStatus !== self.currentNetworkStatus) {
+  } else if (newStatus !== '0' && newStatus !== self.currentNetworkStatus && self.ssdpStarted) {
     self.currentNetworkStatus = newStatus;
     self.reinitializeSsdp();
   // Network lost
-  } else if (newStatus === '0') {
+  } else if (newStatus === '0' && self.currentNetworkStatus !== '0') {
     self.currentNetworkStatus = newStatus;
     self.logger.info('UPNP Browser: Network lost, SSDP discovery suspended');
   }
@@ -225,6 +268,8 @@ ControllerUPNPBrowser.prototype.onStop = function () {
   var self = this;
 
   this.commandRouter.volumioRemoveToBrowseSources(this.commandRouter.getI18nString('COMMON.MEDIA_SERVERS'));
+
+  self.stopNetworkPolling();
 
   if (self.searchInterval) {
     clearInterval(self.searchInterval);
