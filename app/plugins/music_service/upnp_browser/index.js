@@ -24,6 +24,10 @@ function ControllerUPNPBrowser (context) {
   this.logger = this.context.logger;
   this.configManager = this.context.configManager;
   this.DLNAServers = [];
+  this.ssdpStarted = false;
+  this.currentNetworkStatus = '0';
+  this.searchInterval = null;
+  this.startupPollInterval = null;
 }
 
 ControllerUPNPBrowser.prototype.getConfigurationFiles = function () {
@@ -47,10 +51,100 @@ ControllerUPNPBrowser.prototype.onStart = function () {
     this.addToBrowseSources();
   }
 
+  this.mpdPlugin = this.commandRouter.pluginManager.getPlugin('music_service', 'mpd');
+
+  // Subscribe to network status changes
+  this.commandRouter.sharedVars.registerCallback('network.networkstatus', this.onNetworkStatusChange.bind(this));
+
+  // Check if network is already ready
+  var initialStatus = this.commandRouter.sharedVars.get('network.networkstatus');
+  if (initialStatus && initialStatus !== '0') {
+    self.currentNetworkStatus = initialStatus;
+    self.initializeSsdp();
+  } else {
+    self.logger.info('UPNP Browser: Waiting for network to become available');
+    // Start polling as fallback - sharedVars callback can be unreliable at boot
+    self.startNetworkPolling();
+  }
+
+  // this.startDjmount();
+  return libQ.resolve();
+};
+
+ControllerUPNPBrowser.prototype.startNetworkPolling = function () {
+  var self = this;
+
+  // Don't start if already polling or SSDP already started
+  if (self.startupPollInterval || self.ssdpStarted) {
+    return;
+  }
+
+  self.logger.info('UPNP Browser: Starting network polling fallback');
+
+  self.startupPollInterval = setInterval(function () {
+    var status = self.commandRouter.sharedVars.get('network.networkstatus');
+
+    if (status && status !== '0') {
+      self.logger.info('UPNP Browser: Network ready detected via polling (status: ' + status + ')');
+      self.stopNetworkPolling();
+      self.currentNetworkStatus = status;
+      self.initializeSsdp();
+    }
+  }, 2000);
+
+  // Stop polling after 60 seconds regardless
+  setTimeout(function () {
+    if (self.startupPollInterval) {
+      self.logger.info('UPNP Browser: Network polling timeout, stopping');
+      self.stopNetworkPolling();
+    }
+  }, 60000);
+};
+
+ControllerUPNPBrowser.prototype.stopNetworkPolling = function () {
+  var self = this;
+
+  if (self.startupPollInterval) {
+    clearInterval(self.startupPollInterval);
+    self.startupPollInterval = null;
+  }
+};
+
+ControllerUPNPBrowser.prototype.onNetworkStatusChange = function (data) {
+  var self = this;
+  var newStatus = data.value || '0';
+
+  self.logger.info('UPNP Browser: Network status changed from ' + self.currentNetworkStatus + ' to ' + newStatus);
+
+  // Network became available
+  if (newStatus !== '0' && !self.ssdpStarted) {
+    self.stopNetworkPolling();
+    self.currentNetworkStatus = newStatus;
+    self.initializeSsdp();
+  // Network interface changed (e.g., ethernet to wifi or vice versa)
+  } else if (newStatus !== '0' && newStatus !== self.currentNetworkStatus && self.ssdpStarted) {
+    self.currentNetworkStatus = newStatus;
+    self.reinitializeSsdp();
+  // Network lost
+  } else if (newStatus === '0' && self.currentNetworkStatus !== '0') {
+    self.currentNetworkStatus = newStatus;
+    self.logger.info('UPNP Browser: Network lost, SSDP discovery suspended');
+  }
+};
+
+ControllerUPNPBrowser.prototype.initializeSsdp = function () {
+  var self = this;
+
+  if (self.ssdpStarted) {
+    self.logger.info('UPNP Browser: SSDP already initialized');
+    return;
+  }
+
   try {
     client = new Client();
   } catch (e) {
-    self.log('SSDP Client error: ' + e);
+    self.logger.error('UPNP Browser: SSDP Client creation error: ' + e);
+    return;
   }
 
   client.on('response', function responseHandler (headers, code, rinfo) {
@@ -124,27 +218,74 @@ ControllerUPNPBrowser.prototype.onStart = function () {
 
   try {
     client.search('urn:schemas-upnp-org:device:MediaServer:1');
+    self.ssdpStarted = true;
+    self.logger.info('UPNP Browser: SSDP discovery started');
   } catch (e) {
-    self.log('UPNP Search error: ' + e);
+    self.logger.error('UPNP Browser: SSDP search error: ' + e);
+    return;
   }
 
-  setInterval(() => {
+  self.searchInterval = setInterval(function () {
     try {
       client.search('urn:schemas-upnp-org:device:MediaServer:1');
     } catch (e) {
-      self.log('UPNP Search error: ' + e);
-    	}
+      self.logger.warn('UPNP Browser: Periodic search error: ' + e);
+    }
   }, 50000);
-  this.mpdPlugin = this.commandRouter.pluginManager.getPlugin('music_service', 'mpd');
-  // this.startDjmount();
-  return libQ.resolve();
+};
+
+ControllerUPNPBrowser.prototype.reinitializeSsdp = function () {
+  var self = this;
+
+  self.logger.info('UPNP Browser: Reinitializing SSDP for network interface change');
+
+  // Clean up existing client
+  if (self.searchInterval) {
+    clearInterval(self.searchInterval);
+    self.searchInterval = null;
+  }
+
+  if (client) {
+    try {
+      client.stop();
+    } catch (e) {
+      self.logger.warn('UPNP Browser: Error stopping old SSDP client: ' + e);
+    }
+    client = null;
+  }
+
+  // Clear stale servers
+  self.DLNAServers = [];
+  self.ssdpStarted = false;
+
+  // Small delay for socket cleanup before reinitializing
+  setTimeout(function () {
+    self.initializeSsdp();
+  }, 1000);
 };
 
 ControllerUPNPBrowser.prototype.onStop = function () {
   var self = this;
 
   this.commandRouter.volumioRemoveToBrowseSources(this.commandRouter.getI18nString('COMMON.MEDIA_SERVERS'));
-  client.stop();
+
+  self.stopNetworkPolling();
+
+  if (self.searchInterval) {
+    clearInterval(self.searchInterval);
+    self.searchInterval = null;
+  }
+
+  if (client) {
+    try {
+      client.stop();
+    } catch (e) {
+      self.logger.warn('UPNP Browser: Error stopping SSDP client: ' + e);
+    }
+    client = null;
+  }
+
+  self.ssdpStarted = false;
 
   return libQ.resolve();
 };
@@ -153,10 +294,12 @@ ControllerUPNPBrowser.prototype.discover = function () {
   var defer = libQ.defer();
   var self = this;
 
-  try {
-    client.search('urn:schemas-upnp-org:device:MediaServer:1');
-  } catch (e) {
-    self.log('UPNP Search error: ' + e);
+  if (client && self.ssdpStarted) {
+    try {
+      client.search('urn:schemas-upnp-org:device:MediaServer:1');
+    } catch (e) {
+      self.log('UPNP Search error: ' + e);
+    }
   }
 
   setTimeout(function () {
