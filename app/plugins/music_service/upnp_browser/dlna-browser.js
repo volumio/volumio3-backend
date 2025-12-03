@@ -51,18 +51,21 @@ const buildRequestXml = function (id, options) {
     .doc().end({ pretty: false, indent: '', allowEmpty: true });
 };
 
-// function that allow you to browse a DLNA server
-var browseServer = function (id, controlUrl, options, callback) {
+// Internal function to browse a single page
+var browsePage = function (id, controlUrl, options, wrappedCallback, accumulatedResult) {
   var parser = new xmltojs.Parser({explicitCharKey: true});
   const requestUrl = url.parse(controlUrl);
+
+  // Defensive: ensure options is an object
+  options = options || {};
 
   var requestXml;
   try {
     requestXml = buildRequestXml(id, options);
   } catch (err) {
     // something must have been wrong with the options specified
-    callback(err);
-    return;
+    // Return immediately to prevent continued execution
+    return wrappedCallback(err);
   }
 
   const httpOptions = {
@@ -84,17 +87,16 @@ var browseServer = function (id, controlUrl, options, callback) {
     });
 
     response.on('err', function (err) {
-      log(callback(err));
+      log(err);
+      return wrappedCallback(err);
     });
 
     response.on('end', function () {
-      var browseResult = new Object();
       xmltojs.parseString(entities.decode(data), {tagNameProcessors: [stripPrefix], explicitArray: true, explicitCharkey: true}, function (err, result) {
         if (err) {
           log(err);
-          // bailout on error
-          callback(err);
-          return;
+          // bailout on error - return immediately
+          return wrappedCallback(err);
         }
 
         // validate result included the expected entries
@@ -108,46 +110,125 @@ var browseServer = function (id, controlUrl, options, callback) {
             (result['Envelope']['Body'][0]['BrowseResponse'][0]['Result'][0])
         ) {
           var listResult = result['Envelope']['Body'][0]['BrowseResponse'][0]['Result'][0];
-          // this likely needs to be generalized to acount for the arrays. I don't have
-          // a server that I've seen return more than one entry in the array, but I assume
-          // the standard allows for that.  Will update when I have a server that I can
-          // test that with
+          var browseResponse = result['Envelope']['Body'][0]['BrowseResponse'][0];
+          
+          // Extract pagination metadata
+          var numberReturned = 0;
+          var totalMatches = 0;
+          
+          if (browseResponse['NumberReturned'] && browseResponse['NumberReturned'][0]) {
+            numberReturned = parseInt(browseResponse['NumberReturned'][0], 10) || 0;
+          }
+          
+          if (browseResponse['TotalMatches'] && browseResponse['TotalMatches'][0]) {
+            totalMatches = parseInt(browseResponse['TotalMatches'][0], 10) || 0;
+          }
+
+          var currentPageResult = {
+            container: [],
+            item: []
+          };
 
           if (listResult['DIDL-Lite']) {
             const content = listResult['DIDL-Lite'][0];
             if (content.container) {
-              browseResult.container = new Array();
               for (let i = 0; i < content.container.length; i++) {
-                browseResult.container[i] = parseContainer(content.container[i]);
+                currentPageResult.container.push(parseContainer(content.container[i]));
               }
             }
 
             if (content.item) {
-              browseResult.item = new Array();
               for (let i = 0; i < content.item.length; i++) {
-                browseResult.item[i] = parseItem(content.item[i]);
+                currentPageResult.item.push(parseItem(content.item[i]));
               }
             }
-            callback(undefined, browseResult);
+          }
+
+          // Accumulate results
+          accumulatedResult.container = accumulatedResult.container.concat(currentPageResult.container);
+          accumulatedResult.item = accumulatedResult.item.concat(currentPageResult.item);
+
+          // Calculate next start index
+          var currentStartIndex = parseInt(options.startIndex, 10) || 0;
+          var nextStartIndex = currentStartIndex + numberReturned;
+          var currentPageCount = currentPageResult.container.length + currentPageResult.item.length;
+
+          log('Pagination: numberReturned=' + numberReturned + ', totalMatches=' + totalMatches + 
+              ', currentPageCount=' + currentPageCount + ', nextStartIndex=' + nextStartIndex);
+
+          // Determine if we should fetch more pages
+          // Use fallback heuristic: continue if totalMatches > 0 and nextStartIndex < totalMatches
+          // OR (numberReturned > 0 and currentPageCount > 0) to handle servers without TotalMatches
+          var shouldContinue = false;
+          if (totalMatches > 0 && nextStartIndex < totalMatches) {
+            shouldContinue = true;
+          } else if (numberReturned > 0 && currentPageCount > 0 && totalMatches === 0) {
+            // Fallback: server doesn't provide TotalMatches, continue while we get results
+            shouldContinue = true;
+          }
+
+          if (shouldContinue) {
+            // Fetch next page
+            var pageOptions = Object.assign({}, options);
+            pageOptions.startIndex = parseInt(nextStartIndex, 10) || 0;
+            return browsePage(id, controlUrl, pageOptions, wrappedCallback, accumulatedResult);
           } else {
-            callback(new Error('Did not get expected listResult from server:' + result));
+            // All pages fetched, return accumulated results
+            return wrappedCallback(undefined, accumulatedResult);
           }
         } else {
           if (result != undefined) {
-            callback(new Error('Did not get expected response from server:' + JSON.stringify(result)));
+            return wrappedCallback(new Error('Did not get expected response from server:' + JSON.stringify(result)));
           } else {
-            callback(new Error('Did not get any response from server:'));
+            return wrappedCallback(new Error('Did not get any response from server:'));
           }
         }
       });
     });
   });
   req.on('error', function (err) {
-    callback(err);
+    wrappedCallback(err);
     req.abort();
   });
   req.write(requestXml);
   req.end();
+};
+
+// function that allow you to browse a DLNA server
+var browseServer = function (id, controlUrl, options, callback) {
+  // Defensive: ensure options is an object
+  options = options || {};
+  
+  // Normalize and coerce startIndex to integer
+  var initialStartIndex = parseInt(options.startIndex, 10) || 0;
+  options.startIndex = initialStartIndex;
+
+  // Wrap callback with once-guard to ensure it's only called once
+  var finished = false;
+  var wrappedCallback = function (err, result) {
+    if (finished) {
+      log('Warning: callback already invoked, ignoring subsequent call');
+      return;
+    }
+    finished = true;
+    
+    // Ensure consistent result shape - always include container and item arrays
+    if (!err && result) {
+      result.container = result.container || [];
+      result.item = result.item || [];
+    }
+    
+    callback(err, result);
+  };
+
+  // Initialize accumulated result with empty arrays
+  var accumulatedResult = {
+    container: [],
+    item: []
+  };
+
+  // Start pagination
+  browsePage(id, controlUrl, options, wrappedCallback, accumulatedResult);
 };
 
 function parseContainer (metadata) {
