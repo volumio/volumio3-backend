@@ -573,7 +573,7 @@ ControllerUPNPBrowser.prototype.explodeUri = function (uri) {
   browseDLNAServer(id, address, {browseFlag: browseFlag}, (err, data) => {
     if (err) {
       self.logger.error(err);
-      return;
+      return defer.reject(err);
     }
     var result = [];
     if (data) {
