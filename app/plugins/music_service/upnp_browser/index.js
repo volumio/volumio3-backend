@@ -709,9 +709,16 @@ function xmlToJson (url, callback) {
     .end(function (response) {
         	if (response.status === 200) {
         var parser = new xml2js.Parser();
-        parser.parseString(response.body, function (err, result) {
-          callback(null, result);
-        });
+              try {
+                parser.parseString(response.body, function (err, result) {
+                  if (err) {
+                    return callback(err, null);
+                  }
+                  callback(null, result);
+                });
+              } catch (e) {
+                callback(e, null);
+              }
       } else {
         callback('error', null);
       }
