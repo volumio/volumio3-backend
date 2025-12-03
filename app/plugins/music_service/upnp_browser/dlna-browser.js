@@ -170,7 +170,7 @@ var browsePage = function (id, controlUrl, options, wrappedCallback, accumulated
           if (shouldContinue) {
             // Fetch next page
             var pageOptions = Object.assign({}, options);
-            pageOptions.startIndex = parseInt(nextStartIndex, 10) || 0;
+            pageOptions.startIndex = nextStartIndex;
             return browsePage(id, controlUrl, pageOptions, wrappedCallback, accumulatedResult);
           } else {
             // All pages fetched, return accumulated results
@@ -187,8 +187,8 @@ var browsePage = function (id, controlUrl, options, wrappedCallback, accumulated
     });
   });
   req.on('error', function (err) {
-    wrappedCallback(err);
     req.abort();
+    return wrappedCallback(err);
   });
   req.write(requestXml);
   req.end();
