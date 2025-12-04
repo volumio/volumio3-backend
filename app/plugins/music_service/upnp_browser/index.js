@@ -24,6 +24,8 @@ function ControllerUPNPBrowser (context) {
   this.logger = this.context.logger;
   this.configManager = this.context.configManager;
   this.DLNAServers = [];
+  this.clientInitialized = false;
+  this.refreshInterval = null;
 }
 
 ControllerUPNPBrowser.prototype.getConfigurationFiles = function () {
@@ -33,6 +35,106 @@ ControllerUPNPBrowser.prototype.getConfigurationFiles = function () {
 ControllerUPNPBrowser.prototype.addToBrowseSources = function () {
   var data = { name: this.commandRouter.getI18nString('COMMON.MEDIA_SERVERS'), uri: 'upnp', plugin_type: 'music_service', plugin_name: 'upnp_browser', 'albumart': '/albumart?sourceicon=music_service/upnp_browser/dlnaicon.png'};
   this.commandRouter.volumioAddToBrowseSources(data);
+};
+
+ControllerUPNPBrowser.prototype.onVolumioStart = function () {
+  var self = this;
+  self.logger.info('Starting UPNP Browser');
+
+  this.mpdPlugin = this.commandRouter.pluginManager.getPlugin('music_service', 'mpd');
+  return libQ.resolve();
+};
+
+ControllerUPNPBrowser.prototype.initializeClient = function () {
+  var self = this;
+
+  try {
+    if (client) {
+      try {
+        client.stop();
+      } catch (e) {
+        // Ignore
+      }
+    }
+
+    client = new Client();
+    self.clientInitialized = true;
+
+    client.on('response', function responseHandler (headers, code, rinfo) {
+      if (headers != undefined && headers.LOCATION != undefined && headers.LOCATION.length > 0) {
+        var urlraw = headers.LOCATION.replace('http://', '').split('/')[0].split(':');
+        var server = {'url': 'http://' + urlraw[0], 'port': urlraw[1], 'endpoint': headers};
+        var location = server;
+
+        xmlToJson(headers.LOCATION, function (err, data) {
+          try {
+            if (err) {
+              return self.logger.error(err);
+            }
+
+            var device = (data.root.device || [])[0];
+            if (!device) {
+              return;
+            }
+
+            var server = {};
+            server.name = (device.friendlyName || [])[0];
+            server.UDN = (device.UDN || [])[0] + '';
+            try {
+              var iconList = (device.iconList || [])[0] || {};
+              var icon = (iconList.icon || [])[0] || {};
+              var iconUrl = (icon.url || [])[0] || '';
+              if (iconUrl.startsWith('//')) {
+                iconUrl = 'http:' + iconUrl;
+              }
+              if (iconUrl.includes('://')) {
+                server.icon = iconUrl;
+              } else {
+                if (!iconUrl.startsWith('/')) {
+                  iconUrl = '/' + iconUrl;
+                }
+                server.icon = 'http://' + urlraw[0] + ':' + urlraw[1] + iconUrl;
+              }
+            } catch (e) {
+              server.icon = '/albumart?sourceicon=music_service/upnp_browser/dlnaicon.png';
+            }
+            server.lastTimeAlive = Date.now();
+            server.location = location.url + ':' + location.port;
+
+            var serviceList = (device.serviceList || [])[0] || {};
+            var services = serviceList.service || [];
+            var ContentDirectoryService = services.find(function (service) {
+              var serviceType = (service.serviceType || [])[0];
+              return (serviceType === 'urn:schemas-upnp-org:service:ContentDirectory:1');
+            });
+            if (!ContentDirectoryService) {
+              return;
+            }
+            server.location += ((ContentDirectoryService.controlURL || [])[0] || '');
+
+            var duplicate = false;
+            for (var i = 0; i < self.DLNAServers.length; i++) {
+              if (self.DLNAServers[i].UDN === server.UDN) {
+                duplicate = true;
+                self.DLNAServers[i] = server;
+              }
+            }
+            if (!duplicate) {
+              self.DLNAServers.push(server);
+            }
+          } catch (e) {
+            self.logger.error(e);
+          }
+        });
+      }
+    });
+
+    return true;
+  } catch (e) {
+    self.logger.error('SSDP Client initialization error: ' + e);
+    self.clientInitialized = false;
+    return false;
+  }
 };
 
 ControllerUPNPBrowser.prototype.onStart = function () {
@@ -47,96 +149,34 @@ ControllerUPNPBrowser.prototype.onStart = function () {
     this.addToBrowseSources();
   }
 
-  try {
-    client = new Client();
-  } catch (e) {
-    self.log('SSDP Client error: ' + e);
-  }
-
-  client.on('response', function responseHandler (headers, code, rinfo) {
-    if (headers != undefined && headers.LOCATION != undefined && headers.LOCATION.length > 0) {
-      var urlraw = headers.LOCATION.replace('http://', '').split('/')[0].split(':');
-      var server = {'url': 'http://' + urlraw[0], 'port': urlraw[1], 'endpoint': headers};
-      var location = server;
-
-      xmlToJson(headers.LOCATION, function (err, data) {
-        try {
-          if (err) {
-            return self.logger.error(err);
-          }
-
-          var device = (data.root.device || [])[0];
-          if (!device) {
-            return;
-          }
-
-          var server = {};
-          server.name = (device.friendlyName || [])[0];
-          server.UDN = (device.UDN || [])[0] + '';
-          try {
-            var iconList = (device.iconList || [])[0] || {};
-            var icon = (iconList.icon || [])[0] || {};
-            var iconUrl = (icon.url || [])[0] || '';
-            if (iconUrl.startsWith('//')) {
-              iconUrl = 'http:' + iconUrl;
-            }
-            if (iconUrl.includes('://')) {
-              server.icon = iconUrl;
-            } else {
-              if (!iconUrl.startsWith('/')) {
-                iconUrl = '/' + iconUrl;
-              }
-              server.icon = 'http://' + urlraw[0] + ':' + urlraw[1] + iconUrl;
-            }
-          } catch (e) {
-            server.icon = '/albumart?sourceicon=music_service/upnp_browser/dlnaicon.png';
-          }
-          server.lastTimeAlive = Date.now();
-          server.location = location.url + ':' + location.port;
-
-          var serviceList = (device.serviceList || [])[0] || {};
-          var services = serviceList.service || [];
-          var ContentDirectoryService = services.find(function (service) {
-            var serviceType = (service.serviceType || [])[0];
-            return (serviceType === 'urn:schemas-upnp-org:service:ContentDirectory:1');
-          });
-          if (!ContentDirectoryService) {
-            return;
-          }
-          server.location += ((ContentDirectoryService.controlURL || [])[0] || '');
-
-          var duplicate = false;
-          for (var i = 0; i < self.DLNAServers.length; i++) {
-            if (self.DLNAServers[i].UDN === server.UDN) {
-              duplicate = true;
-              self.DLNAServers[i] = server;
-            }
-          }
-          if (!duplicate) {
-            self.DLNAServers.push(server);
-          }
-        } catch (e) {
-          self.logger.error(e);
-        }
-      });
-    }
-  });
-
-  try {
-    client.search('urn:schemas-upnp-org:device:MediaServer:1');
-  } catch (e) {
-    self.log('UPNP Search error: ' + e);
-  }
-
-  setInterval(() => {
+  // Initialize client
+  if (self.initializeClient()) {
+    self.logger.info('UPNP Browser: Client initialized successfully');
     try {
       client.search('urn:schemas-upnp-org:device:MediaServer:1');
     } catch (e) {
       self.log('UPNP Search error: ' + e);
-    	}
-  }, 50000);
-  this.mpdPlugin = this.commandRouter.pluginManager.getPlugin('music_service', 'mpd');
-  // this.startDjmount();
+    }
+  } else {
+    self.logger.error('UPNP Browser: Client initialization failed at startup');
+  }
+
+  // Refresh every 60 seconds
+  self.refreshInterval = setInterval(() => {
+    if (!self.clientInitialized) {
+      self.logger.info('UPNP Browser: Client not initialized, reinitializing...');
+      self.initializeClient();
+    }
+    if (self.clientInitialized) {
+      try {
+        client.search('urn:schemas-upnp-org:device:MediaServer:1');
+      } catch (e) {
+        self.log('UPNP Search error: ' + e);
+        self.clientInitialized = false;
+      }
+    }
+  }, 60000);
+
   return libQ.resolve();
 };
 
@@ -144,7 +184,19 @@ ControllerUPNPBrowser.prototype.onStop = function () {
   var self = this;
 
   this.commandRouter.volumioRemoveToBrowseSources(this.commandRouter.getI18nString('COMMON.MEDIA_SERVERS'));
-  client.stop();
+
+  if (self.refreshInterval) {
+    clearInterval(self.refreshInterval);
+    self.refreshInterval = null;
+  }
+
+  if (client) {
+    try {
+      client.stop();
+    } catch (e) {
+      self.logger.error('Error stopping SSDP client: ' + e);
+    }
+  }
 
   return libQ.resolve();
 };
@@ -170,7 +222,9 @@ ControllerUPNPBrowser.prototype.handleBrowseUri = function (curUri) {
 
   var response;
 
-  if (curUri == 'upnp') { response = self.listRoot(); } else if (curUri.startsWith('upnp/')) {
+  if (curUri == 'upnp') {
+    response = self.listRoot();
+  } else if (curUri.startsWith('upnp/')) {
     var uri = curUri.replace('upnp/', '');
     response = self.listUPNP(uri);
   }
@@ -182,36 +236,67 @@ ControllerUPNPBrowser.prototype.listRoot = function () {
   var self = this;
   var defer = libQ.defer();
 
-  var obj = {
-    'navigation': {
-      'lists': [
-        {
-          'availableListViews': ['grid', 'list'],
-          'items': [
+  var buildResponse = function() {
+    var obj = {
+      'navigation': {
+        'lists': [
+          {
+            'availableListViews': ['grid', 'list'],
+            'items': []
+          }
+        ]
+      }
+    };
 
-          ]
-        }
-      ]
+    if (singleBrowse) {
+      obj.navigation.prev = {'uri': 'music-library'};
     }
+    for (var i = 0; i < self.DLNAServers.length; i++) {
+      if (Date.now() - self.DLNAServers[i].lastTimeAlive < 60000) {
+        obj.navigation.lists[0].items.push({
+          service: 'upnp_browser',
+          type: 'streaming-category',
+          'title': self.DLNAServers[i].name,
+          'uri': 'upnp/' + self.DLNAServers[i].location + '@0',
+          'albumart': self.DLNAServers[i].icon
+        });
+      } else {
+        self.DLNAServers.splice(i, 1);
+        i--;
+      }
+    }
+    return obj;
   };
 
-  if (singleBrowse) {
-    obj.navigation.prev = {'uri': 'music-library'};
+  // If we have servers, return immediately
+  if (this.DLNAServers.length > 0) {
+    defer.resolve(buildResponse());
+    return defer.promise;
   }
-  for (var i = 0; i < this.DLNAServers.length; i++) {
-    if (Date.now() - this.DLNAServers[i].lastTimeAlive < 60000) {
-      obj.navigation.lists[0].items.push({
-        service: 'upnp_browser',
-        type: 'streaming-category',
-        'title': this.DLNAServers[i].name,
-        'uri': 'upnp/' + this.DLNAServers[i].location + '@0', // @ separator, 0 for root element,
-        'albumart': this.DLNAServers[i].icon
-      });
-    } else {
-      this.DLNAServers.splice(i, 1);
+
+  // No servers - ALWAYS reinitialize and search
+  self.logger.info('UPNP Browser: No servers found, reinitializing and searching...');
+
+  // Always reinitialize when we have 0 servers
+  self.initializeClient();
+
+  // Give the client a moment to bind sockets before searching
+  setTimeout(function() {
+    if (self.clientInitialized) {
+      try {
+        client.search('urn:schemas-upnp-org:device:MediaServer:1');
+      } catch (e) {
+        self.logger.error('UPNP Search error: ' + e);
+        self.clientInitialized = false;
+      }
     }
-  }
-  defer.resolve(obj);
+
+    // Wait 2.5 more seconds for responses (total 3s)
+    setTimeout(function() {
+      self.logger.info('UPNP Browser: Returning ' + self.DLNAServers.length + ' server(s) after 3s wait');
+      defer.resolve(buildResponse());
+    }, 2500);
+  }, 500);
 
   return defer.promise;
 };
@@ -504,7 +589,7 @@ ControllerUPNPBrowser.prototype.explodeUri = function (uri) {
   browseDLNAServer(id, address, {browseFlag: browseFlag}, (err, data) => {
     if (err) {
       self.logger.error(err);
-      return;
+      return defer.reject(err);
     }
     var result = [];
     if (data) {
@@ -640,9 +725,16 @@ function xmlToJson (url, callback) {
     .end(function (response) {
         	if (response.status === 200) {
         var parser = new xml2js.Parser();
-        parser.parseString(response.body, function (err, result) {
-          callback(null, result);
-        });
+              try {
+                parser.parseString(response.body, function (err, result) {
+                  if (err) {
+                    return callback(err, null);
+                  }
+                  callback(null, result);
+                });
+              } catch (e) {
+                callback(e, null);
+              }
       } else {
         callback('error', null);
       }
