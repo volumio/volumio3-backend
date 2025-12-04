@@ -51,14 +51,32 @@ const buildRequestXml = function (id, options) {
     .doc().end({ pretty: false, indent: '', allowEmpty: true });
 };
 
-// function that allow you to browse a DLNA server
+// function that allow you to browse a DLNA server with automatic pagination
 var browseServer = function (id, controlUrl, options, callback) {
+  // Initialize aggregated results
+  var aggregatedResult = {
+    container: [],
+    item: []
+  };
+
+  // Start recursive pagination from index 0 (or provided startIndex)
+  var initialStartIndex = options.startIndex || 0;
+  browsePage(id, controlUrl, options, initialStartIndex, aggregatedResult, callback);
+};
+
+// Internal function to browse a single page and handle pagination
+var browsePage = function (id, controlUrl, options, startIndex, aggregatedResult, callback) {
+  log('DLNA Browse: Requesting id=' + id + ', browseFlag=' + (options.browseFlag || 'BrowseDirectChildren'));
   var parser = new xmltojs.Parser({explicitCharKey: true});
   const requestUrl = url.parse(controlUrl);
 
+  // Create options copy with current startIndex
+  var pageOptions = Object.assign({}, options);
+  pageOptions.startIndex = startIndex;
+
   var requestXml;
   try {
-    requestXml = buildRequestXml(id, options);
+    requestXml = buildRequestXml(id, pageOptions);
   } catch (err) {
     // something must have been wrong with the options specified
     callback(err);
@@ -107,28 +125,76 @@ var browseServer = function (id, controlUrl, options, callback) {
             (result['Envelope']['Body'][0]['BrowseResponse'][0]['Result']) &&
             (result['Envelope']['Body'][0]['BrowseResponse'][0]['Result'][0])
         ) {
-          var listResult = result['Envelope']['Body'][0]['BrowseResponse'][0]['Result'][0];
-          // this likely needs to be generalized to acount for the arrays. I don't have
-          // a server that I've seen return more than one entry in the array, but I assume
-          // the standard allows for that.  Will update when I have a server that I can
-          // test that with
+          var browseResponse = result['Envelope']['Body'][0]['BrowseResponse'][0];
+          var listResult = browseResponse['Result'][0];
+
+          // Extract pagination info
+          var numberReturned = 0;
+          var totalMatches = 0;
+          try {
+            if (browseResponse['NumberReturned'] && browseResponse['NumberReturned'][0]) {
+              var nrValue = browseResponse['NumberReturned'][0];
+              numberReturned = parseInt(typeof nrValue === 'object' ? nrValue['_'] : nrValue, 10) || 0;
+            }
+            if (browseResponse['TotalMatches'] && browseResponse['TotalMatches'][0]) {
+              var tmValue = browseResponse['TotalMatches'][0];
+              totalMatches = parseInt(typeof tmValue === 'object' ? tmValue['_'] : tmValue, 10) || 0;
+            }
+          } catch (e) {
+            log('Error parsing pagination info: ' + e);
+          }
+
+          log('DLNA Browse: startIndex=' + startIndex + ', numberReturned=' + numberReturned + ', totalMatches=' + totalMatches);
 
           if (listResult['DIDL-Lite']) {
             const content = listResult['DIDL-Lite'][0];
+            log('DLNA Browse: content.container exists=' + !!content.container + ', content.item exists=' + !!content.item);
             if (content.container) {
-              browseResult.container = new Array();
+              log('DLNA Browse: container count in this page=' + content.container.length);
+            }
+            if (content.item) {
+              log('DLNA Browse: item count in this page=' + content.item.length);
+            }
+
+            // Aggregate containers from this page
+            if (content.container) {
               for (let i = 0; i < content.container.length; i++) {
-                browseResult.container[i] = parseContainer(content.container[i]);
+                aggregatedResult.container.push(parseContainer(content.container[i]));
               }
             }
 
+            // Aggregate items from this page
             if (content.item) {
-              browseResult.item = new Array();
               for (let i = 0; i < content.item.length; i++) {
-                browseResult.item[i] = parseItem(content.item[i]);
+                aggregatedResult.item.push(parseItem(content.item[i]));
               }
             }
-            callback(undefined, browseResult);
+
+            // Check if more pages needed
+            var nextStartIndex = startIndex + numberReturned;
+            var currentPageCount = (content.container ? content.container.length : 0) + (content.item ? content.item.length : 0);
+
+            // Only paginate if:
+            // 1. Server explicitly tells us there are more (totalMatches > nextStartIndex)
+            // 2. AND we actually got some results this page (numberReturned > 0 OR currentPageCount > 0)
+            var hasMorePages = totalMatches > 0 && nextStartIndex < totalMatches && (numberReturned > 0 || currentPageCount > 0);
+
+            if (hasMorePages) {
+              // Fetch next page
+              log('DLNA Browse: Fetching next page, nextStartIndex=' + nextStartIndex);
+              browsePage(id, controlUrl, options, nextStartIndex, aggregatedResult, callback);
+            } else {
+              // All pages fetched, return aggregated result
+              var finalResult = {};
+              if (aggregatedResult.container.length > 0) {
+                finalResult.container = aggregatedResult.container;
+              }
+              if (aggregatedResult.item.length > 0) {
+                finalResult.item = aggregatedResult.item;
+              }
+              log('DLNA Browse: Complete, total containers=' + aggregatedResult.container.length + ', total items=' + aggregatedResult.item.length);
+              callback(undefined, finalResult);
+            }
           } else {
             callback(new Error('Did not get expected listResult from server:' + result));
           }
