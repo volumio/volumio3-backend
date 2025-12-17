@@ -821,13 +821,21 @@ ControllerNetwork.prototype.rebuildNetworkConfig = function (networkInterfaceToR
         ws.write('iface lo inet loopback\n');
         ws.write('\n');
 
+        staticconf.write('allowinterfaces eth0 wlan0\n');
         staticconf.write('hostname\n');
         staticconf.write('duid\n');
-        staticconf.write('option rapid_commit\n');
+        staticconf.write('vendorclassid\n');
+        staticconf.write('persistent\n');
         staticconf.write('option domain_name_servers, domain_name, domain_search, host_name\n');
         staticconf.write('option classless_static_routes\n');
-        staticconf.write('option ntp_servers\n');
+        staticconf.write('option interface_mtu\n');
+        staticconf.write('option host_name\n');
+        staticconf.write('option rapid_commit\n');
         staticconf.write('require dhcp_server_identifier\n');
+        staticconf.write('slaac private\n');
+        staticconf.write('noipv4ll\n');
+        staticconf.write('option classless_static_routes\n');
+        staticconf.write('option ntp_servers\n');
         staticconf.write('nohook lookup-hostname\n');
         staticconf.write('\n');
 
