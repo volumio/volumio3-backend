@@ -12,6 +12,8 @@ var commandArray = [
   'lsusb -t',
   'lsusb -v',
   'sudo i2cdetect -y 1',
+  'sudo i2cdetect -y 10',
+  'sudo i2cdetect -y 11',
   'ps -ef',
   'df -h',
   'mount',
