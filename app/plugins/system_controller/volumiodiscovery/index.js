@@ -33,6 +33,9 @@ function ControllerVolumioDiscovery (context) {
   // BUGFIX: Track advertisement state to prevent multiple simultaneous attempts and connection leaks
   self.advertisementInProgress = false;
   self.networkTransitionInProgress = false;
+  
+  // Track pending initSocket timers to prevent queue buildup
+  self.pendingInitSocketTimers = new HashMap();
 }
 
 ControllerVolumioDiscovery.prototype.getConfigurationFiles = function () {
@@ -325,10 +328,20 @@ ControllerVolumioDiscovery.prototype.startMDNSBrowse = function () {
 };
 
 ControllerVolumioDiscovery.prototype.initSocket = function (data) {
-  var self = this;  
-  // Wait untill the current connection times out
-  setTimeout(() => {
-    // If this device is in our mDNS cache and we got this message, then the device was offline and went back online, or it dicovered this device.
+  var self = this;
+  
+  // FIX: Cancel existing pending timer for this device to prevent queue buildup
+  if (self.pendingInitSocketTimers.has(data.id)) {
+    clearTimeout(self.pendingInitSocketTimers.get(data.id));
+    self.pendingInitSocketTimers.delete(data.id);
+  }
+  
+  // Wait until the current connection times out
+  var timerId = setTimeout(function() {
+    // Clean up timer reference
+    self.pendingInitSocketTimers.delete(data.id);
+    
+    // If this device is in our mDNS cache and we got this message, then the device was offline and went back online, or it discovered this device.
     // If no socket is available or the existing socket is disconnected, we create a new one.  
     var myuuid = self.commandRouter.sharedVars.get('system.uuid');
     if (foundVolumioInstances.get(data.id + '.name') && myuuid != data.id) {
@@ -337,7 +350,10 @@ ControllerVolumioDiscovery.prototype.initSocket = function (data) {
         self.connectToRemoteVolumio(data.id, addresses[0].value[0].value);        
       }
     }
-  }, 15000);  
+  }, 15000);
+  
+  // Track the timer so it can be cancelled if initSocket is called again
+  self.pendingInitSocketTimers.set(data.id, timerId);
 }
 
 ControllerVolumioDiscovery.prototype.connectToRemoteVolumio = function (uuid, ip) {
@@ -612,6 +628,12 @@ ControllerVolumioDiscovery.prototype.onStop = function () {
     }
   });
   self.remoteConnections.clear();
+
+  // Cancel all pending initSocket timers
+  self.pendingInitSocketTimers.forEach(function(timerId, uuid) {
+    clearTimeout(timerId);
+  });
+  self.pendingInitSocketTimers.clear();
 
   // Clear registered UUIDs
   registeredUUIDs.length = 0;
