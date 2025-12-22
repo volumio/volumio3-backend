@@ -33,6 +33,9 @@ function ControllerVolumioDiscovery (context) {
   // BUGFIX: Track advertisement state to prevent multiple simultaneous attempts and connection leaks
   self.advertisementInProgress = false;
   self.networkTransitionInProgress = false;
+  
+  // Track pending initSocket timers to prevent queue buildup
+  self.pendingInitSocketTimers = new HashMap();
 }
 
 ControllerVolumioDiscovery.prototype.getConfigurationFiles = function () {
@@ -273,6 +276,8 @@ ControllerVolumioDiscovery.prototype.startMDNSBrowse = function () {
 
       self.connectToRemoteVolumio(service.txtRecord.UUID, service.addresses[0]);
 
+      // FIX: Define toAdvertise before using in callback loop
+      var toAdvertise = self.getDevices();
       for (var i in self.callbacks) {
         var c = self.callbacks[i];
 
@@ -323,10 +328,20 @@ ControllerVolumioDiscovery.prototype.startMDNSBrowse = function () {
 };
 
 ControllerVolumioDiscovery.prototype.initSocket = function (data) {
-  var self = this;  
-  // Wait untill the current connection times out
-  setTimeout(() => {
-    // If this device is in our mDNS cache and we got this message, then the device was offline and went back online, or it dicovered this device.
+  var self = this;
+  
+  // FIX: Cancel existing pending timer for this device to prevent queue buildup
+  if (self.pendingInitSocketTimers.has(data.id)) {
+    clearTimeout(self.pendingInitSocketTimers.get(data.id));
+    self.pendingInitSocketTimers.delete(data.id);
+  }
+  
+  // Wait until the current connection times out
+  var timerId = setTimeout(function() {
+    // Clean up timer reference
+    self.pendingInitSocketTimers.delete(data.id);
+    
+    // If this device is in our mDNS cache and we got this message, then the device was offline and went back online, or it discovered this device.
     // If no socket is available or the existing socket is disconnected, we create a new one.  
     var myuuid = self.commandRouter.sharedVars.get('system.uuid');
     if (foundVolumioInstances.get(data.id + '.name') && myuuid != data.id) {
@@ -335,7 +350,10 @@ ControllerVolumioDiscovery.prototype.initSocket = function (data) {
         self.connectToRemoteVolumio(data.id, addresses[0].value[0].value);        
       }
     }
-  }, 15000);  
+  }, 15000);
+  
+  // Track the timer so it can be cancelled if initSocket is called again
+  self.pendingInitSocketTimers.set(data.id, timerId);
 }
 
 ControllerVolumioDiscovery.prototype.connectToRemoteVolumio = function (uuid, ip) {
@@ -575,9 +593,56 @@ ControllerVolumioDiscovery.prototype.getThisDevice = function () {
 
 ControllerVolumioDiscovery.prototype.onStop = function () {
   var self = this;
+
+  self.logger.info('Discovery: Stopping plugin, cleaning up resources');
+
+  // Stop mDNS advertisement
   if (self.ad) {
-    self.ad.stop();
+    try {
+      self.ad.removeAllListeners('error');
+      self.ad.stop();
+      self.ad = null;
+    } catch (e) {
+      self.logger.error('Discovery: Error stopping advertisement: ' + e);
+    }
   }
+
+  // Stop mDNS browser
+  if (self.browser) {
+    try {
+      self.browser.removeAllListeners();
+      self.browser.stop();
+      self.browser = null;
+    } catch (e) {
+      self.logger.error('Discovery: Error stopping browser: ' + e);
+    }
+  }
+
+  // Close all remote socket connections
+  self.remoteConnections.forEach(function(socket, uuid) {
+    try {
+      socket.removeAllListeners();
+      socket.close();
+    } catch (e) {
+      self.logger.error('Discovery: Error closing socket for ' + uuid + ': ' + e);
+    }
+  });
+  self.remoteConnections.clear();
+
+  // Cancel all pending initSocket timers
+  self.pendingInitSocketTimers.forEach(function(timerId, uuid) {
+    clearTimeout(timerId);
+  });
+  self.pendingInitSocketTimers.clear();
+
+  // Clear registered UUIDs
+  registeredUUIDs.length = 0;
+
+  // Reset state flags
+  self.advertisementInProgress = false;
+  self.networkTransitionInProgress = false;
+
+  self.logger.info('Discovery: Plugin stopped, all resources cleaned up');
 };
 
 ControllerVolumioDiscovery.prototype.onRestart = function () {
@@ -707,6 +772,22 @@ ControllerVolumioDiscovery.prototype.handleUngracefulDeviceDisappear = function 
   if (foundVolumioInstances.get(uuid + '.name')) {
     try {
       self.logger.info('Discovery: Device ' + foundVolumioInstances.get(uuid + '.name') + ' disappeared ungracefully from network');
+      
+      // FIX: Also remove from registeredUUIDs to allow re-discovery
+      var uuidindex = registeredUUIDs.indexOf(uuid);
+      if (uuidindex !== -1) {
+        registeredUUIDs.splice(uuidindex, 1);
+      }
+      
+      // Close socket if exists
+      var oldSocket = self.remoteConnections.get(uuid);
+      if (oldSocket) {
+        try {
+          oldSocket.removeAllListeners();
+          oldSocket.close();
+        } catch (e) {}
+      }
+      
       foundVolumioInstances.delete(uuid);
       self.remoteConnections.delete(uuid);
       var toAdvertise = self.getDevices();
