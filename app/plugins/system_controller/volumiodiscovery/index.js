@@ -772,6 +772,22 @@ ControllerVolumioDiscovery.prototype.handleUngracefulDeviceDisappear = function 
   if (foundVolumioInstances.get(uuid + '.name')) {
     try {
       self.logger.info('Discovery: Device ' + foundVolumioInstances.get(uuid + '.name') + ' disappeared ungracefully from network');
+      
+      // FIX: Also remove from registeredUUIDs to allow re-discovery
+      var uuidindex = registeredUUIDs.indexOf(uuid);
+      if (uuidindex !== -1) {
+        registeredUUIDs.splice(uuidindex, 1);
+      }
+      
+      // Close socket if exists
+      var oldSocket = self.remoteConnections.get(uuid);
+      if (oldSocket) {
+        try {
+          oldSocket.removeAllListeners();
+          oldSocket.close();
+        } catch (e) {}
+      }
+      
       foundVolumioInstances.delete(uuid);
       self.remoteConnections.delete(uuid);
       var toAdvertise = self.getDevices();
