@@ -395,6 +395,15 @@ ControllerVolumioDiscovery.prototype.connectToRemoteVolumio = function (uuid, ip
       var toAdvertise = self.getDevices();
       self.commandRouter.pushMultiroomDevices(toAdvertise);
     });
+    // FIX: Cleanup socket when max reconnection attempts exhausted
+    socket.on('reconnect_failed', function () {
+      self.logger.info("Discovery: Reconnection failed after max attempts: " + ip);
+      try {
+        socket.removeAllListeners();
+        socket.close();
+      } catch (e) {}
+      self.remoteConnections.delete(uuid);
+    });
   }
 };
 
