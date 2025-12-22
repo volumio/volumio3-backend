@@ -273,6 +273,8 @@ ControllerVolumioDiscovery.prototype.startMDNSBrowse = function () {
 
       self.connectToRemoteVolumio(service.txtRecord.UUID, service.addresses[0]);
 
+      // FIX: Define toAdvertise before using in callback loop
+      var toAdvertise = self.getDevices();
       for (var i in self.callbacks) {
         var c = self.callbacks[i];
 
