@@ -356,6 +356,8 @@ ControllerVolumioDiscovery.prototype.connectToRemoteVolumio = function (uuid, ip
   } else if ((!self.remoteConnections.has(uuid))) {
     // FIX: Add reconnection limits to prevent CPU spin when connections fail repeatedly
     var socket = io('http://' + ip + ':3000', {autoConnect: true, timeout: 5000, reconnection: true, reconnectionDelay: 2000, reconnectionDelayMax: 30000, reconnectionAttempts: 5});
+    // FIX: Register socket immediately to prevent duplicate creation from rapid serviceUp events
+    self.remoteConnections.set(uuid, socket);
     self.logger.info("Discovery: Connecting to remote: " + ip);
     socket.on('connect', function () {
       socket.on('pushMultiroomSyncOutput', function (data) {
@@ -393,7 +395,6 @@ ControllerVolumioDiscovery.prototype.connectToRemoteVolumio = function (uuid, ip
       var toAdvertise = self.getDevices();
       self.commandRouter.pushMultiroomDevices(toAdvertise);
     });
-    self.remoteConnections.set(uuid, socket);    
   }
 };
 
