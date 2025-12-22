@@ -575,9 +575,50 @@ ControllerVolumioDiscovery.prototype.getThisDevice = function () {
 
 ControllerVolumioDiscovery.prototype.onStop = function () {
   var self = this;
+
+  self.logger.info('Discovery: Stopping plugin, cleaning up resources');
+
+  // Stop mDNS advertisement
   if (self.ad) {
-    self.ad.stop();
+    try {
+      self.ad.removeAllListeners('error');
+      self.ad.stop();
+      self.ad = null;
+    } catch (e) {
+      self.logger.error('Discovery: Error stopping advertisement: ' + e);
+    }
   }
+
+  // Stop mDNS browser
+  if (self.browser) {
+    try {
+      self.browser.removeAllListeners();
+      self.browser.stop();
+      self.browser = null;
+    } catch (e) {
+      self.logger.error('Discovery: Error stopping browser: ' + e);
+    }
+  }
+
+  // Close all remote socket connections
+  self.remoteConnections.forEach(function(socket, uuid) {
+    try {
+      socket.removeAllListeners();
+      socket.close();
+    } catch (e) {
+      self.logger.error('Discovery: Error closing socket for ' + uuid + ': ' + e);
+    }
+  });
+  self.remoteConnections.clear();
+
+  // Clear registered UUIDs
+  registeredUUIDs.length = 0;
+
+  // Reset state flags
+  self.advertisementInProgress = false;
+  self.networkTransitionInProgress = false;
+
+  self.logger.info('Discovery: Plugin stopped, all resources cleaned up');
 };
 
 ControllerVolumioDiscovery.prototype.onRestart = function () {
