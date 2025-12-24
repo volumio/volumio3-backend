@@ -29,10 +29,6 @@ function ControllerVolumioDiscovery (context) {
   self.commandRouter = self.context.coreCommand;
 
   self.callbacks = [];
-  
-  // BUGFIX: Track advertisement state to prevent multiple simultaneous attempts and connection leaks
-  self.advertisementInProgress = false;
-  self.networkTransitionInProgress = false;
 }
 
 ControllerVolumioDiscovery.prototype.getConfigurationFiles = function () {
@@ -50,25 +46,17 @@ ControllerVolumioDiscovery.prototype.restartAdvertisement = function () {
   var self = this;
 
   self.logger.info('Discovery: Restarting Advertising due to device name change');
-  
-  // BUGFIX: Mark network transition period and reset state
-  self.networkTransitionInProgress = true;
-  setTimeout(function() {
-    self.networkTransitionInProgress = false;
-  }, 15000);
-  self.advertisementInProgress = false;
-  
   if (self.ad) {
-    try {
-      self.ad.removeAllListeners('error');
-      self.ad.stop();
-    } catch (e) {}
+    self.ad.stop();
   }
 
+  var bound = self.startAdvertisement.bind(self);
+  try {
+    self.ad.stop();
+  } catch (e) {}
+
   self.forceRename = true;
-  setTimeout(function() {
-    self.startAdvertisement();
-  }, 5000);
+  setTimeout(bound, 5000);
 };
 
 ControllerVolumioDiscovery.prototype.onVolumioStart = function () {
@@ -112,22 +100,6 @@ ControllerVolumioDiscovery.prototype.startAdvertisement = function () {
   var forceRename = self.forceRename;
   self.forceRename = undefined;
 
-  // BUGFIX: Prevent multiple simultaneous advertisement attempts
-  if (self.advertisementInProgress) {
-    self.logger.info('Discovery: Advertisement already in progress, skipping duplicate call');
-    return;
-  }
-  self.advertisementInProgress = true;
-
-  // BUGFIX: Properly cleanup old advertisement before creating new one
-  if (self.ad) {
-    try {
-      self.ad.removeAllListeners('error');
-      self.ad.stop();
-      self.ad = null;
-    } catch (e) {}
-  }
-
   try {
     var name = self.commandRouter.sharedVars.get('system.name');
     var uuid = self.commandRouter.sharedVars.get('system.uuid');
@@ -146,67 +118,17 @@ ControllerVolumioDiscovery.prototype.startAdvertisement = function () {
         self.logger.error('Discovery: Advertisement error: ' + error);
       }
     });
-    
-    // BUGFIX: Consolidated error handler with proper cleanup and smart retry
     self.ad.on('error', function (error) {
-      var errorString = error.toString();
-      
-      if (self.networkTransitionInProgress && errorString.indexOf('unknown') !== -1) {
-        self.logger.info('Discovery: mDNS temporarily unavailable during network transition');
-      } else {
-        self.logger.error('Discovery: advertisement error: ' + error);
-        self.context.coreCommand.pushConsoleMessage('Discovery: Advertisement raised the following error ' + error);
-      }
-      
-      // BUGFIX: Cleanup to prevent connection leaks
-      if (self.ad) {
-        try {
-          self.ad.removeAllListeners('error');
-          self.ad.stop();
-          self.ad = null;
-        } catch (e) {}
-      }
-      
-      self.advertisementInProgress = false;
-      
-      // BUGFIX: Don't retry on refused errors, wait for network change event
-      if (errorString.indexOf('refused') !== -1) {
-        self.logger.info('Discovery: DNS service refused, waiting for network change event');
-      } else if (!self.networkTransitionInProgress) {
-        setTimeout(function () {
-          self.startAdvertisement();
-        }, 5000);
-      } else {
-        setTimeout(function () {
-          self.startAdvertisement();
-        }, 10000);
-      }
+      self.logger.error('Discovery: advertisement error: ' + error);
+      self.context.coreCommand.pushConsoleMessage('Discovery: Advertisement raised the following error ' + error);
+      setTimeout(function () {
+        self.startAdvertisement();
+      }, 5000);
     });
-    
     self.ad.start();
-    self.advertisementInProgress = false;
   } catch (ecc) {
-    var errorString = ecc.toString();
-    
-    // BUGFIX: Cleanup on exception
-    if (self.ad) {
-      try {
-        self.ad.removeAllListeners('error');
-        self.ad.stop();
-        self.ad = null;
-      } catch (e) {}
-    }
-    
-    self.advertisementInProgress = false;
-    
-    if (errorString == 'Error: dns service error: name conflict') {
+    if (ecc == 'Error: dns service error: name conflict') {
       self.logger.error('Discovery: Name conflict due to Shairport Sync, discarding error');
-    } else if (errorString.indexOf('refused') !== -1) {
-      if (self.networkTransitionInProgress) {
-        self.logger.info('Discovery: DNS service temporarily unavailable during network transition');
-      } else {
-        self.logger.error('Discovery: Generic error: ' + ecc);
-      }
     } else {
       setTimeout(function () {
         self.logger.error('Discovery: Generic error: ' + ecc);
@@ -232,11 +154,7 @@ ControllerVolumioDiscovery.prototype.startMDNSBrowse = function () {
     self.browser = mdns.createBrowser(mdns.tcp(serviceName), {resolverSequence: sequence});
 
     self.browser.on('error', function (error) {
-      if (self.networkTransitionInProgress && error.toString().indexOf('unknown') !== -1) {
-        self.logger.info('Discovery: mDNS browse temporarily unavailable during network transition');
-      } else {
-        self.context.coreCommand.pushConsoleMessage('Discovery: Browse raised the following error ' + error);
-      }
+      self.context.coreCommand.pushConsoleMessage('Discovery: Browse raised the following error ' + error);
       // self.browser.stop();
       // setTimeout(() => {        
       //   self.startMDNSBrowse();
