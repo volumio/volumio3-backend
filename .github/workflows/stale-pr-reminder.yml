@@ -2,7 +2,7 @@ name: Stale PR Reminder
 
 on:
   schedule:
-    - cron: '0 6 * * *'  # Daily at 6am UTC
+    - cron: '0 9 * * *'  # Daily at 9am UTC
   workflow_dispatch:      # Manual trigger for testing
 
 jobs:
@@ -14,7 +14,7 @@ jobs:
         with:
           script: |
             const EXCLUDE_LABELS = ['on-hold', 'waiting-upstream', 'wip', 'draft', 'do-not-merge'];
-            const REPO_OWNERS = ['volumio', 'devgianlu'];  // Add specific maintainer handles here
+            const REPO_OWNERS = ['volumio'];  // Add specific maintainer handles here
             
             const TIERS = [
               { days: 30, marker: '[STALE-30]', message: 'URGENT: This PR has been awaiting review for over 30 days. This is causing significant community impact. Please either review, request changes, or close with explanation. Continued inaction is blocking project progress. **This reminder will repeat weekly until actioned.**' },
@@ -110,16 +110,18 @@ jobs:
               
               const mentionStr = Array.from(mentions).join(' ');
               
-              const body = `${tier.marker}
-
-**PR Age: ${ageDays} days**
-
-${tier.message}
-
-cc: ${mentionStr}
-
----
-*Automated reminder - exclude with labels: ${EXCLUDE_LABELS.join(', ')}*`;
+              const body = [
+                tier.marker,
+                '',
+                '**PR Age: ' + ageDays + ' days**',
+                '',
+                tier.message,
+                '',
+                'cc: ' + mentionStr,
+                '',
+                '---',
+                '*Automated reminder - exclude with labels: ' + EXCLUDE_LABELS.join(', ') + '*'
+              ].join('\n');
               
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
