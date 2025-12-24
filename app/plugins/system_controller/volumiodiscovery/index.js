@@ -10,6 +10,10 @@ var exec = require('child_process').exec;
 var libQ = require('kew');
 var unirest = require('unirest');
 var ifconfig = require('/volumio/app/plugins/system_controller/network/lib/ifconfig.js');
+var advertisementRestartPending = false;
+var browsingRestartPending = false;
+var ad = null;
+var browse = null;
 
 // Define the ControllerVolumioDiscovery class
 
@@ -39,24 +43,85 @@ ControllerVolumioDiscovery.prototype.getConfigurationFiles = function () {
 
 ControllerVolumioDiscovery.prototype.onNetworkingRestart = function () {
   var self = this;
-  self.restartAdvertisement();
+
+  setTimeout(()=> {
+    self.logger.info('Discovery: Networking Restart detected, restarting advertisement and browsing');
+    self.restartAdvertisement();
+    self.restartBrowse();
+  }, 10000);
 };
+
+ControllerVolumioDiscovery.prototype.stopAdvertisingImmediately = function () {
+  var self = this;
+  self.logger.info('Discovery: Stopping Advertising Immediately');
+  if (self.ad) {
+    self.logger.info('Discovery: Stopping existing advertisement');
+    try {
+      self.ad.stop();
+    } catch (e) {
+      self.logger.error('Discovery: Error stopping advertisement: ' + e);
+    }
+    self.ad = null;
+  }
+};
+
 
 ControllerVolumioDiscovery.prototype.restartAdvertisement = function () {
   var self = this;
 
-  self.logger.info('Discovery: Restarting Advertising due to device name change');
-  if (self.ad) {
-    self.ad.stop();
+  self.logger.info('Discovery: Restarting Advertising');
+
+  if (self.advertisementRestartPending) {
+    self.logger.info('Discovery: Restart already pending, ignoring duplicate call');
+    return;
   }
 
-  var bound = self.startAdvertisement.bind(self);
-  try {
-    self.ad.stop();
-  } catch (e) {}
+  self.advertisementRestartPending = true;
+
+  if (self.ad) {
+    self.logger.info('Discovery: Stopping existing advertisement');
+    try {
+      self.ad.stop();
+    } catch (e) {
+      self.logger.error('Discovery: Error stopping advertisement: ' + e);
+    }
+    self.ad = null;
+  }
 
   self.forceRename = true;
-  setTimeout(bound, 5000);
+  setTimeout(()=>{
+    self.advertisementRestartPending = false;
+    self.startAdvertisement();
+  }, 5000);
+};
+
+ControllerVolumioDiscovery.prototype.restartBrowse = function () {
+  var self = this;
+
+  self.logger.info('Discovery: Restarting Browsing');
+
+  if (self.browsingRestartPending) {
+    self.logger.info('Discovery: Restart already pending, ignoring duplicate call');
+    return;
+  }
+
+  self.browsingRestartPending = true;
+
+  if (self.browse) {
+    self.logger.info('Discovery: Stopping current browser');
+    try {
+      self.browse.stop();
+    } catch (e) {
+      self.logger.error('Discovery: Error stopping browser: ' + e);
+    }
+    self.browse = null;
+  }
+
+  self.forceRename = true;
+  setTimeout(()=>{
+    self.browsingRestartPending = false;
+    self.startMDNSBrowse();
+  }, 5000);
 };
 
 ControllerVolumioDiscovery.prototype.onVolumioStart = function () {
@@ -121,8 +186,9 @@ ControllerVolumioDiscovery.prototype.startAdvertisement = function () {
     self.ad.on('error', function (error) {
       self.logger.error('Discovery: advertisement error: ' + error);
       self.context.coreCommand.pushConsoleMessage('Discovery: Advertisement raised the following error ' + error);
+      self.stopAdvertisingImmediately();
       setTimeout(function () {
-        self.startAdvertisement();
+        self.restartAdvertisement();
       }, 5000);
     });
     self.ad.start();
@@ -131,9 +197,10 @@ ControllerVolumioDiscovery.prototype.startAdvertisement = function () {
       self.logger.error('Discovery: Name conflict due to Shairport Sync, discarding error');
     } else {
       setTimeout(function () {
-        self.logger.error('Discovery: Generic error: ' + ecc);
+        self.logger.error('Discovery: Generic acvertisement error: ' + ecc);
+        self.stopAdvertisingImmediately();
         self.forceRename = false;
-        self.startAdvertisement();
+        self.restartAdvertisement();
       }, 5000);
     }
   }
@@ -155,10 +222,7 @@ ControllerVolumioDiscovery.prototype.startMDNSBrowse = function () {
 
     self.browser.on('error', function (error) {
       self.context.coreCommand.pushConsoleMessage('Discovery: Browse raised the following error ' + error);
-      // self.browser.stop();
-      // setTimeout(() => {        
-      //   self.startMDNSBrowse();
-      // }, 10000);
+      self.restartBrowse();
     });
     self.browser.on('serviceUp', function (service) {
       if (registeredUUIDs.indexOf(service.txtRecord.UUID) > -1) {
@@ -211,7 +275,11 @@ ControllerVolumioDiscovery.prototype.startMDNSBrowse = function () {
 				    registeredUUIDs.splice(uuidindex, 1);
         }
 
-        var osname = foundVolumioInstances.get(key + '.name').toLowerCase();
+        try {
+          var osname = foundVolumioInstances.get(key + '.name').toLowerCase();
+        } catch(e) {
+          var osname = '';
+        }
         if (osname == service.name) {
           self.context.coreCommand.pushConsoleMessage('Discovery: Device ' + service.name + ' disappeared from network');
           foundVolumioInstances.delete(key);
@@ -236,7 +304,7 @@ ControllerVolumioDiscovery.prototype.startMDNSBrowse = function () {
     });
     self.browser.start();
   } catch (error) {
-    self.startMDNSBrowse();
+    self.restartBrowse();
   }
 };
 
