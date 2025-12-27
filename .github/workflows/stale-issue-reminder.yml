@@ -1,0 +1,112 @@
+name: Stale Issue Reminder
+
+on:
+  schedule:
+    - cron: '0 7 * * *'  # Daily at 7am UTC
+  workflow_dispatch:      # Manual trigger for testing
+
+jobs:
+  remind-assignees:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check stale issues and notify
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const EXCLUDE_LABELS = ['on-hold', 'waiting-upstream', 'wontfix', 'question', 'discussion', 'enhancement'];
+            const REPO_OWNERS = ['volumio', 'devgianlu'];  // Add specific maintainer handles here
+            
+            const TIERS = [
+              { days: 30, marker: '[STALE-ISSUE-30]', message: 'URGENT: This issue has been unaddressed for over 30 days. If this is not going to be actioned, please close with explanation. Leaving issues to rot damages community trust. **This reminder will repeat weekly until actioned.**' },
+              { days: 21, marker: '[STALE-ISSUE-21]', message: 'CRITICAL: This issue has been open for 21 days without resolution or meaningful response. Please triage, assign, or close.' },
+              { days: 14, marker: '[STALE-ISSUE-14]', message: 'REMINDER: This issue has been open for 14 days. Please provide an update on status or expected timeline.' },
+              { days: 7,  marker: '[STALE-ISSUE-7]',  message: 'This issue has been open for 7 days. Acknowledgement or initial triage would be appreciated.' }
+            ];
+            
+            const now = new Date();
+            
+            // Get open issues (excluding PRs - they have pull_request property)
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+            
+            for (const issue of issues.data) {
+              // Skip pull requests (they appear in issues API too)
+              if (issue.pull_request) continue;
+              
+              // Skip if has exclusion label
+              const labels = issue.labels.map(l => l.name.toLowerCase());
+              if (EXCLUDE_LABELS.some(ex => labels.includes(ex.toLowerCase()))) continue;
+              
+              // Calculate age in days
+              const created = new Date(issue.created_at);
+              const ageDays = Math.floor((now - created) / (1000 * 60 * 60 * 24));
+              
+              // Find applicable tier
+              const tier = TIERS.find(t => ageDays >= t.days);
+              if (!tier) continue;  // Less than 7 days old
+              
+              // Check if we already posted this tier's reminder
+              const comments = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                per_page: 100
+              });
+              
+              const matchingComments = comments.data.filter(c => 
+                c.body.includes(tier.marker) && 
+                c.user.type === 'Bot'
+              );
+              
+              if (matchingComments.length > 0) {
+                // For 30-day tier, allow weekly repeats
+                if (tier.days === 30) {
+                  const lastPosted = new Date(matchingComments[matchingComments.length - 1].created_at);
+                  const daysSinceLastPost = Math.floor((now - lastPosted) / (1000 * 60 * 60 * 24));
+                  if (daysSinceLastPost < 7) continue;  // Wait at least 7 days before repeating
+                } else {
+                  continue;  // Other tiers only post once
+                }
+              }
+              
+              // Build mention list
+              const mentions = new Set();
+              
+              // Add assignees
+              for (const assignee of issue.assignees || []) {
+                mentions.add('@' + assignee.login);
+              }
+              
+              // Add repo owners/maintainers
+              for (const owner of REPO_OWNERS) {
+                mentions.add('@' + owner);
+              }
+              
+              const mentionStr = Array.from(mentions).join(' ');
+              
+              const body = [
+                tier.marker,
+                '',
+                '**Issue Age: ' + ageDays + ' days**',
+                '',
+                tier.message,
+                '',
+                'cc: ' + mentionStr,
+                '',
+                '---',
+                '*Automated reminder - exclude with labels: ' + EXCLUDE_LABELS.join(', ') + '*'
+              ].join('\n');
+              
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: body
+              });
+              
+              console.log(`Posted ${tier.marker} reminder on Issue #${issue.number} (${ageDays} days old)`);
+            }
