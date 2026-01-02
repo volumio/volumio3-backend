@@ -484,6 +484,33 @@ CoreVolumeController.prototype.retrievevolume = function () {
           defer.resolve(Volume);
           self.commandRouter.volumioupdatevolume(Volume);
         });
+    } else if (volumescript.enabled) {
+      // External volume scripts take priority over Software mixer
+      this.getVolume(function (err, vol) {
+        if (err) {
+          self.logger.error('Cannot get external volume: ' + err);
+        }
+        self.getMuted(function (err, mute) {
+          if (err) {
+            mute = false;
+          }
+          self.logger.info('VolumeController:: External Volume=' + vol + ' Mute =' + mute);
+          if (!vol) {
+            vol = currentvolume;
+            mute = currentmute;
+          } else {
+            currentvolume = vol;
+          }
+          Volume.vol = vol;
+          Volume.mute = mute;
+          Volume.disableVolumeControl = false;
+          return libQ.resolve(Volume)
+            .then(function (Volume) {
+              defer.resolve(Volume);
+              self.commandRouter.volumioupdatevolume(Volume);
+            });
+        });
+      });
     } else if (mixertype === 'Software') {
       exec('/usr/bin/amixer -M get -c ' + device + " 'SoftMaster' | awk '$0~/%/{print}' | cut -d '[' -f2 | tr -d '[]%' | head -1", function (error, stdout, stderr) {
         if (error) {
@@ -515,7 +542,6 @@ CoreVolumeController.prototype.retrievevolume = function () {
           if (err) {
             mute = false;
           }
-          // Log volume control
           self.logger.info('VolumeController:: Volume=' + vol + ' Mute =' + mute);
           if (!vol) {
             vol = currentvolume;
