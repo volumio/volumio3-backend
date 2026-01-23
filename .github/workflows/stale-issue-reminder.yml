@@ -2,7 +2,7 @@ name: Stale Issue Reminder
 
 on:
   schedule:
-    - cron: '0 9 * * *'  # Daily at 9am UTC
+    - cron: '0 7 * * *'  # Daily at 7am UTC
   workflow_dispatch:      # Manual trigger for testing
 
 jobs:
@@ -14,7 +14,7 @@ jobs:
         with:
           script: |
             const EXCLUDE_LABELS = ['on-hold', 'waiting-upstream', 'wontfix', 'question', 'discussion', 'enhancement'];
-            const REPO_OWNERS = ['volumio'];  // Add specific maintainer handles here
+            const REPO_OWNERS = ['volumio', 'devgianlu'];  // Add specific maintainer handles here
             
             // IMPORTANT: TIERS must be defined in descending order by 'days' field
             // The first tier (highest days value) will repeat weekly; others post once only
