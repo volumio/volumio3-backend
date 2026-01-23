@@ -2,7 +2,7 @@ name: Stale Issue Reminder
 
 on:
   schedule:
-    - cron: '0 7 * * *'  # Daily at 7am UTC
+    - cron: '0 9 * * *'  # Daily at 9am UTC
   workflow_dispatch:      # Manual trigger for testing
 
 jobs:
@@ -14,8 +14,10 @@ jobs:
         with:
           script: |
             const EXCLUDE_LABELS = ['on-hold', 'waiting-upstream', 'wontfix', 'question', 'discussion', 'enhancement'];
-            const REPO_OWNERS = ['volumio', 'devgianlu'];  // Add specific maintainer handles here
+            const REPO_OWNERS = ['volumio'];  // Add specific maintainer handles here
             
+            // IMPORTANT: TIERS must be defined in descending order by 'days' field
+            // The first tier (highest days value) will repeat weekly; others post once only
             const TIERS = [
               { days: 30, marker: '[STALE-ISSUE-30]', message: 'URGENT: This issue has been unaddressed for over 30 days. If this is not going to be actioned, please close with explanation. Leaving issues to rot damages community trust. **This reminder will repeat weekly until actioned.**' },
               { days: 21, marker: '[STALE-ISSUE-21]', message: 'CRITICAL: This issue has been open for 21 days without resolution or meaningful response. Please triage, assign, or close.' },
@@ -63,8 +65,8 @@ jobs:
               );
               
               if (matchingComments.length > 0) {
-                // For 30-day tier, allow weekly repeats
-                if (tier.days === 30) {
+                // For highest tier, allow weekly repeats
+                if (tier.days === TIERS[0].days) {
                   const lastPosted = new Date(matchingComments[matchingComments.length - 1].created_at);
                   const daysSinceLastPost = Math.floor((now - lastPosted) / (1000 * 60 * 60 * 24));
                   if (daysSinceLastPost < 7) continue;  // Wait at least 7 days before repeating
