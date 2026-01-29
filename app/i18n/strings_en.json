@@ -287,7 +287,7 @@
         "OUTPUT_DEVICE": "Output Device",
         "OUTPUT_DEVICE_DOC": "Select the Audio Output Device from the ones available in your system",
         "OUTPUT_DEVICE_NOT_AVAILABLE": "The selected output device is not available",
-        "OUTPUT_DEVICE_NOT_AVAILABLE_CONNECT_IT": "Could not stream to the selected output device. Make sure the device is connected and turned on",
+        "OUTPUT_DEVICE_NOT_AVAILABLE_CONNECT_IT": "Could not stream to the selected output device, make sure the device is connected and turned on",
         "OUTPUT_DEVICE_BUSY": "The selected output device is busy, plase stop any other playback before selecting it",
         "PERSISTENT_QUEUE": "Persistent queue",
         "PERSISTENT_QUEUE_DOC": "If enabled the Playqueue will be retained post reboot, if disabled the play queue will be cleared at every system start",
