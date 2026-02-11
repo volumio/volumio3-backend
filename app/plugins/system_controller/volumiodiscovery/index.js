@@ -178,7 +178,7 @@ ControllerVolumioDiscovery.prototype.startAdvertisement = function () {
 
     self.logger.info('Discovery: Started advertising with name: ' + name);
 
-    self.ad = mdns.createAdvertisement(mdns.tcp(serviceName), servicePort, {txtRecord: txt_record}, function (error, service) {
+    self.ad = mdns.createAdvertisement(mdns.tcp(serviceName), servicePort, {txtRecord: txt_record, name: name}, function (error, service) {
       if (error) {
         self.logger.error('Discovery: Advertisement error: ' + error);
       }
