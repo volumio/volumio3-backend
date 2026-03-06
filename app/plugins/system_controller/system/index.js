@@ -442,7 +442,7 @@ ControllerSystem.prototype.saveGeneralSettings = function (data) {
     self.commandRouter.sharedVars.set('system.name', player_name);
     defer.resolve({});
 
-    self.commandRouter.broadcastMessage('pushDeviceName', player_name);
+    self.commandRouter.broadcastMessage('pushDeviceName', {'name': player_name});
 
     for (var i in self.callbacks) {
       var callback = self.callbacks[i];
