@@ -2100,7 +2100,7 @@ InterfaceWebUI.prototype.pushQueue = function (queue, connWebSocket) {
     return libQ.fcall(connWebSocket.emit.bind(connWebSocket), 'pushQueue', queue);
     // Else push to all connected clients
   } else {
-    return libQ.fcall(self.libSocketIO.sockets.emit('pushQueue', queue));
+    return libQ.fcall(self.libSocketIO.sockets.emit.bind(self.libSocketIO.sockets), 'pushQueue', queue);
   }
 };
 
@@ -2156,7 +2156,7 @@ InterfaceWebUI.prototype.pushState = function (state, connWebSocket) {
   } else {
     // Push the updated state to all clients
     self.pushMultiroom(self.libSocketIO);
-    return libQ.fcall(self.libSocketIO.sockets.emit('pushState', state));
+    return libQ.fcall(self.libSocketIO.sockets.emit.bind(self.libSocketIO.sockets), 'pushState', state);
   }
 };
 
