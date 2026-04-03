@@ -31,8 +31,53 @@ function ControllerVolumioDiscovery (context) {
   self.context = context;
   self.logger = self.context.logger;
   self.commandRouter = self.context.coreCommand;
+  self.commandRouter.sharedVars.registerCallback('system.name', self.playerNameCallback.bind(self));
 
   self.callbacks = [];
+}
+
+ControllerVolumioDiscovery.prototype.writeAvahiDaemonConf = function () {
+  var self = this;
+
+  var systemController = self.commandRouter.pluginManager.getPlugin('system_controller', 'system');
+  var name = systemController.getConf('playerName');
+  var avahiDaemonConfFile = '/etc/avahi/avahi-daemon.conf';
+
+  exec('/usr/bin/sudo /bin/chmod 777 ' + avahiDaemonConfFile, {uid: 1000, gid: 1000},
+    function (error, stdout, stderr) {
+      if (error != null) {
+        self.logger.info('Error setting avahi-daemon.conf file perms: ' + error);
+      } else {
+        self.logger.info('avahi-daemon.conf Permissions set');
+        fs.readFile(__dirname + '/avahi-daemon.conf.tmpl', 'utf8', function (err, data) {
+          if (err) {
+            return self.logger.log('Error reading Avahi daemon configuration template file: ' + err);
+          }
+          var conf = data.replace(/{NAME}/g, name);
+
+          fs.writeFile(avahiDaemonConfFile, conf, 'utf8', function (err) {
+            if (err) {
+              self.logger.log('Error writing Avahi daemon configuration file: ' + err);
+            } else {
+              exec('/usr/bin/sudo /bin/systemctl reload avahi-daemon.service', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+                if (error !== null) {
+                  self.logger.error('Cannot reload Avahi daemon');
+                } else {
+                  self.logger.info('Avahi daemon reloaded');
+                }
+              });
+            }
+          });
+        });
+      }
+    });
+}
+
+ControllerVolumioDiscovery.prototype.playerNameCallback = function () {
+  var self = this;
+
+  self.logger.info('System name has changed, updating Avahi daemon configuration');
+  setTimeout(() => self.writeAvahiDaemonConf(), 3000);
 }
 
 ControllerVolumioDiscovery.prototype.getConfigurationFiles = function () {
@@ -129,6 +174,8 @@ ControllerVolumioDiscovery.prototype.onVolumioStart = function () {
 
   var configFile = self.commandRouter.pluginManager.getConfigurationFile(self.context, 'config.json');
   config.loadFile(configFile);
+
+  self.writeAvahiDaemonConf()
 
   self.startAdvertisement();
   self.startMDNSBrowse();
