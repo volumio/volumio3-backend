@@ -821,7 +821,7 @@ ControllerNetwork.prototype.rebuildNetworkConfig = function (networkInterfaceToR
         ws.write('iface lo inet loopback\n');
         ws.write('\n');
 
-        staticconf.write('allowinterfaces eth0 wlan0\n');
+        staticconf.write('allowinterfaces wlan0\n');
         staticconf.write('hostname\n');
         staticconf.write('duid\n');
         staticconf.write('vendorclassid\n');
