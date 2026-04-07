@@ -841,7 +841,7 @@ ControllerNetwork.prototype.rebuildNetworkConfig = function (networkInterfaceToR
 
         ws.write('allow-hotplug eth0\n');
         if (config.get('dhcp') == true || config.get('dhcp') == 'true') {
-          ws.write('iface eth0 inet dhcp\n');
+          ws.write('iface eth0 inet manual\n');
         } else {
           ws.write('iface eth0 inet manual\n');
           staticconf.write('interface eth0\n');
