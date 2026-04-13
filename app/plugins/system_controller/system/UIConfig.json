@@ -28,7 +28,8 @@
           "element": "input",
           "doc": "TRANSLATE.SYSTEM.PLAYER_NAME_DOC",
           "label": "TRANSLATE.SYSTEM.PLAYER_NAME",
-          "value": "volumio"
+          "value": "volumio",
+          "readonly": false
         },
         {
           "id": "startup_sound",

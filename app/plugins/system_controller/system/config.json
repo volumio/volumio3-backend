@@ -3,6 +3,10 @@
     "value": "Volumio",
     "type": "string"
   },
+  "playerNameLock": {
+    "value": false,
+    "type": "boolean"
+  },
   "startupSound": {
     "value": true,
     "type": "boolean"

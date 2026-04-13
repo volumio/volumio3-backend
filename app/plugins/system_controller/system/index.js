@@ -83,9 +83,19 @@ ControllerSystem.prototype.onStart = function () {
   self.callHome();
   self.initializeFirstStart();
   self.loadDefaultAdditionalDeviceVolumioProperties();
+  self.addPluginRestEndpoint()
 
   defer.resolve('OK')
   return defer.promise;
+};
+
+ControllerSystem.prototype.addPluginRestEndpoint = function() {
+  this.commandRouter.addPluginRestEndpoint({
+    "endpoint": "setDeviceNameLock",
+    "type": "system_controller",
+    "name": "system",
+    "method": "setDeviceNameLock"
+  });
 };
 
 ControllerSystem.prototype.onStop = function () {
@@ -122,6 +132,7 @@ ControllerSystem.prototype.getUIConfig = function () {
     __dirname + '/UIConfig.json')
     .then(function (uiconf) {
       self.configManager.setUIConfigParam(uiconf, 'sections[0].content[0].value', self.config.get('playerName'));
+      self.configManager.setUIConfigParam(uiconf, 'sections[0].content[0].readonly', self.config.get('playerNameLock'));
       self.configManager.setUIConfigParam(uiconf, 'sections[0].content[1].value', self.config.get('startupSound'));
       var advancedSettingsStatus = self.getAdvancedSettingsStatus();
       self.configManager.setUIConfigParam(uiconf, 'sections[0].content[3].value.value', advancedSettingsStatus);
@@ -433,9 +444,14 @@ ControllerSystem.prototype.saveGeneralSettings = function (data) {
     process.env.ADVANCED_SETTINGS_MODE = data['advanced_settings'].value;
   }
 
+  var playerNameLock = self.config.get('playerNameLock');
+  if (playerNameLock) {
+    self.logger.info('Will not update player name because of lock')
+  }
+
   var oldPlayerName = self.config.get('playerName');
   var player_name = data['player_name'];
-  if (player_name && player_name !== oldPlayerName) {
+  if (!playerNameLock && player_name && player_name !== oldPlayerName) {
     self.config.set('playerName', player_name);
     self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('SYSTEM.SYSTEM_CONFIGURATION_UPDATE'), self.commandRouter.getI18nString('SYSTEM.SYSTEM_CONFIGURATION_UPDATE_SUCCESS'));
     self.setHostname(player_name);
@@ -453,6 +469,17 @@ ControllerSystem.prototype.saveGeneralSettings = function (data) {
     defer.resolve({});
   }
 
+  return defer.promise;
+};
+
+ControllerSystem.prototype.setDeviceNameLock = function (enabled) {
+  var self = this;
+
+  var defer = libQ.defer();
+
+  self.config.set('playerNameLock', enabled)
+
+  defer.resolve({});
   return defer.promise;
 };
 
