@@ -715,7 +715,11 @@ var retrieveAlbumart = function (artist, album, size, cb) {
 
 var download = function (uri, dest, cb) {
   var url = require('url');
-  var protocol = url.parse(uri).protocol.slice(0, -1);
+  var parsed = url.parse(uri);
+  if (!parsed.protocol) {
+    return cb('Error: Cannot download album art, missing protocol in URI: ' + uri);
+  }
+  var protocol = parsed.protocol.slice(0, -1);
 
   var request = require(protocol).get(uri, function (response) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
