@@ -23,6 +23,9 @@ var volumescript = { enabled: false, setvolumescript: '', getvolumescript: '' };
 var volumeOverride = false;
 var overridePluginType;
 var overridePluginName;
+var pendingAmixerWrites = 0;
+var needsAlsaSync = false;
+var alsaMonitorProcess = null;
 
 module.exports = CoreVolumeController;
 function CoreVolumeController (commandRouter) {
@@ -99,6 +102,80 @@ function CoreVolumeController (commandRouter) {
 
     p.on('close', function () {
       cb(err, ret.trim());
+    });
+  };
+
+  var amixerWrite = function (args, cb) {
+    pendingAmixerWrites++;
+    amixer(args, function (err) {
+      pendingAmixerWrites--;
+      if (pendingAmixerWrites === 0 && needsAlsaSync) {
+        needsAlsaSync = false;
+        checkAndReportAlsaVolume();
+      }
+      if (cb) cb(err);
+    });
+  };
+
+  var checkAndReportAlsaVolume = function () {
+    getInfo(function (err, result) {
+      if (err) {
+        self.logger.error('VolumeController:: checkAndReportAlsaVolume error: ' + err);
+        return;
+      }
+      if (result.volume !== currentvolume || result.muted !== currentmute) {
+        self.logger.info('VolumeController:: External volume change detected: vol=' + result.volume + ' mute=' + result.muted);
+        currentvolume = result.volume;
+        currentmute = result.muted;
+        Volume.vol = result.volume;
+        Volume.mute = result.muted;
+        Volume.disableVolumeControl = false;
+        self.commandRouter.volumioupdatevolume(Volume);
+      }
+    });
+  };
+
+  var monitorAlsaEvents = function () {
+    if (alsaMonitorProcess) return;
+
+    var lineBuffer = '';
+    alsaMonitorProcess = spawn('/usr/sbin/alsactl', ['monitor'], { uid: 1000, gid: 1000 });
+
+    alsaMonitorProcess.stdout.on('data', function (data) {
+      lineBuffer += data.toString();
+      var lines = lineBuffer.split('\n');
+      lineBuffer = lines.pop();
+
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        if (line.indexOf('hw:' + device) >= 0 &&
+            mixertype === 'Hardware' &&
+            !volumeOverride &&
+            !volumescript.enabled) {
+          if (pendingAmixerWrites > 0) {
+            needsAlsaSync = true;
+          } else {
+            checkAndReportAlsaVolume();
+          }
+        }
+      }
+    });
+
+    alsaMonitorProcess.stderr.on('data', function (data) {
+      self.logger.error('VolumeController:: alsactl monitor stderr: ' + data);
+    });
+
+    alsaMonitorProcess.on('close', function (code) {
+      self.logger.info('VolumeController:: alsactl monitor closed, code: ' + code);
+      alsaMonitorProcess = null;
+      if (code !== 0 && code !== null) {
+        setTimeout(monitorAlsaEvents, 5000);
+      }
+    });
+
+    alsaMonitorProcess.on('error', function (err) {
+      self.logger.error('VolumeController:: alsactl monitor error: ' + err);
+      alsaMonitorProcess = null;
     });
   };
 
@@ -220,22 +297,22 @@ function CoreVolumeController (commandRouter) {
       }
     } else {
       if (volumecurve === 'logarithmic') {
-        amixer(['-M', 'set', '-c', device, mixer, 'unmute', val + '%'], function (err) {
+        amixerWrite(['-M', 'set', '-c', device, mixer, 'unmute', val + '%'], function (err) {
           cb(err);
         });
         if (devicename === 'PianoDACPlus' || devicename === 'Allo Piano 2.1' || devicename === 'PianoDACPlus multicodec-0') {
-          amixer(['-M', 'set', '-c', device, 'Subwoofer', 'unmute', val + '%'], function (err) {
+          amixerWrite(['-M', 'set', '-c', device, 'Subwoofer', 'unmute', val + '%'], function (err) {
             if (err) {
               self.logger.error('Cannot set ALSA Volume: ' + err);
             }
           });
         }
       } else {
-        amixer(['set', '-c', device, mixer, 'unmute', val + '%'], function (err) {
+        amixerWrite(['set', '-c', device, mixer, 'unmute', val + '%'], function (err) {
           cb(err);
         });
         if (devicename === 'PianoDACPlus' || devicename === 'Allo Piano 2.1' || devicename === 'PianoDACPlus multicodec-0') {
-          amixer(['set', '-c', device, 'Subwoofer', 'unmute', val + '%'], function (err) {
+          amixerWrite(['set', '-c', device, 'Subwoofer', 'unmute', val + '%'], function (err) {
             if (err) {
               self.logger.error('Cannot set ALSA Volume: ' + err);
             }
@@ -257,15 +334,17 @@ function CoreVolumeController (commandRouter) {
 
   self.setMuted = function (val, cb) {
     if (hasHWMute) {
-      amixer(['set', '-c', device, mixer, (val ? 'mute' : 'unmute')], function (err) {
+      amixerWrite(['set', '-c', device, mixer, (val ? 'mute' : 'unmute')], function (err) {
         cb(err);
       });
     } else {
-      amixer(['set', '-c', device, mixer, (val ? 0 : premutevolume)], function (err) {
+      amixerWrite(['set', '-c', device, mixer, (val ? 0 : premutevolume)], function (err) {
         cb(err);
       });
     }
   };
+
+  monitorAlsaEvents();
 }
 
 CoreVolumeController.prototype.updateVolumeSettings = function (data) {
