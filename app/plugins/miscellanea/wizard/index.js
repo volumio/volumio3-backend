@@ -210,24 +210,46 @@ volumioWizard.prototype.connectWirelessNetwork = function (data) {
 };
 
 volumioWizard.prototype.reportWirelessConnection = function () {
+  // Poll getWirelessInfo until connected or timeout. dhcpcd performs a 5-second
+  // ARP probe before binding the lease on first connect, so a single check at
+  // +5s after wireless.service activation races with DHCP completion. See
+  // platformSpecific.wirelessRestart for the upstream fixed delay.
   var self = this;
-  var defer = libQ.defer();
-  var netInfo = self.commandRouter.executeOnPlugin('system_controller', 'network', 'getWirelessInfo', '');
+  var maxAttempts = 12;
+  var pollIntervalMs = 2000;
+  var attempt = 0;
 
-  netInfo.then(function (data) {
-    if (data != undefined) {
-      if (data.connected && data.ssid != undefined) {
-        var message = self.commandRouter.getI18nString('NETWORK.WIRELESS_NETWORK_CONNECTION_SUCCESSFUL');
-        var message2 = self.commandRouter.getI18nString('NETWORK.WIRELESS_NETWORK_CONNECTION_SUCCESSFUL_PROCEED');
-        var connStatus = {'wait': false, 'result': message + ' ' + data.ssid + ', ' + message2};
-      } else {
-        var message = self.commandRouter.getI18nString('NETWORK.WIRELESS_NETWORK_CONNECTION_ERROR');
-        var message2 = self.commandRouter.getI18nString('NETWORK.WIRELESS_NETWORK_CONNECTION_ERROR_PROCEED');
-        var connStatus = {'wait': false, 'result': message + ' ' + data.ssid + ', ' + message2};
-      }
-      return self.commandRouter.broadcastMessage('pushWizardWirelessConnResults', connStatus);
+  function broadcastResult (data, connected) {
+    var ssid = (data && data.ssid) ? data.ssid : '';
+    var message;
+    var message2;
+    if (connected) {
+      message = self.commandRouter.getI18nString('NETWORK.WIRELESS_NETWORK_CONNECTION_SUCCESSFUL');
+      message2 = self.commandRouter.getI18nString('NETWORK.WIRELESS_NETWORK_CONNECTION_SUCCESSFUL_PROCEED');
+    } else {
+      message = self.commandRouter.getI18nString('NETWORK.WIRELESS_NETWORK_CONNECTION_ERROR');
+      message2 = self.commandRouter.getI18nString('NETWORK.WIRELESS_NETWORK_CONNECTION_ERROR_PROCEED');
     }
-  });
+    var connStatus = {'wait': false, 'result': message + ' ' + ssid + ', ' + message2};
+    self.commandRouter.broadcastMessage('pushWizardWirelessConnResults', connStatus);
+  }
+
+  function checkOnce () {
+    attempt++;
+    var netInfo = self.commandRouter.executeOnPlugin('system_controller', 'network', 'getWirelessInfo', '');
+    netInfo.then(function (data) {
+      var connected = !!(data && data.connected && data.ssid);
+      if (connected) {
+        broadcastResult(data, true);
+      } else if (attempt >= maxAttempts) {
+        broadcastResult(data, false);
+      } else {
+        setTimeout(checkOnce, pollIntervalMs);
+      }
+    });
+  }
+
+  checkOnce();
 };
 
 volumioWizard.prototype.getWizardConfig = function (data) {
