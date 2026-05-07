@@ -25,6 +25,8 @@ var overridePluginType;
 var overridePluginName;
 var pendingAmixerWrites = 0;
 var needsAlsaSync = false;
+var pendingAlsaRead = false;
+var needsAnotherAlsaRead = false;
 var alsaMonitorProcess = null;
 var shouldMonitorAlsa = false;
 
@@ -119,12 +121,18 @@ function CoreVolumeController (commandRouter) {
   };
 
   var checkAndReportAlsaVolume = function () {
+    if (pendingAlsaRead) {
+      needsAnotherAlsaRead = true;
+      return;
+    }
+    pendingAlsaRead = true;
     getInfo(function (err, result) {
+      pendingAlsaRead = false;
+      var scheduleAnother = needsAnotherAlsaRead;
+      needsAnotherAlsaRead = false;
       if (err) {
         self.logger.error('VolumeController:: checkAndReportAlsaVolume error: ' + err);
-        return;
-      }
-      if (result.volume !== currentvolume || result.muted !== currentmute) {
+      } else if (result.volume !== currentvolume || result.muted !== currentmute) {
         self.logger.info('VolumeController:: External volume change detected: vol=' + result.volume + ' mute=' + result.muted);
         currentvolume = result.volume;
         currentmute = result.muted;
@@ -132,6 +140,9 @@ function CoreVolumeController (commandRouter) {
         Volume.mute = result.muted;
         Volume.disableVolumeControl = false;
         self.commandRouter.volumioupdatevolume(Volume);
+      }
+      if (scheduleAnother) {
+        checkAndReportAlsaVolume();
       }
     });
   };
