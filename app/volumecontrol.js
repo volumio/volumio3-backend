@@ -169,7 +169,8 @@ function CoreVolumeController (commandRouter) {
 
       for (var i = 0; i < lines.length; i++) {
         var line = lines[i];
-        if (line.indexOf('hw:' + device) >= 0 && shouldMonitorAlsa) {
+        var hwRe = new RegExp('\\bhw:' + device + '(?:,\\d+)?\\b');
+        if (hwRe.test(line) && shouldMonitorAlsa) {
           if (pendingAmixerWrites > 0) {
             needsAlsaSync = true;
           } else {
