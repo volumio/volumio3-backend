@@ -26,6 +26,7 @@ var overridePluginName;
 var pendingAmixerWrites = 0;
 var needsAlsaSync = false;
 var alsaMonitorProcess = null;
+var shouldMonitorAlsa = false;
 
 module.exports = CoreVolumeController;
 function CoreVolumeController (commandRouter) {
@@ -137,8 +138,11 @@ function CoreVolumeController (commandRouter) {
 
   var monitorAlsaEvents = function () {
     if (alsaMonitorProcess) return;
+    if (!shouldMonitorAlsa) return;
 
     var lineBuffer = '';
+
+    self.logger.info('VolumeController:: Starting alsactl monitor');
     alsaMonitorProcess = spawn('/usr/sbin/alsactl', ['monitor'], { uid: 1000, gid: 1000 });
 
     alsaMonitorProcess.stdout.on('data', function (data) {
@@ -148,10 +152,7 @@ function CoreVolumeController (commandRouter) {
 
       for (var i = 0; i < lines.length; i++) {
         var line = lines[i];
-        if (line.indexOf('hw:' + device) >= 0 &&
-            mixertype === 'Hardware' &&
-            !volumeOverride &&
-            !volumescript.enabled) {
+        if (line.indexOf('hw:' + device) >= 0 && shouldMonitorAlsa) {
           if (pendingAmixerWrites > 0) {
             needsAlsaSync = true;
           } else {
@@ -168,7 +169,7 @@ function CoreVolumeController (commandRouter) {
     alsaMonitorProcess.on('close', function (code) {
       self.logger.info('VolumeController:: alsactl monitor closed, code: ' + code);
       alsaMonitorProcess = null;
-      if (code !== 0 && code !== null) {
+      if (code !== 0 && code !== null && shouldMonitorAlsa) {
         setTimeout(monitorAlsaEvents, 5000);
       }
     });
@@ -344,7 +345,22 @@ function CoreVolumeController (commandRouter) {
     }
   };
 
-  monitorAlsaEvents();
+  self.syncAlsaMonitor = function () {
+    shouldMonitorAlsa = (mixertype === 'Hardware' && !volumeOverride && !volumescript.enabled);
+
+    if (shouldMonitorAlsa) {
+      if (!alsaMonitorProcess)
+        monitorAlsaEvents();
+      else {
+        alsaMonitorProcess.once('close', monitorAlsaEvents);
+        alsaMonitorProcess.kill();
+      }
+    } else if (alsaMonitorProcess) {
+      alsaMonitorProcess.kill();
+    }
+  };
+
+  self.syncAlsaMonitor();
 }
 
 CoreVolumeController.prototype.updateVolumeSettings = function (data) {
@@ -397,6 +413,8 @@ CoreVolumeController.prototype.updateVolumeSettings = function (data) {
     this.commandRouter.executeOnPlugin(overridePluginType, overridePluginName, 'updateVolumeSettings', data);
   }
 
+  self.syncAlsaMonitor();
+
   return self.retrievevolume();
 };
 
@@ -406,6 +424,7 @@ CoreVolumeController.prototype.updateVolumeScript = function (data) {
   if (data.setvolumescript !== undefined && data.getvolumescript !== undefined) {
     self.logger.info('Updating Volume script: ' + JSON.stringify(data));
     volumescript = data;
+    self.syncAlsaMonitor();
   }
 };
 
