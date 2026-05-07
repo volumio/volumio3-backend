@@ -29,6 +29,8 @@ var pendingAlsaRead = false;
 var needsAnotherAlsaRead = false;
 var alsaMonitorProcess = null;
 var shouldMonitorAlsa = false;
+var alsaRestartDelay = 5000;
+var alsaStartTime = 0;
 
 module.exports = CoreVolumeController;
 function CoreVolumeController (commandRouter) {
@@ -151,6 +153,7 @@ function CoreVolumeController (commandRouter) {
     if (alsaMonitorProcess) return;
     if (!shouldMonitorAlsa) return;
 
+    alsaStartTime = Date.now();
     var lineBuffer = '';
 
     self.logger.info('VolumeController:: Starting alsactl monitor');
@@ -181,7 +184,13 @@ function CoreVolumeController (commandRouter) {
       self.logger.info('VolumeController:: alsactl monitor closed, code: ' + code);
       alsaMonitorProcess = null;
       if (code !== 0 && code !== null && shouldMonitorAlsa) {
-        setTimeout(monitorAlsaEvents, 5000);
+        if (Date.now() - alsaStartTime > 10000) {
+          alsaRestartDelay = 5000;
+        } else {
+          alsaRestartDelay = Math.min(alsaRestartDelay * 2, 60000);
+        }
+        self.logger.info('VolumeController:: Restarting alsactl monitor in ' + (alsaRestartDelay / 1000) + 's');
+        setTimeout(monitorAlsaEvents, alsaRestartDelay);
       }
     });
 
@@ -360,6 +369,7 @@ function CoreVolumeController (commandRouter) {
     shouldMonitorAlsa = (mixertype === 'Hardware' && !volumeOverride && !volumescript.enabled);
 
     if (shouldMonitorAlsa) {
+      alsaRestartDelay = 5000;
       if (!alsaMonitorProcess)
         monitorAlsaEvents();
       else {
