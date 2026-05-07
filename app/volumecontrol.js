@@ -132,6 +132,9 @@ function CoreVolumeController (commandRouter) {
       pendingAlsaRead = false;
       var scheduleAnother = needsAnotherAlsaRead;
       needsAnotherAlsaRead = false;
+      if (pendingAmixerWrites > 0) {
+        return;
+      }
       if (err) {
         self.logger.error('VolumeController:: checkAndReportAlsaVolume error: ' + err);
       } else if (result.volume !== currentvolume || result.muted !== currentmute) {
