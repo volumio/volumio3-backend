@@ -23,6 +23,14 @@ var volumescript = { enabled: false, setvolumescript: '', getvolumescript: '' };
 var volumeOverride = false;
 var overridePluginType;
 var overridePluginName;
+var pendingAmixerWrites = 0;
+var needsAlsaSync = false;
+var pendingAlsaRead = false;
+var needsAnotherAlsaRead = false;
+var alsaMonitorProcess = null;
+var shouldMonitorAlsa = false;
+var alsaRestartDelay = 5000;
+var alsaStartTime = 0;
 
 module.exports = CoreVolumeController;
 function CoreVolumeController (commandRouter) {
@@ -76,7 +84,7 @@ function CoreVolumeController (commandRouter) {
   var amixer = function (args, cb) {
     var ret = '';
     var err = null;
-    var p = spawn('amixer', args, { uid: 1000, gid: 1000 });
+    var p = spawn('/usr/bin/amixer', args, { uid: 1000, gid: 1000 });
 
     p.stdout.on('data', function (data) {
       ret += data;
@@ -99,6 +107,100 @@ function CoreVolumeController (commandRouter) {
 
     p.on('close', function () {
       cb(err, ret.trim());
+    });
+  };
+
+  var amixerWrite = function (args, cb) {
+    pendingAmixerWrites++;
+    amixer(args, function (err) {
+      pendingAmixerWrites--;
+      if (pendingAmixerWrites === 0 && needsAlsaSync) {
+        needsAlsaSync = false;
+        checkAndReportAlsaVolume();
+      }
+      if (cb) cb(err);
+    });
+  };
+
+  var checkAndReportAlsaVolume = function () {
+    if (pendingAlsaRead) {
+      needsAnotherAlsaRead = true;
+      return;
+    }
+    pendingAlsaRead = true;
+    getInfo(function (err, result) {
+      pendingAlsaRead = false;
+      var scheduleAnother = needsAnotherAlsaRead;
+      needsAnotherAlsaRead = false;
+      if (pendingAmixerWrites > 0) {
+        return;
+      }
+      if (err) {
+        self.logger.error('VolumeController:: checkAndReportAlsaVolume error: ' + err);
+      } else if (result.volume !== currentvolume || result.muted !== currentmute) {
+        self.logger.info('VolumeController:: External volume change detected: vol=' + result.volume + ' mute=' + result.muted);
+        currentvolume = result.volume;
+        currentmute = result.muted;
+        Volume.vol = result.volume;
+        Volume.mute = result.muted;
+        Volume.disableVolumeControl = false;
+        self.commandRouter.volumioupdatevolume(Volume);
+      }
+      if (scheduleAnother) {
+        checkAndReportAlsaVolume();
+      }
+    });
+  };
+
+  var monitorAlsaEvents = function () {
+    if (alsaMonitorProcess) return;
+    if (!shouldMonitorAlsa) return;
+
+    alsaStartTime = Date.now();
+    var lineBuffer = '';
+
+    self.logger.info('VolumeController:: Starting alsactl monitor');
+    alsaMonitorProcess = spawn('/usr/sbin/alsactl', ['monitor'], { uid: 1000, gid: 1000 });
+
+    alsaMonitorProcess.stdout.on('data', function (data) {
+      lineBuffer += data.toString();
+      var lines = lineBuffer.split('\n');
+      lineBuffer = lines.pop();
+
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        var hwRe = new RegExp('\\bhw:' + device + '(?:,\\d+)?\\b');
+        if (hwRe.test(line) && shouldMonitorAlsa) {
+          if (pendingAmixerWrites > 0) {
+            needsAlsaSync = true;
+          } else {
+            checkAndReportAlsaVolume();
+          }
+        }
+      }
+    });
+
+    alsaMonitorProcess.stderr.on('data', function (data) {
+      self.logger.error('VolumeController:: alsactl monitor stderr: ' + data);
+    });
+
+    alsaMonitorProcess.on('close', function (code) {
+      self.logger.info('VolumeController:: alsactl monitor closed, code: ' + code);
+      alsaMonitorProcess = null;
+      if (code !== 0 && code !== null && shouldMonitorAlsa) {
+        if (Date.now() - alsaStartTime > 10000) {
+          alsaRestartDelay = 5000;
+        } else {
+          alsaRestartDelay = Math.min(alsaRestartDelay * 2, 60000);
+        }
+        self.logger.info('VolumeController:: Restarting alsactl monitor in ' + (alsaRestartDelay / 1000) + 's');
+        setTimeout(monitorAlsaEvents, alsaRestartDelay);
+      }
+    });
+
+    alsaMonitorProcess.on('error', function (err) {
+      self.logger.error('VolumeController:: alsactl monitor error: ' + err);
+      alsaMonitorProcess = null;
     });
   };
 
@@ -220,22 +322,22 @@ function CoreVolumeController (commandRouter) {
       }
     } else {
       if (volumecurve === 'logarithmic') {
-        amixer(['-M', 'set', '-c', device, mixer, 'unmute', val + '%'], function (err) {
+        amixerWrite(['-M', 'set', '-c', device, mixer, 'unmute', val + '%'], function (err) {
           cb(err);
         });
         if (devicename === 'PianoDACPlus' || devicename === 'Allo Piano 2.1' || devicename === 'PianoDACPlus multicodec-0') {
-          amixer(['-M', 'set', '-c', device, 'Subwoofer', 'unmute', val + '%'], function (err) {
+          amixerWrite(['-M', 'set', '-c', device, 'Subwoofer', 'unmute', val + '%'], function (err) {
             if (err) {
               self.logger.error('Cannot set ALSA Volume: ' + err);
             }
           });
         }
       } else {
-        amixer(['set', '-c', device, mixer, 'unmute', val + '%'], function (err) {
+        amixerWrite(['set', '-c', device, mixer, 'unmute', val + '%'], function (err) {
           cb(err);
         });
         if (devicename === 'PianoDACPlus' || devicename === 'Allo Piano 2.1' || devicename === 'PianoDACPlus multicodec-0') {
-          amixer(['set', '-c', device, 'Subwoofer', 'unmute', val + '%'], function (err) {
+          amixerWrite(['set', '-c', device, 'Subwoofer', 'unmute', val + '%'], function (err) {
             if (err) {
               self.logger.error('Cannot set ALSA Volume: ' + err);
             }
@@ -257,15 +359,33 @@ function CoreVolumeController (commandRouter) {
 
   self.setMuted = function (val, cb) {
     if (hasHWMute) {
-      amixer(['set', '-c', device, mixer, (val ? 'mute' : 'unmute')], function (err) {
+      amixerWrite(['set', '-c', device, mixer, (val ? 'mute' : 'unmute')], function (err) {
         cb(err);
       });
     } else {
-      amixer(['set', '-c', device, mixer, (val ? 0 : premutevolume)], function (err) {
+      amixerWrite(['set', '-c', device, mixer, (val ? 0 : premutevolume)], function (err) {
         cb(err);
       });
     }
   };
+
+  self.syncAlsaMonitor = function () {
+    shouldMonitorAlsa = (mixertype === 'Hardware' && !volumeOverride && !volumescript.enabled);
+
+    if (shouldMonitorAlsa) {
+      alsaRestartDelay = 5000;
+      if (!alsaMonitorProcess)
+        monitorAlsaEvents();
+      else {
+        alsaMonitorProcess.once('close', monitorAlsaEvents);
+        alsaMonitorProcess.kill();
+      }
+    } else if (alsaMonitorProcess) {
+      alsaMonitorProcess.kill();
+    }
+  };
+
+  self.syncAlsaMonitor();
 }
 
 CoreVolumeController.prototype.updateVolumeSettings = function (data) {
@@ -318,6 +438,8 @@ CoreVolumeController.prototype.updateVolumeSettings = function (data) {
     this.commandRouter.executeOnPlugin(overridePluginType, overridePluginName, 'updateVolumeSettings', data);
   }
 
+  self.syncAlsaMonitor();
+
   return self.retrievevolume();
 };
 
@@ -327,6 +449,7 @@ CoreVolumeController.prototype.updateVolumeScript = function (data) {
   if (data.setvolumescript !== undefined && data.getvolumescript !== undefined) {
     self.logger.info('Updating Volume script: ' + JSON.stringify(data));
     volumescript = data;
+    self.syncAlsaMonitor();
   }
 };
 
