@@ -100,13 +100,13 @@ ControllerNetwork.prototype.getUIConfig = function () {
       uiconf.sections[1].content[3].value = config.get('ethgateway');
 
       // Wireless
-      var wirelessenabled = self.getWirelessEnabled();
+      var wirelessenabled = config.get('wireless_enabled');
+      if (wirelessenabled == undefined) wirelessenabled = true;
       uiconf.sections[2].content[0].value = wirelessenabled;
 
       // dhcp
-
       if (config.get('wirelessdhcp') == undefined) {
-    	uiconf.sections[2].content[1].value = true;
+    	  uiconf.sections[2].content[1].value = true;
       } else {
         uiconf.sections[2].content[1].value = config.get('wirelessdhcp');
       }
@@ -466,6 +466,9 @@ ControllerNetwork.prototype.saveWirelessNet = function (data) {
       config.set('wirelessnetmask', static_netmask);
       config.set('wirelessgateway', static_gateway);
     }
+
+    // Write the config to disk so that wireless.js reads the latest version
+    config.save();
 
     self.rebuildNetworkConfig('wireless');
     self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('NETWORK.NETWORK_RESTART_TITLE'), self.commandRouter.getI18nString('NETWORK.NETWORK_RESTART_SUCCESS'));
@@ -1072,21 +1075,6 @@ ControllerNetwork.prototype.getHashedWPAPassphrase = function (ssid, passphrase)
   }
 
   return hashedWPAPassphrase;
-};
-
-ControllerNetwork.prototype.getWirelessEnabled = function () {
-  var self = this;
-
-  var wirelessenabled = false;
-  try {
-    var wirelessstatusraw = execSync('/bin/cat /sys/class/net/wlan0/flags', { uid: 1000, gid: 1000, encoding: 'utf8'});
-    var wirelessstatus = wirelessstatusraw.replace(/\r?\n/g, '');
-    if (wirelessstatus == '0x1003') {
-      wirelessenabled = true;
-    }
-  } catch (e) {}
-
-  return wirelessenabled;
 };
 
 ControllerNetwork.prototype.getEthernetSpeed = function () {
