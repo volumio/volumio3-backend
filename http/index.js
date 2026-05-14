@@ -20,6 +20,7 @@ var status = express();
 var plugindir = '/tmp/plugins';
 var backgrounddir = '/data/backgrounds';
 var newWizardDir = '/volumio/http/wizard';
+var ultraUIPath = '/volumio/http/ultraui';
 process.env.VOLUMIO_SYSTEM_STATUS = 'starting';
 
 var allowCrossDomain = function (req, res, next) {
@@ -53,6 +54,12 @@ if (fs.existsSync('/volumio/http/wizard')) {
   process.env.NEW_WIZARD = 'false';
 }
 
+if (fs.existsSync(ultraUIPath)) {
+  process.env.HAS_ULTRAUI = 'true';
+} else {
+  process.env.HAS_ULTRAUI = 'false';
+}
+
 try {
   var availableUIsConf = fs.readJsonSync(path.join('volumio', 'volumioUisList.json'));
   for (var i in availableUIsConf) {
@@ -79,8 +86,10 @@ try {
 } catch(e) {}
 
 app.use(function (req, res, next) {
-  var userAgent = req.get('user-agent');
-  if (process.env.SHOW_NEW_WIZARD === 'true') {
+  var userAgent = req.get('user-agent') || '';
+  if (userAgent.includes('ultraui') && process.env.HAS_ULTRAUI === 'true') {
+    express.static(ultraUIPath)(req, res, next);
+  } else if (process.env.SHOW_NEW_WIZARD === 'true') {
     express.static(newWizardDir)(req, res, next);
   } else {
     express.static(process.env.VOLUMIO_ACTIVE_UI_PATH)(req, res, next);
