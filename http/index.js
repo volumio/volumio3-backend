@@ -79,8 +79,15 @@ try {
 } catch(e) {}
 
 app.use(function (req, res, next) {
-  var userAgent = req.get('user-agent');
-  if (process.env.SHOW_NEW_WIZARD === 'true') {
+  var userAgent = req.get('user-agent') || '';
+  if (userAgent.indexOf('ultraui') !== -1) {
+    express.static('/volumio/http/ultraui', { fallthrough: false })(req, res, function (err) {
+      if (err && err.statusCode === 404 && req.method === 'GET' && req.accepts('html')) {
+        return res.sendFile('/volumio/http/ultraui/index.html');
+      }
+      next(err);
+    });
+  } else if (process.env.SHOW_NEW_WIZARD === 'true') {
     express.static(newWizardDir)(req, res, next);
   } else {
     express.static(process.env.VOLUMIO_ACTIVE_UI_PATH)(req, res, next);
