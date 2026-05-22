@@ -222,7 +222,10 @@ ControllerVolumioDiscovery.prototype.startMDNSBrowse = function () {
 
     self.browser.on('error', function (error) {
       self.context.coreCommand.pushConsoleMessage('Discovery: Browse raised the following error ' + error);
-      self.restartBrowse();
+      // FIXME: This breaks the Bonjour Compliance Test
+      // Under the BCT test conditions, this is spamming DBus connections and reaching the limit for the user,
+      // causing services that rely on DBus to restart. If Avahi restarts during the BCT "chattiness test" we fail.
+      // self.restartBrowse();
     });
     self.browser.on('serviceUp', function (service) {
       if (registeredUUIDs.indexOf(service.txtRecord.UUID) > -1) {
