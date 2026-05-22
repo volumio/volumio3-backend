@@ -241,7 +241,9 @@ ControllerNetwork.prototype.getWirelessNetworks = function (defer) {
     iwlist.scan('wlan0', function (err, networks) {
       var self = this;
 
-      if (err) {
+      if (err && err.toString().indexOf("Device or resource busy") > -1 ) {
+        defer.resolve(wirelessNetworksScanCache);
+      } else if (err) {
         exself.logger.error('An error occurred while scanning: ' + err);
         exself.logger.info('Cannot use regular scanning, forcing with ap-force');
         var networksarray = [];
