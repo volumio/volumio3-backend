@@ -936,7 +936,7 @@ CoreCommandRouter.prototype.restorePlaylist = function (req) {
     for (var i = 0; i < backup.length; i++) {
       var name = backup[i].name;
       var songs = backup[i].content;
-      fs.outputJsonSync(path + name, songs);
+      self.playListManager.saveJSONFile(path, name, songs);
     }
   } else if (req.type == 'favourites' || req.type == 'radio-favourites' ||
 		req.type == 'my-web-radio') {
@@ -948,7 +948,7 @@ CoreCommandRouter.prototype.restorePlaylist = function (req) {
       self.logger.info('Backup: no existing playlist for selected category');
     }
     self.logger.info('Backup: restoring ' + req.type + '!');
-    fs.outputJsonSync(path, backup);
+    self.playListManager.saveJSONFile(self.playListManager.favouritesPlaylistFolder, req.type, backup);
   } else { self.logger.info('Backup: impossible to restore data'); }
 };
 
