@@ -570,15 +570,17 @@ PlaylistManager.prototype.commonAddToPlaylist = function (folder, name, service,
         var explodedUri = self.commandRouter.executeOnPlugin('music_service', service, 'explodeUri', uri);
         explodedUri.then(function (info) {
           var entries = [];
-          var track = info[0];
-          entries.push({
-            service: service,
-            uri: uri,
-            title: track.name,
-            artist: track.artist,
-            album: track.album,
-            albumart: track.albumart
-          });
+          for (var i = 0; i < info.length; i++) {
+            var track = info[i];
+            entries.push({
+              service: service,
+              uri: track.uri || uri,
+              title: track.name,
+              artist: track.artist,
+              album: track.album,
+              albumart: track.albumart
+            });
+          }
           fs.readJson(filePath, function (err, data) {
             if (err) { defer.resolve({success: false}); } else {
               if (!data) { data = []; }
