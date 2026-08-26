@@ -369,7 +369,8 @@
         "UNINSTALLING_PLUGIN": "Uninstalling plugin",
         "UNPACKING_PLUGIN": "Unpacking plugin",
         "UPDATING_PLUGIN": "Updating Plugin",
-        "UPDATING_PLUGIN_FILES": "Updating plugin files"
+        "UPDATING_PLUGIN_FILES": "Updating plugin files",
+        "WAITING_FOR_RUNNING_INSTALL": "Another plugin is being installed, this one starts as soon as that finishes"
     },
     "SYSTEM": {
         "ALLOW_UI_STATISTICS": "Allow UI Statistics collection",
