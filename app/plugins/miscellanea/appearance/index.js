@@ -172,6 +172,18 @@ volumioAppearance.prototype.getUiSettings = function () {
     var UiSettings = {'color': background_color, 'language': language, 'theme': theme};
   }
 
+  // Web UI look, shared by every client of this device (see setUiTheme).
+  // Only present once a client has saved one, so older UIs see the exact
+  // payload they always did.
+  var uiTheme = config.get('ui_theme');
+  if (uiTheme !== undefined) {
+    UiSettings.uiTheme = uiTheme;
+  }
+  var uiAccent = config.get('ui_accent');
+  if (uiAccent !== undefined) {
+    UiSettings.uiAccent = uiAccent;
+  }
+
   defer.resolve(UiSettings);
   return defer.promise;
 };
@@ -314,6 +326,41 @@ volumioAppearance.prototype.setBackgrounds = function (data) {
   }
 
   return ('Done');
+};
+
+/**
+ * Persist the web UI look chosen on one client so every client of this device
+ * paints the same: the on-device display, the browser and the mobile app's
+ * WebView each keep their own localStorage, so without this a theme picked in
+ * the app never reached the device's screen.
+ *
+ * data.theme: 'dark' | 'light' | 'system'; data.accent: 'auto' | 'default' | 'red'.
+ * Either may be omitted; unknown values are ignored. Broadcasts pushUiSettings
+ * (with the new uiTheme / uiAccent keys) to all connected clients.
+ */
+volumioAppearance.prototype.setUiTheme = function (data) {
+  var self = this;
+  var themes = ['dark', 'light', 'system'];
+  var accents = ['auto', 'default', 'red'];
+  var changed = false;
+
+  if (data && themes.indexOf(data.theme) !== -1) {
+    config.set('ui_theme', data.theme);
+    changed = true;
+  }
+  if (data && accents.indexOf(data.accent) !== -1) {
+    config.set('ui_accent', data.accent);
+    changed = true;
+  }
+  if (!changed) {
+    self.logger.warn('setUiTheme: ignoring payload without a valid theme or accent');
+    return libQ.resolve();
+  }
+
+  return self.getUiSettings().then(function (settings) {
+    self.commandRouter.broadcastMessage('pushUiSettings', settings);
+    return settings;
+  });
 };
 
 volumioAppearance.prototype.setLanguage = function (data) {

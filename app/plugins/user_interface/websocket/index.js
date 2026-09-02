@@ -1579,6 +1579,14 @@ function InterfaceWebUI (context) {
       } else self.logger.error('Cannot set UI Settings');
     });
 
+    connWebSocket.on('setUiTheme', function (data) {
+      // The plugin broadcasts pushUiSettings itself, to every client: the
+      // point of this event is that the other screens follow.
+      var returnedData = self.commandRouter.executeOnPlugin('miscellanea', 'appearance', 'setUiTheme', data);
+
+      if (returnedData == undefined) self.logger.error('Cannot set UI theme');
+    });
+
     connWebSocket.on('deleteBackground', function (data) {
       var selfConnWebSocket = this;
 
