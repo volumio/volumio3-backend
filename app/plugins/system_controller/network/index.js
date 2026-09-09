@@ -248,7 +248,7 @@ ControllerNetwork.prototype.getWirelessNetworks = function (defer) {
         var arraynumber = 0;
 
         try {
-          var wirelessnets = execSync('/usr/bin/sudo /sbin/iw dev wlan0 scan ap-force', {encoding: 'utf8'});
+          var wirelessnets = execSync('/usr/bin/sudo /sbin/iw dev wlan0 scan ap-force', {encoding: 'utf8', timeout: 15000});
 
           var wirelessnets2 = wirelessnets.split('(on wlan0)');
           for (var i = 0; i < wirelessnets2.length; i++) {
