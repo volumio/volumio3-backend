@@ -85,7 +85,6 @@ describe('ControllerAlsa::usbAudioAttach', function () {
 
     controller.saved = [];
     controller.toasts = [];
-    controller.noAudioOutputDetected = options.noAudioOutputDetected || false;
     controller.config = { get: (key, fallback) => (key in settings ? settings[key] : fallback) };
     controller.getAlsaCards = () => (options.cards || []);
     controller.saveAlsaOptions = (data) => controller.saved.push(data);
@@ -98,24 +97,7 @@ describe('ControllerAlsa::usbAudioAttach', function () {
     return controller;
   }
 
-  it('adopts a DAC plugged into a unit that had no output at all', function () {
-    const controller = makeAttachController({
-      settings: { outputdevice: '0' }, // never touched since the unit had nothing
-      cards: [USB_CARD],
-      noAudioOutputDetected: true
-    });
-
-    controller.usbAudioAttach();
-
-    assert.strictEqual(controller.saved.length, 1);
-    assert.strictEqual(controller.saved[0].output_device.value, '5');
-    assert.strictEqual(controller.saved[0].output_device.label, 'USB Audio Device');
-    assert.strictEqual(controller.toasts.length, 1);
-    // Adopted: a second attach must not override a deliberate later choice.
-    assert.strictEqual(controller.noAudioOutputDetected, false);
-  });
-
-  it('still adopts a DAC when USB is already the configured output', function () {
+  it('selects the DAC when USB is the configured output', function () {
     const controller = makeAttachController({
       settings: { outputdevice: '5' },
       cards: [USB_CARD]
@@ -124,11 +106,12 @@ describe('ControllerAlsa::usbAudioAttach', function () {
     controller.usbAudioAttach();
 
     assert.strictEqual(controller.saved.length, 1);
+    assert.strictEqual(controller.saved[0].output_device.value, '5');
   });
 
-  it('leaves a configured non-USB output alone', function () {
+  it('never changes the output a user chose for themselves', function () {
     const controller = makeAttachController({
-      settings: { outputdevice: '0' }, // a working I2S/HDMI card the user chose
+      settings: { outputdevice: '0' }, // an I2S/HDMI card, or a unit with none
       cards: [{ id: '0', alsacard: 'sndrpihifiberry', name: 'HifiBerry DAC+' }, USB_CARD]
     });
 
@@ -136,18 +119,6 @@ describe('ControllerAlsa::usbAudioAttach', function () {
 
     assert.strictEqual(controller.saved.length, 0);
     assert.strictEqual(controller.toasts.length, 0);
-  });
-
-  it('does nothing when usb hotplug is switched off', function () {
-    const controller = makeAttachController({
-      settings: { outputdevice: '0', usb_hotplug: false },
-      cards: [USB_CARD],
-      noAudioOutputDetected: true
-    });
-
-    controller.usbAudioAttach();
-
-    assert.strictEqual(controller.saved.length, 0);
   });
 
   it('does not throw when the attach fires but no card 5 is present', function () {
@@ -158,41 +129,6 @@ describe('ControllerAlsa::usbAudioAttach', function () {
 
     assert.doesNotThrow(() => controller.usbAudioAttach());
     assert.strictEqual(controller.saved.length, 0);
-  });
-});
-
-describe('ControllerAlsa::checkAudioDeviceAvailable', function () {
-  function makeCheckController (cards) {
-    const controller = makeController();
-    controller.config = { get: () => undefined };
-    controller.getAlsaCards = () => cards;
-    controller.commandRouter = {
-      getI18nString: (key) => key,
-      broadcastMessage: () => {},
-      executeOnPlugin: () => undefined
-    };
-    return controller;
-  }
-
-  it('remembers that the unit has no output', function () {
-    const controller = makeCheckController([]);
-
-    controller.checkAudioDeviceAvailable();
-
-    assert.strictEqual(controller.noAudioOutputDetected, true);
-  });
-
-  it('forgets it again once a card is present', function () {
-    const controller = makeCheckController([{ id: '5', alsacard: 'Device', name: 'USB Audio Device' }]);
-    controller.noAudioOutputDetected = true;
-
-    controller.checkAudioDeviceAvailable();
-
-    assert.strictEqual(controller.noAudioOutputDetected, false);
-  });
-
-  it('starts out assuming an output is present', function () {
-    assert.strictEqual(makeController().noAudioOutputDetected, false);
   });
 });
 
