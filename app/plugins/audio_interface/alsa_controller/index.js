@@ -1269,6 +1269,22 @@ ControllerAlsa.prototype.getMixerControls = function (device) {
   return mixers;
 };
 
+ControllerAlsa.prototype.getExtendedCards = function () {
+  var extendedCards = [];
+  try {
+    extendedCards = fs.readJsonSync(('/volumio/app/plugins/audio_interface/alsa_controller/extendedOutputDevices.json'), 'utf8', {throws: false});
+  } catch (e) {}
+  if (!Array.isArray(extendedCards)) {
+    return [];
+  }
+
+  return extendedCards.map(card => {
+    var outputs = card.extendedAudioOutputInfos;
+    var digitalOnly = Array.isArray(outputs) && outputs.length > 0 && outputs.every(output => output.hasVolumeControl === false);
+    return Object.assign({ignoreGenmixer: digitalOnly}, card);
+  });
+};
+
 ControllerAlsa.prototype.setDefaultMixer = function (device) {
   var self = this;
 
@@ -1278,6 +1294,7 @@ ControllerAlsa.prototype.setDefaultMixer = function (device) {
   var match = '';
   var mixertpye = '';
   var carddata = fs.readJsonSync(('/volumio/app/plugins/audio_interface/alsa_controller/cards.json'), 'utf8', {throws: false});
+  carddata.cards = self.getExtendedCards().concat(carddata.cards);
   var cards = self.getAlsaCards();
   var outputdevice = self.config.get('outputdevice');
   var ignoreGenMixers = false;
