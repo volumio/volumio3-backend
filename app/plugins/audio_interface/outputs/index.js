@@ -103,6 +103,16 @@ outputs.prototype.addAudioOutput = function (data) {
   self.logger.info('Adding audio output: ', new_output.id);
 
   if (new_output.id && new_output.name && new_output.type) {
+    // Without a "<category>/<plugin>" path there is nobody to enable, disable
+    // or set the volume of this output: every one of those methods resolves
+    // the owner through it. Refusing here keeps an unusable entry out of the
+    // list instead of letting it sit there as a trap for the frontends.
+    if (!self.parsePluginPath(new_output.plugin)) {
+      self.logger.error("Audio Outputs: can't add new output " + new_output.id +
+        ', because its plugin field is missing or malformed: ' + new_output.plugin);
+      return;
+    }
+
     let i = self.checkElement(new_output.id);
 
     if (i < 0) {
@@ -188,6 +198,51 @@ outputs.prototype.checkElement = function (id) {
 };
 
 /**
+ * This function splits an output's "<category>/<plugin>" path into the pair
+ * executeOnPlugin expects.
+ * @param path: the output's plugin field
+ * @returns {{type: string, name: string}} or null when the path is unusable
+ */
+outputs.prototype.parsePluginPath = function (path) {
+  if (typeof path !== 'string') { return null; }
+
+  let parts = path.split('/');
+
+  if (parts.length < 2 || parts[0] === '' || parts[1] === '') { return null; }
+
+  return { type: parts[0], name: parts[1] };
+};
+
+/**
+ * This function finds the plugin owning the output at a given position, as
+ * returned by checkElement. Callers must treat null as "cannot act on this
+ * output": a plugin can register a malformed entry, and a thrown TypeError in
+ * here reaches a socket.io handler uncaught and takes the whole backend down.
+ * @param position: the 1-based position returned by checkElement
+ * @param action: what the caller was trying to do, for the log line
+ * @returns {{type: string, name: string}} or null
+ */
+outputs.prototype.getOutputPlugin = function (position, action) {
+  let self = this;
+
+  let output = self.output.availableOutputs[position - 1];
+
+  let plugin = self.parsePluginPath(output ? output.plugin : undefined);
+
+  if (!plugin) {
+    let id = output ? output.id : 'unknown';
+
+    self.logger.error('Could not ' + action + ' audio output: ' + id +
+			' was registered without a valid plugin field');
+
+    self.commandRouter.pushToastMessage('error', 'plugin output failure',
+      'Could not ' + action + ' audio output: ' + id);
+  }
+
+  return plugin;
+};
+
+/**
  * This function broadcasts the outputs list
  */
 outputs.prototype.pushAudioOutputs = function (data) {
@@ -225,11 +280,13 @@ outputs.prototype.enableAudioOutput = function (data) {
     let i = self.checkElement(data.id);
 
     if (i >= 0) {
-      let path = self.output.availableOutputs[i - 1].plugin;
+      let plugin = self.getOutputPlugin(i, 'enable');
 
-      let type = path.split('/')[0];
+      if (!plugin) { return; }
 
-      let name = path.split('/')[1];
+      let type = plugin.type;
+
+      let name = plugin.name;
 
       var enableOutput = self.commandRouter.executeOnPlugin(type, name, 'enableAudioOutput', data);
       if (enableOutput !== undefined) {
@@ -263,11 +320,13 @@ outputs.prototype.disableAudioOutput = function (data) {
     let i = self.checkElement(data.id);
 
     if (i >= 0) {
-      let path = self.output.availableOutputs[i - 1].plugin;
+      let plugin = self.getOutputPlugin(i, 'disable');
 
-      let type = path.split('/')[0];
+      if (!plugin) { return; }
 
-      let name = path.split('/')[1];
+      let type = plugin.type;
+
+      let name = plugin.name;
 
       self.commandRouter.executeOnPlugin(type, name, 'disableAudioOutput', data)
         .then(function () {
@@ -304,11 +363,13 @@ outputs.prototype.setAudioOutputVolume = function (data) {
       let i = self.checkElement(data.id);
 
       if (i >= 0) {
-        let path = self.output.availableOutputs[i - 1].plugin;
+        let plugin = self.getOutputPlugin(i, 'set the volume of');
 
-        let type = path.split('/')[0];
+        if (!plugin) { return; }
 
-        let name = path.split('/')[1];
+        let type = plugin.type;
+
+        let name = plugin.name;
 
         self.commandRouter.executeOnPlugin(type, name, 'setAudioOutputVolume', data)
           .then(function () {
@@ -357,11 +418,13 @@ outputs.prototype.audioOutputPlay = function (data) {
       let i = self.checkElement(data.id);
 
     if (i >= 0) {
-      let path = self.output.availableOutputs[i - 1].plugin;
+      let plugin = self.getOutputPlugin(i, 'play');
 
-      let type = path.split('/')[0];
+      if (!plugin) { return; }
 
-      let name = path.split('/')[1];
+      let type = plugin.type;
+
+      let name = plugin.name;
 
       self.commandRouter.executeOnPlugin(type, name, 'audioOutputPlay', data)
         .then(function () {
@@ -407,11 +470,13 @@ outputs.prototype.audioOutputPause = function (data) {
     let i = self.checkElement(data.id);
 
     if (i >= 0) {
-      let path = self.output.availableOutputs[i - 1].plugin;
+      let plugin = self.getOutputPlugin(i, 'pause');
 
-      let type = path.split('/')[0];
+      if (!plugin) { return; }
 
-      let name = path.split('/')[1];
+      let type = plugin.type;
+
+      let name = plugin.name;
 
       self.commandRouter.executeOnPlugin(type, name, 'audioOutputPause', data)
         .then(function () {
