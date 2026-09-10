@@ -2072,10 +2072,32 @@ function InterfaceWebUI (context) {
       });
     });
 
+    // Broadcast, not an answer to the asking socket: changing the update
+    // channel changes it for the device, so every client showing it is now
+    // wrong. Nothing used to be emitted at all — not even back to the caller —
+    // so a UI learnt the new channel only by asking again at its next
+    // reconnect, and Nova's channel-aware update check went on reading the old
+    // channel's manifest until then.
+    //
+    // After the set resolves, never before: setUpdaterChannel writes the flag
+    // file through exec, so reading the channel back any earlier races the
+    // write and broadcasts the value that is on its way out.
     connWebSocket.on('setUpdaterChannel', function (data) {
-      var selfConnWebSocket = this;
+      var setChannel = self.commandRouter.executeOnPlugin('system_controller', 'system', 'setUpdaterChannel', data);
 
-      self.commandRouter.executeOnPlugin('system_controller', 'system', 'setUpdaterChannel', data);
+      if (setChannel === undefined) {
+        return;
+      }
+
+      setChannel.then(function () {
+        return self.commandRouter.executeOnPlugin('system_controller', 'system', 'getUpdaterChannel', '');
+      }).then(function (updaterChannel) {
+        if (updaterChannel !== undefined) {
+          self.libSocketIO.emit('pushUpdaterChannel', updaterChannel);
+        }
+      }).fail(function (error) {
+        self.logger.error('Cannot broadcast the updater channel: ' + error);
+      });
     });
   });
 }
