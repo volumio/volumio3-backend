@@ -712,8 +712,10 @@ ControllerSystem.prototype.setUpdaterChannel = function (channel) {
       exec('rm -f /data/test /data/alpha', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
         if (error !== null) {
           self.logger.error('Cannot set stable updater channel: ' + error);
+          defer.reject(error);
         } else {
           self.logger.info('Updater channel set to stable');
+          defer.resolve('stable');
         }
       });
       break;
@@ -721,8 +723,10 @@ ControllerSystem.prototype.setUpdaterChannel = function (channel) {
       exec('rm -f /data/alpha && touch /data/test', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
         if (error !== null) {
           self.logger.error('Cannot set test updater channel: ' + error);
+          defer.reject(error);
         } else {
           self.logger.info('Updater channel set to test');
+          defer.resolve('test');
         }
       });
       break;
@@ -730,8 +734,10 @@ ControllerSystem.prototype.setUpdaterChannel = function (channel) {
       exec('rm -f /data/test && touch /data/alpha', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
         if (error !== null) {
           self.logger.error('Cannot set alpha updater channel: ' + error);
+          defer.reject(error);
         } else {
           self.logger.info('Updater channel set to alpha');
+          defer.resolve('alpha');
         }
       });
       break;
@@ -740,11 +746,19 @@ ControllerSystem.prototype.setUpdaterChannel = function (channel) {
       exec('rm -f /data/test /data/alpha', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
         if (error !== null) {
           self.logger.error('Cannot set stable updater channel: ' + error);
+          defer.reject(error);
         } else {
           self.logger.info('Updater channel set to stable');
+          defer.resolve('stable');
         }
       });
   }
+
+  // The defer was already here and nothing ever settled or returned it. It is
+  // returned now because a caller has to know when the flag file is actually
+  // on disk: exec is asynchronous, so reading the channel back any earlier
+  // races the write (websocket/index.js broadcasts the new channel on this).
+  return defer.promise;
 };
 
 ControllerSystem.prototype.getAvailableUpdaterChannels = function () {
