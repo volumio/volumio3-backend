@@ -1940,6 +1940,11 @@ ControllerAlsa.prototype.usbAudioAttach = function () {
   if (usbHotplug && !ignoreUsbAudioAttach && outdev === '5') {
     var cards = self.getAlsaCards();
     var usbCard = self.getCardByAlsaCardNumber(cards, 5);
+    if (usbCard === null) {
+      // Attach/detach race, or a capture-only device: nothing to select.
+      self.logger.info('ControllerAlsa::usbAudioAttach found no playback card 5, ignoring the attach');
+      return;
+    }
     var usbData = {'disallowPush': true, 'output_device': {'value': '5', 'label': usbCard.name, 'alsacard': usbCard.alsacard}, 'i2s': false};
     self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('PLAYBACK_OPTIONS.USB_DAC_CONNECTED'), usbCard.name);
     self.commandRouter.closeModals();
@@ -1955,6 +1960,25 @@ ControllerAlsa.prototype.usbAudioDetach = function () {
 
   if (!ignoreUsbAudioDetach) {
     self.checkAudioDeviceAvailable();
+  }
+};
+
+// Cheap synchronous probe for "does this unit have any ALSA card at all".
+// Deliberately does not go through getAlsaCards(), which shells out to
+// `aplay -l` and reads three JSON files: this one is called on every play.
+ControllerAlsa.prototype.hasAudioOutput = function (cardsPath) {
+  var self = this;
+
+  try {
+    var cards = fs.readFileSync(cardsPath || '/proc/asound/cards', 'utf8');
+    // A registered card is a line starting with its index, e.g.
+    // " 0 [sndrpihifiberry]: ...". With none, the kernel writes
+    // "--- no soundcards ---".
+    return /^\s*\d+\s/m.test(cards);
+  } catch (e) {
+    self.logger.warn('ControllerAlsa::hasAudioOutput could not read the cards file, assuming an output is present: ' + e);
+    // Fail open: a broken probe must never stop a working unit from playing.
+    return true;
   }
 };
 
