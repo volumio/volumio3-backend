@@ -1266,6 +1266,10 @@ ControllerAlsa.prototype.getMixerControls = function (device) {
         mixers = [];
   }
 
+  if (self.getExtendedCards().some(card => card.prettyname === outdevicename && card.ignoreGenmixer === true)) {
+    mixers = [];
+  }
+
   return mixers;
 };
 
