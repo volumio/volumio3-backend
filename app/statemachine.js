@@ -916,6 +916,7 @@ CoreStateMachine.prototype.syncState = function (stateService, sService) {
          */
 
     if (this.currentStatus === 'play') {
+      this.currentStatus = 'pause';
       if (this.isConsume) {
         this.consumeState.status = 'pause';
         this.pushState().fail(this.pushError.bind(this));
