@@ -833,7 +833,6 @@ ControllerNetwork.prototype.rebuildNetworkConfig = function (networkInterfaceToR
         staticconf.write('option ntp_servers\n');
         staticconf.write('require dhcp_server_identifier\n');
         staticconf.write('slaac private\n');
-        staticconf.write('noipv4ll\n');
         staticconf.write('nohook lookup-hostname\n');
         staticconf.write('\n');
 
