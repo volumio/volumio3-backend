@@ -276,6 +276,7 @@ volumioWizard.prototype.openWizard = function () {
   if (process.env.NEW_WIZARD === 'true') {
     process.env.SHOW_NEW_WIZARD = 'true';
     self.commandRouter.reloadUi();
+    self.commandRouter.broadcastMessage('openWizard', '');
   }
 };
 
