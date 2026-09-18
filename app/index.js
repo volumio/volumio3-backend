@@ -16,7 +16,7 @@ function CoreCommandRouter (server) {
   this.logger = winston.createLogger({
     format: winston.format.simple(),
     transports: [
-      new (winston.transports.Console)({level: 'verbose'})
+      new (winston.transports.Console)({level: 'debug'})
     ]
   });
 
