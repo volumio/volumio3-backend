@@ -1266,7 +1266,9 @@ ControllerAlsa.prototype.getMixerControls = function (device) {
         mixers = [];
   }
 
-  if (self.getExtendedCards().some(card => card.prettyname === outdevicename && card.ignoreGenmixer === true)) {
+  var extendedCardName = typeof outdevicename === 'string' ? outdevicename.trim().toLowerCase() : '';
+  if (extendedCardName.length && self.getExtendedCards().some(card => card && typeof card.prettyname === 'string' &&
+    card.prettyname.trim().toLowerCase() === extendedCardName && String(card.ignoreGenmixer).toLowerCase() === 'true')) {
     mixers = [];
   }
 
@@ -1283,8 +1285,11 @@ ControllerAlsa.prototype.getExtendedCards = function () {
   }
 
   return extendedCards.map(card => {
+    if (card === null || typeof card !== 'object') {
+      return {ignoreGenmixer: false};
+    }
     var outputs = card.extendedAudioOutputInfos;
-    var digitalOnly = Array.isArray(outputs) && outputs.length > 0 && outputs.every(output => output.hasVolumeControl === false);
+    var digitalOnly = Array.isArray(outputs) && outputs.length > 0 && outputs.every(output => output && output.hasVolumeControl === false);
     return Object.assign({ignoreGenmixer: digitalOnly}, card);
   });
 };
