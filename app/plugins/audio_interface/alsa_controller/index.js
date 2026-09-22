@@ -1106,8 +1106,7 @@ ControllerAlsa.prototype.getAlsaCards = function () {
   }
 
   try {
-    var extendedCardsInfo = fs.readJsonSync(('/volumio/app/plugins/audio_interface/alsa_controller/extendedOutputDevices.json'), 'utf8', {throws: false});
-      carddata.cards = extendedCardsInfo.concat(carddata.cards);
+    carddata.cards = self.getExtendedCards().concat(carddata.cards);
   } catch (e) {}
 
   try {
@@ -1266,9 +1265,7 @@ ControllerAlsa.prototype.getMixerControls = function (device) {
         mixers = [];
   }
 
-  var extendedCardName = typeof outdevicename === 'string' ? outdevicename.trim().toLowerCase() : '';
-  if (extendedCardName.length && self.getExtendedCards().some(card => card && typeof card.prettyname === 'string' &&
-    card.prettyname.trim().toLowerCase() === extendedCardName && String(card.ignoreGenmixer).toLowerCase() === 'true')) {
+  if (self.isDeviceDigitalOnly(outdevicename)) {
     mixers = [];
   }
 
@@ -1284,14 +1281,29 @@ ControllerAlsa.prototype.getExtendedCards = function () {
     return [];
   }
 
-  return extendedCards.map(card => {
-    if (card === null || typeof card !== 'object') {
-      return {ignoreGenmixer: false};
-    }
+  return extendedCards.filter(card => card !== null && typeof card === 'object' && !Array.isArray(card)).map(card => {
     var outputs = card.extendedAudioOutputInfos;
     var digitalOnly = Array.isArray(outputs) && outputs.length > 0 && outputs.every(output => output && output.hasVolumeControl === false);
-    return Object.assign({ignoreGenmixer: digitalOnly}, card);
+    if (card.ignoreGenmixer !== undefined) {
+      digitalOnly = String(card.ignoreGenmixer).toLowerCase() === 'true';
+    }
+    return Object.assign({}, card, {ignoreGenmixer: digitalOnly});
   });
+};
+
+// Single source of truth for "this card carries no hardware volume control":
+// getMixerControls and setDefaultMixer must agree, or the saved mixer_type ends
+// up absent from the list of mixer types the UI offers.
+ControllerAlsa.prototype.isDeviceDigitalOnly = function (cardname) {
+  var self = this;
+
+  if (typeof cardname !== 'string' || !cardname.trim().length) {
+    return false;
+  }
+  var name = cardname.trim();
+
+  return self.getExtendedCards().some(card => card.ignoreGenmixer === true &&
+    card.prettyname !== undefined && card.prettyname !== null && card.prettyname.toString().trim() === name);
 };
 
 ControllerAlsa.prototype.setDefaultMixer = function (device) {
@@ -1365,6 +1377,12 @@ ControllerAlsa.prototype.setDefaultMixer = function (device) {
   }
   if (volumioDeviceName === 'primo' && device === '1,1') {
     defaultmixer = '';
+  }
+
+  if (self.isDeviceDigitalOnly(currentcardname)) {
+    self.logger.info('Card ' + currentcardname + ' is declared digital only: ignoring default Mixer');
+    defaultmixer = '';
+    ignoreGenMixers = true;
   }
 
   if (defaultmixer) {
@@ -2400,8 +2418,7 @@ ControllerAlsa.prototype.getExtendedOutputDevices = function () {
 
     var carddata = fs.readJsonSync(('/volumio/app/plugins/audio_interface/alsa_controller/cards.json'), 'utf8', {throws: false});
     try {
-      var extendedCardsInfo = fs.readJsonSync(('/volumio/app/plugins/audio_interface/alsa_controller/extendedOutputDevices.json'), 'utf8', {throws: false});
-      carddata.cards = extendedCardsInfo.concat(carddata.cards);
+      carddata.cards = self.getExtendedCards().concat(carddata.cards);
     } catch (e) {}
 
     var outputDevices = self.getAudioDevices();
