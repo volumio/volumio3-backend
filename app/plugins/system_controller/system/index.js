@@ -83,6 +83,7 @@ ControllerSystem.prototype.onStart = function () {
   self.callHome();
   self.initializeFirstStart();
   self.loadDefaultAdditionalDeviceVolumioProperties();
+  self.leaveLockedAlphaChannel();
 
   defer.resolve('OK')
   return defer.promise;
@@ -703,9 +704,31 @@ ControllerSystem.prototype.getCurrentUpdaterChannel = function (data) {
   return defer.promise;
 };
 
+// Internal only: alpha is offered when ALPHA_CHANNEL_TOKEN in .env hashes to this.
+var ALPHA_CHANNEL_TOKEN_SHA256 = 'c37f9cb34d2d49e0ff8f13ea438fe45cd0b7d7f158f93364e0eb13c0b3617a85';
+
+ControllerSystem.prototype.isAlphaChannelUnlocked = function () {
+  var token = (process.env.ALPHA_CHANNEL_TOKEN || '').trim();
+  return token !== '' && crypto.createHash('sha256').update(token).digest('hex') === ALPHA_CHANNEL_TOKEN_SHA256;
+};
+
+ControllerSystem.prototype.leaveLockedAlphaChannel = function () {
+  var self = this;
+
+  if (fs.existsSync('/data/alpha') && !self.isAlphaChannelUnlocked()) {
+    self.logger.info('Alpha updater channel is locked, moving this device to test');
+    self.setUpdaterChannel('test');
+  }
+};
+
 ControllerSystem.prototype.setUpdaterChannel = function (channel) {
   var self = this;
   var defer = libQ.defer();
+
+  if (channel === 'alpha' && !self.isAlphaChannelUnlocked()) {
+    self.logger.error('Alpha updater channel is locked, setting to test');
+    channel = 'test';
+  }
 
   switch (channel) {
     case 'stable':
@@ -766,7 +789,7 @@ ControllerSystem.prototype.getAvailableUpdaterChannels = function () {
   var defer = libQ.defer();
 
   self.getSystemVersion().then(function (infos) {
-    if (infos && infos.os !== undefined && parseInt(infos.os) >= 12) {
+    if (infos && infos.os !== undefined && parseInt(infos.os) >= 12 && self.isAlphaChannelUnlocked()) {
       var availableChannels = ['stable', 'test', 'alpha'];
     } else {
       var availableChannels = ['stable', 'test'];
