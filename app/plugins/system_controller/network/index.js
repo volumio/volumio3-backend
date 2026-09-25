@@ -543,6 +543,58 @@ ControllerNetwork.prototype.saveWirelessNetworkSettings = function (data) {
   self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('NETWORK.WIRELESS_RESTART_TITLE'), self.commandRouter.getI18nString('NETWORK.WIRELESS_RESTART_SUCCESS'));
 };
 
+ControllerNetwork.prototype.forgetWirelessNetwork = function (data) {
+  var self = this;
+  var defer = libQ.defer();
+  var ssid = data && data['ssid'];
+
+  if (!ssid) {
+    self.logger.error('Could not forget Wifi Network, no SSID specified');
+    defer.resolve({'status': 'failed', 'ssid': ssid});
+    return defer.promise;
+  }
+
+  var index = self.searchNetworkInConfig(ssid);
+  if (index < 0) {
+    self.logger.info('Wifi Network ' + ssid + ' is not saved, nothing to forget');
+    defer.resolve({'status': 'forgotten', 'ssid': ssid});
+    return defer.promise;
+  }
+
+  self.logger.info('Forgetting wireless network ' + ssid);
+
+  // v-conf cannot delete an array item, so remove the network from both arrays in place to keep them aligned.
+  config.data['wirelessNetworksSSID'].value.splice(index, 1);
+  if (config.has('wirelessNetworksPASSWD')) {
+    config.data['wirelessNetworksPASSWD'].value.splice(index, 1);
+  }
+  // Save now: the device gateway reads the saved networks straight from the config file.
+  config.scheduleSave();
+  config.save();
+
+  self.getWirelessInfo().then(function (info) {
+    var netstring = 'ctrl_interface=/var/run/wpa_supplicant' + os.EOL;
+    var current = {};
+
+    // Keep the connected network as the preferred one, as wirelessConnect does.
+    var currentIndex = info.connected ? self.searchNetworkInConfig(info.ssid) : -1;
+    if (currentIndex > -1) {
+      current = {ssid: info.ssid};
+      netstring += self.getNetworkWpaSupplicantEntry(info.ssid, config.get('wirelessNetworksPASSWD[' + currentIndex + ']'), 2);
+    }
+
+    // Do not restart wireless: it would also restart the hotspot the client may be connected through.
+    return self.writeWpaSupplicantConf(netstring, current, true);
+  }).then(function () {
+    defer.resolve({'status': 'forgotten', 'ssid': ssid});
+  }).fail(function (err) {
+    self.logger.error('Could not forget Wifi Network ' + ssid + ': ' + err);
+    defer.resolve({'status': 'failed', 'ssid': ssid});
+  });
+
+  return defer.promise;
+};
+
 ControllerNetwork.prototype.saveHotspotSettings = function (data) {
   var self = this;
 
@@ -673,7 +725,7 @@ ControllerNetwork.prototype.wirelessConnect = function (data) {
   });
 };
 
-ControllerNetwork.prototype.writeWpaSupplicantConf = function (netstring, data) {
+ControllerNetwork.prototype.writeWpaSupplicantConf = function (netstring, data, skipRestart) {
   var self = this;
   var defer = libQ.defer();
 
@@ -697,7 +749,9 @@ ControllerNetwork.prototype.writeWpaSupplicantConf = function (netstring, data) 
               defer.reject(errorMessage);
             }
           });
-          self.commandRouter.wirelessRestart();
+          if (!skipRestart) {
+            self.commandRouter.wirelessRestart();
+          }
           defer.resolve({success: true});
         });
       }

@@ -885,6 +885,17 @@ function InterfaceWebUI (context) {
       } else console.log('Error on returning wireless networks');
     });
 
+    connWebSocket.on('forgetWirelessNetwork', function (data) {
+      var selfConnWebSocket = this;
+
+      var returnedData = self.commandRouter.executeOnPlugin('system_controller', 'network', 'forgetWirelessNetwork', data);
+      if (returnedData != undefined) {
+        returnedData.then(function (result) {
+          selfConnWebSocket.emit('pushForgetWirelessNetwork', result);
+        });
+      } else console.log('Error on forgetting wireless network');
+    });
+
     connWebSocket.on('getWirelessNetworksCache', function () {
       var selfConnWebSocket = this;
 
