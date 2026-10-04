@@ -1120,6 +1120,9 @@ ControllerNetworkfs.prototype.initUdevWatcher = function () {
   function deviceChangeAction (device) {
     switch (device.DEVTYPE) {
       case 'partition':
+        if (!ignoreDeviceAction) {
+          self.mountDevice(device);
+        }
         break;
       case 'disk':
         break;
@@ -1150,6 +1153,54 @@ ControllerNetworkfs.prototype.getUdevDevices = function () {
   return udev.list('block');
 };
 
+ControllerNetworkfs.prototype.isMountLive = function (mountFolder) {
+  try {
+    fs.readdirSync(mountFolder);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
+ControllerNetworkfs.prototype.isStaleMount = function (mountFolder) {
+  try {
+    fs.readdirSync(mountFolder);
+    return false;
+  } catch (e) {
+    return e.code === 'ENOTCONN';
+  }
+};
+
+ControllerNetworkfs.prototype.clearStaleMount = function (devName, mountFolder) {
+  var self = this;
+
+  try {
+    execSync('/usr/bin/sudo /bin/umount -l "' + mountFolder + '"', {uid: 1000, gid: 1000});
+    self.logger.info('Cleared stale mount at ' + mountFolder);
+  } catch (e) {
+    try {
+      execSync('/usr/bin/sudo /bin/umount -l "' + devName + '"', {uid: 1000, gid: 1000});
+      self.logger.info('Cleared stale mount for ' + devName);
+    } catch (e2) {
+      self.logger.error('Failed to clear stale mount ' + mountFolder + ': ' + e2);
+    }
+  }
+};
+
+ControllerNetworkfs.prototype.prepareMountPoint = function (devName, mountFolder) {
+  var self = this;
+
+  if (self.isMountLive(mountFolder)) {
+    self.logger.info('Mount already live at ' + mountFolder);
+    return 'live';
+  }
+  if (self.isStaleMount(mountFolder)) {
+    self.logger.info('Stale mount detected at ' + mountFolder);
+    self.clearStaleMount(devName, mountFolder);
+  }
+  return 'ready';
+};
+
 ControllerNetworkfs.prototype.mountDevice = function (device) {
   var self = this;
 
@@ -1163,6 +1214,9 @@ ControllerNetworkfs.prototype.mountDevice = function (device) {
     	    var mountFolder = removableMountPoint + 'USB/' + fsLabel;
     	  }
 
+    	  if (self.prepareMountPoint(device.DEVNAME, mountFolder) === 'live') {
+    	    return;
+    	  }
     	  if (!fs.existsSync(mountFolder)) {
     	    this.createMountFolder(mountFolder);
     	  }
@@ -1221,6 +1275,9 @@ ControllerNetworkfs.prototype.isUsbDevice = function (device) {
     }
   } catch(e) {
     self.logger.error('Failed USB identification: ' + e);
+    if (device.ID_BUS === 'usb' || device.ID_USB_DRIVER) {
+      return true;
+    }
     return false;
   }
 };
@@ -1308,9 +1365,14 @@ ControllerNetworkfs.prototype.mountPartition = function (partitionData) {
   } else {
     var options = 'noatime';
   }
-  var mountCMD = '/usr/bin/sudo /bin/mount "' + partitionData.devName + '" "' + partitionData.mountFolder + '" -o ' + options;
+  var mountCMD = '/usr/bin/sudo /usr/local/bin/volumio-scope-mount "' + partitionData.devName + '" "' + partitionData.mountFolder + '" -o ' + options;
   try {
     execSync(mountCMD, {uid: 1000, gid: 1000});
+    if (self.isStaleMount(partitionData.mountFolder)) {
+      self.logger.info('Mount collapsed immediately, retrying once: ' + partitionData.label);
+      self.clearStaleMount(partitionData.devName, partitionData.mountFolder);
+      execSync(mountCMD, {uid: 1000, gid: 1000});
+    }
     self.storeMountedFolder(partitionData.mountFolder);
     if (self.checkLabelForInternalDiskToBeMounted(partitionData.label)) {
       self.bindInternalMemoryPosition();
@@ -1326,17 +1388,24 @@ ControllerNetworkfs.prototype.mountPartition = function (partitionData) {
 ControllerNetworkfs.prototype.umountPartition = function (partitionData) {
   var self = this;
   var umountCMD = '/usr/bin/sudo /bin/umount -f "' + partitionData.devName + '"';
+  var umounted = false;
 
   try {
     execSync(umountCMD, {uid: 1000, gid: 1000});
-    setTimeout(() => {
-      self.deleteMountFolder(partitionData.mountFolder);
-        	var message = partitionData.label + ' ' + self.commandRouter.getI18nString('COMMON.DISCONNECTED');
-        	self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('COMMON.MY_MUSIC'), message);
-    	}, 4000);
+    umounted = true;
   } catch (e) {
     self.logger.error('Failed to umount ' + partitionData.label + ': ' + e);
   }
+
+  if (!umounted && self.isMountLive(partitionData.mountFolder)) {
+    return;
+  }
+
+  setTimeout(() => {
+    self.deleteMountFolder(partitionData.mountFolder);
+    var message = partitionData.label + ' ' + self.commandRouter.getI18nString('COMMON.DISCONNECTED');
+    self.commandRouter.pushToastMessage('success', self.commandRouter.getI18nString('COMMON.MY_MUSIC'), message);
+  }, 4000);
   setTimeout(() => {
     self.deleteMountedFolder(partitionData.mountFolder);
   }, 5000);
