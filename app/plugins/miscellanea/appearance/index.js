@@ -143,10 +143,15 @@ volumioAppearance.prototype.getUIConfig = function () {
         self.configManager.setUIConfigParam(uiconf, 'sections[2].hidden', false);
       }
 
+      var i18nDir = __dirname + '/../../../i18n/';
+      var defaultDictionary = fs.readJsonSync(i18nDir + 'strings_en.json', {throws: false});
+      var dictionary = fs.readJsonSync(i18nDir + 'strings_' + config.get('language_code') + '.json', {throws: false}) || defaultDictionary;
+
       self.getAdditionalUISections().then((conf) => {
         for (var i in conf) {
           var additionalConf = conf[i];
           if (additionalConf && additionalConf.section && additionalConf.position !== undefined) {
+            self.commandRouter.translateKeys(additionalConf.section, dictionary, defaultDictionary);
             uiconf.sections.splice(additionalConf.position, 0, additionalConf.section);
           }
         }
