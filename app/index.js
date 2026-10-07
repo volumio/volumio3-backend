@@ -73,6 +73,7 @@ function CoreCommandRouter (server) {
       setTimeout(() => {
         this.pushConsoleMessage('BOOT COMPLETED');
         process.env.VOLUMIO_SYSTEM_STATUS = 'ready';
+        this.platformspecific.onSystemReady();
       }, 7000);
   });
 }

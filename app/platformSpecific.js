@@ -147,3 +147,19 @@ PlatformSpecific.prototype.usbAudioDetach = function () {
 
   return self.coreCommand.executeOnPlugin('audio_interface', 'alsa_controller', 'usbAudioDetach', '');
 };
+
+PlatformSpecific.prototype.onSystemReady = function () {
+  var self = this;
+
+  self.restartTriggerhappy();
+};
+
+PlatformSpecific.prototype.restartTriggerhappy = function () {
+  var self = this;
+
+  exec('/usr/bin/sudo /bin/systemctl try-restart triggerhappy', { uid: 1000, gid: 1000 }, function (error) {
+    if (error) {
+      self.coreCommand.logger.error('Cannot restart triggerhappy: ' + error);
+    }
+  });
+};
