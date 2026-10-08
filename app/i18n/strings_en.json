@@ -42,6 +42,7 @@
         "DISPLAY_VISUALIZER_CLASSIC": "Classic",
         "DISPLAY_VISUALIZER_CLASSIC_ORIGINAL": "Classic, original",
         "DISPLAY_VISUALIZER_DOC": "What the front panel shows while music plays.",
+        "DISPLAY_VISUALIZER_DOTMATRIX": "Dot Matrix",
         "DISPLAY_VISUALIZER_MERCURY": "Mercury",
         "DISPLAY_VISUALIZER_MERCURY_ORIGINAL": "Mercury, original",
         "DISPLAY_VISUALIZER_METERS": "Meters",
