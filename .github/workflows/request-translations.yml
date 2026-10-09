@@ -1,0 +1,14 @@
+name: Request translations
+
+on:
+  push:
+    branches: [master]
+    paths: [app/i18n/strings_en.json]
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh api repos/volumio/translations-tools/dispatches -f event_type=backend-strings-updated -f 'client_payload[sha]=${{ github.sha }}'
+        env:
+          GH_TOKEN: ${{ secrets.TRANSLATIONS_DISPATCH_TOKEN }}
