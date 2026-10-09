@@ -11,6 +11,7 @@ var crypto = require('crypto');
 
 var backgroundPath = '/data/backgrounds';
 var thirdPartyUIListFilePath = '/data/thirdPartyUisList.json';
+var additionalUISections = [];
 
 // Define the volumioAppearance class
 module.exports = volumioAppearance;
@@ -142,8 +143,18 @@ volumioAppearance.prototype.getUIConfig = function () {
         self.configManager.setUIConfigParam(uiconf, 'sections[2].hidden', false);
       }
 
-
-      defer.resolve(uiconf);
+      self.getAdditionalUISections().then((conf) => {
+        for (var i in conf) {
+          var additionalConf = conf[i];
+          if (additionalConf && additionalConf.section && additionalConf.position !== undefined) {
+            uiconf.sections.splice(additionalConf.position, 0, additionalConf.section);
+          }
+        }
+        defer.resolve(uiconf);
+      }).fail((e) => {
+        self.logger.error('Failed to retrieve additional Appearance UI sections: ' + e);
+        defer.resolve(uiconf);
+      });
     })
     .fail(function (e) {
       self.logger.error('Error getting Configuration page: ' + e);
@@ -152,6 +163,41 @@ volumioAppearance.prototype.getUIConfig = function () {
 
   /* var uiconf = fs.readJsonSync(__dirname + '/UIConfig.json');
      */
+  return defer.promise;
+};
+
+volumioAppearance.prototype.addAdditionalUISections = function (data) {
+  var self = this;
+
+  if (data && additionalUISections.indexOf(data) === -1) {
+    self.logger.info('Additional Appearance UI settings added for plugin ' + data);
+    additionalUISections.push(data);
+  }
+};
+
+volumioAppearance.prototype.getAdditionalUISections = function () {
+  var self = this;
+  var defer = libQ.defer();
+
+  if (!additionalUISections.length) {
+    defer.resolve([]);
+    return defer.promise;
+  }
+
+  var uiSectionsDefer = [];
+  for (var i in additionalUISections) {
+    var section = additionalUISections[i];
+    var pluginType = section.split('/')[0];
+    var pluginName = section.split('/')[1];
+    uiSectionsDefer.push(self.commandRouter.executeOnPlugin(pluginType, pluginName, 'getAdditionalUiSection', 'appearance'));
+  }
+
+  libQ.all(uiSectionsDefer).then((uiSectionsResult) => {
+    defer.resolve(uiSectionsResult);
+  }).fail(() => {
+    defer.resolve([]);
+  });
+
   return defer.promise;
 };
 
