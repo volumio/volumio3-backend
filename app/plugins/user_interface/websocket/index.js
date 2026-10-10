@@ -2094,6 +2094,7 @@ function InterfaceWebUI (context) {
     // file through exec, so reading the channel back any earlier races the
     // write and broadcasts the value that is on its way out.
     connWebSocket.on('setUpdaterChannel', function (data) {
+      var selfConnWebSocket = this;
       var setChannel = self.commandRouter.executeOnPlugin('system_controller', 'system', 'setUpdaterChannel', data);
 
       if (setChannel === undefined) {
@@ -2102,6 +2103,8 @@ function InterfaceWebUI (context) {
 
       setChannel.then(function () {
         return self.commandRouter.executeOnPlugin('system_controller', 'system', 'getUpdaterChannel', '');
+      }, function (error) {
+        selfConnWebSocket.emit('pushUpdaterChannelError', error.message || String(error));
       }).then(function (updaterChannel) {
         if (updaterChannel !== undefined) {
           self.libSocketIO.emit('pushUpdaterChannel', updaterChannel);
