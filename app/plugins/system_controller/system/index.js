@@ -709,7 +709,7 @@ ControllerSystem.prototype.setUpdaterChannel = function (channel) {
 
   switch (channel) {
     case 'stable':
-      exec('rm -f /data/test /data/alpha', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+      exec('rm -f /data/test /data/alpha /data/test-alpha', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
         if (error !== null) {
           self.logger.error('Cannot set stable updater channel: ' + error);
           defer.reject(error);
