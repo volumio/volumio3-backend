@@ -700,11 +700,12 @@ CoreStateMachine.prototype.syncState = function (stateService, sService) {
           if (process.env.UPNP_192_CAP === 'true' && this.isUpnp && stateService.samplerate) {
             stateService.samplerate = self.reportCappedSamplerate(stateService.samplerate);
           }
+          var upnpTrack = trackBlock != undefined && trackBlock.service === 'upnp_browser' && trackBlock.uri === stateService.uri ? trackBlock : {};
           this.consumeState = {
             status: stateService.status,
-            title: stateService.title,
-            artist: stateService.artist,
-            album: stateService.album,
+            title: upnpTrack.name || stateService.title,
+            artist: upnpTrack.artist || stateService.artist,
+            album: upnpTrack.album || stateService.album,
             albumart: consumeAlbumArt,
             uri: stateService.uri,
             trackType: stateService.trackType,
