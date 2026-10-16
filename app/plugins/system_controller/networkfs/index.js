@@ -729,6 +729,9 @@ ControllerNetworkfs.prototype.editShare = function (data) {
   if (data.user) {
     var user = data['user'];
   }
+  if (data.username) {
+    var username = data['username'];
+  }
   if (data.password) {
     var password = data['password'];
   }
