@@ -254,10 +254,6 @@ ControllerSystem.prototype.getUIConfig = function () {
           label: currentTimezone
         });
 
-        if (process.env.ALLOW_LEGACY_UIS_SELECTION === 'false') {
-          uiconf.sections[8].hidden = true;
-        }
-
         var uiValue = process.env.VOLUMIO_ACTIVE_UI_NAME;
         var uiLabel = process.env.VOLUMIO_ACTIVE_UI_PRETTY_NAME;
         var availableUIs = self.commandRouter.executeOnPlugin('miscellanea', 'appearance', 'getAvailableUIs');
@@ -265,6 +261,7 @@ ControllerSystem.prototype.getUIConfig = function () {
         self.configManager.setUIConfigParam(uiconf, 'sections[8].content[0].value.label', uiLabel);
         for (var i in availableUIs) {
             var ui = availableUIs[i];
+            if (process.env.ALLOW_LEGACY_UIS_SELECTION === 'false' && (ui.uiName === 'classic' || ui.uiName === 'contemporary')) continue;
             self.configManager.pushUIConfigParam(uiconf, 'sections[8].content[0].options', {
                 value: ui.uiName,
                 label: ui.uiPrettyName
