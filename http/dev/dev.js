@@ -124,11 +124,6 @@ socket.on('pushUpdaterChannel',data => {
   populateUpdateChannelDropdown(data);
 })
 
-socket.on('pushUpdaterChannelError',data => {
-  alert(data);
-  socket.emit('getUpdaterChannel', '');
-})
-
 // Define internal functions ----------------------------------------------
 function clearConsole () {
   var nodeConsole = document.getElementById('console');
@@ -313,9 +308,9 @@ function populateUpdateChannelDropdown(data) {
     dropdown.value = data.currentChannel;
   }
 
-  dropdown.onchange = function() {
+  dropdown.addEventListener('change', function() {
     setChannel(this.value);
-  };
+  });
 }
 
 function setChannel(channel) {
@@ -324,16 +319,7 @@ function setChannel(channel) {
     return false;
   }
 
-  if (channel === 'alpha') {
-    const password = prompt('Alpha builds are internal only and password protected, because they can leave the device unable to boot or update. Enter the password to continue.');
-    if (!password) {
-      socket.emit('getUpdaterChannel', '');
-      return false;
-    }
-    socket.emit('setUpdaterChannel', { channel: channel, password: password });
-  } else {
-    socket.emit('setUpdaterChannel', channel);
-  }
+  socket.emit('setUpdaterChannel', channel);
   console.log(`Updater channel set to: ${channel}`);
 }
 
