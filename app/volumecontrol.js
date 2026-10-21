@@ -475,7 +475,7 @@ CoreVolumeController.prototype.alsavolume = function (VolumeInteger) {
             if (err) {
               self.logger.error('Cannot get ALSA Volume: ' + err);
             }
-            if (!vol) {
+            if (!vol && vol !== 0) {
               vol = currentvolume;
             }
             currentmute = true;
@@ -640,7 +640,7 @@ CoreVolumeController.prototype.retrievevolume = function () {
           }
           // Log volume control
           self.logger.info('VolumeController:: Volume=' + vol + ' Mute =' + mute);
-          if (!vol) {
+          if (!vol && vol !== 0) {
             vol = currentvolume;
             mute = currentmute;
           } else {
