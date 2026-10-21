@@ -69,6 +69,9 @@ updater_comm.prototype.notifyProgress = function () {
               obj.message = self.translateUpdateString(obj.message);
             }
             if (message === 'updateDone') {
+              if (obj.status === 'success') {
+                self.commandRouter.executeOnPlugin('system_controller', 'system', 'setUpdaterChannel', 'stable');
+              }
               return self.initRestartRoutine(obj.message);
             } else {
               self.commandRouter.executeOnPlugin('user_interface', 'websocket', 'broadcastMessage', { 'msg': message, 'value': obj });

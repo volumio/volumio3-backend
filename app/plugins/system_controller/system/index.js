@@ -18,6 +18,7 @@ const { v4: uuidv4 } = require('uuid');
 const e = require('express');
 var hwUuid;
 var additionalUISections = [];
+var ALPHA_CHANNEL_HASH = { salt: 'efad9f0f238e08419847305025055a86', key: '746a14d0ba3d39af7461a7ac64b8a959b396e2b2e15590cc545f2f3a1dec3b44a8becf8489a7acb1ec930b8d534da9317172a20a8b47daa06d649aabaaa220da' };
 
 // Define the ControllerSystem class
 module.exports = ControllerSystem;
@@ -254,10 +255,6 @@ ControllerSystem.prototype.getUIConfig = function () {
           label: currentTimezone
         });
 
-        if (process.env.ALLOW_LEGACY_UIS_SELECTION === 'false') {
-          uiconf.sections[8].hidden = true;
-        }
-
         var uiValue = process.env.VOLUMIO_ACTIVE_UI_NAME;
         var uiLabel = process.env.VOLUMIO_ACTIVE_UI_PRETTY_NAME;
         var availableUIs = self.commandRouter.executeOnPlugin('miscellanea', 'appearance', 'getAvailableUIs');
@@ -265,6 +262,7 @@ ControllerSystem.prototype.getUIConfig = function () {
         self.configManager.setUIConfigParam(uiconf, 'sections[8].content[0].value.label', uiLabel);
         for (var i in availableUIs) {
             var ui = availableUIs[i];
+            if (process.env.ALLOW_LEGACY_UIS_SELECTION === 'false' && (ui.uiName === 'classic' || ui.uiName === 'contemporary')) continue;
             self.configManager.pushUIConfigParam(uiconf, 'sections[8].content[0].options', {
                 value: ui.uiName,
                 label: ui.uiPrettyName
@@ -706,10 +704,21 @@ ControllerSystem.prototype.getCurrentUpdaterChannel = function (data) {
 ControllerSystem.prototype.setUpdaterChannel = function (channel) {
   var self = this;
   var defer = libQ.defer();
+  var password;
+
+  if (channel && typeof channel === 'object') {
+    password = channel.password;
+    channel = channel.channel;
+  }
+
+  if (channel === 'alpha' && !self.isAlphaPassword(password)) {
+    self.logger.warn('Refused alpha updater channel: wrong password');
+    return libQ.reject(new Error('Wrong alpha channel password'));
+  }
 
   switch (channel) {
     case 'stable':
-      exec('rm -f /data/test /data/alpha', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
+      exec('rm -f /data/test /data/alpha /data/test-alpha', {uid: 1000, gid: 1000}, function (error, stdout, stderr) {
         if (error !== null) {
           self.logger.error('Cannot set stable updater channel: ' + error);
           defer.reject(error);
@@ -759,6 +768,14 @@ ControllerSystem.prototype.setUpdaterChannel = function (channel) {
   // on disk: exec is asynchronous, so reading the channel back any earlier
   // races the write (websocket/index.js broadcasts the new channel on this).
   return defer.promise;
+};
+
+ControllerSystem.prototype.isAlphaPassword = function (password) {
+  if (typeof password !== 'string' || !password) {
+    return false;
+  }
+  var key = crypto.scryptSync(password, Buffer.from(ALPHA_CHANNEL_HASH.salt, 'hex'), 64);
+  return crypto.timingSafeEqual(key, Buffer.from(ALPHA_CHANNEL_HASH.key, 'hex'));
 };
 
 ControllerSystem.prototype.getAvailableUpdaterChannels = function () {
