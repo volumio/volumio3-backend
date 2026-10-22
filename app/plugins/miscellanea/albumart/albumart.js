@@ -169,22 +169,22 @@ var searchOnline = function (defer, web) {
             if (err) {
               defer.reject(new Error(err));
             } else {
+              try {
+                var current = fs.readJsonSync(infoPath, {throws: false}) || {};
+                current[resolution] = diskFileName;
+                fs.writeJsonSync(infoPath, current);
+              } catch (e) {
+                console.log('Error in writing albumart JSON file: ' + e);
+              }
               setTimeout(function () {
                 defer.resolve(folder + diskFileName);
               }, 500);
             }
           });
-
-          infoJson[resolution] = diskFileName;
         } else {
           defer.reject(new Error('No albumart URL'));
           return defer.promise;
         }
-      }
-      try {
-        fs.writeJsonSync(infoPath, infoJson);
-      } catch (e) {
-        console.log('Error in writing albumart JSON file: ' + e);
       }
     });
   } else {
@@ -721,18 +721,32 @@ var download = function (uri, dest, cb) {
   }
   var protocol = parsed.protocol.slice(0, -1);
 
+  var done = false;
+  var finish = function (err) {
+    if (done) return;
+    done = true;
+    if (err) {
+      fs.remove(dest, function () {});
+    }
+    cb(err);
+  };
+
   var request = require(protocol).get(uri, function (response) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      var file = fs.createWriteStream(dest);
-      response.pipe(file);
-      file.on('finish', function () {
-        file.close(cb);
+      require('stream').pipeline(response, fs.createWriteStream(dest), function (err) {
+        finish(err && 'Error: Cannot download album art from ' + uri + ': ' + err.message);
       });
     } else if (response.headers.location) {
+      response.resume();
+      done = true;
       download(response.headers.location, dest, cb);
     } else {
-      cb(response.statusMessage);
+      response.resume();
+      finish(response.statusMessage);
     }
+  });
+  request.on('error', function (err) {
+    finish('Error: Cannot download album art from ' + uri + ': ' + err.message);
   });
 };
 
