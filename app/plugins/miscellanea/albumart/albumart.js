@@ -169,22 +169,23 @@ var searchOnline = function (defer, web) {
             if (err) {
               defer.reject(new Error(err));
             } else {
+              // Record the file only once it is on disk: a failed download must not leave
+              // an entry pointing to a file that does not exist
+              infoJson[resolution] = diskFileName;
+              try {
+                fs.writeJsonSync(infoPath, infoJson);
+              } catch (e) {
+                console.log('Error in writing albumart JSON file: ' + e);
+              }
               setTimeout(function () {
                 defer.resolve(folder + diskFileName);
               }, 500);
             }
           });
-
-          infoJson[resolution] = diskFileName;
         } else {
           defer.reject(new Error('No albumart URL'));
           return defer.promise;
         }
-      }
-      try {
-        fs.writeJsonSync(infoPath, infoJson);
-      } catch (e) {
-        console.log('Error in writing albumart JSON file: ' + e);
       }
     });
   } else {
@@ -721,18 +722,40 @@ var download = function (uri, dest, cb) {
   }
   var protocol = parsed.protocol.slice(0, -1);
 
+  var done = false;
+  var finish = function (err) {
+    if (done) return;
+    done = true;
+    if (err) {
+      fs.remove(dest, function () {});
+    }
+    cb(err);
+  };
+
   var request = require(protocol).get(uri, function (response) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       var file = fs.createWriteStream(dest);
+      file.on('error', function (err) {
+        finish('Error: Cannot write album art to ' + dest + ': ' + err.message);
+      });
       response.pipe(file);
       file.on('finish', function () {
-        file.close(cb);
+        file.close(function () {
+          finish();
+        });
       });
     } else if (response.headers.location) {
+      response.resume();
+      done = true;
       download(response.headers.location, dest, cb);
     } else {
-      cb(response.statusMessage);
+      response.resume();
+      finish(response.statusMessage);
     }
+  });
+  // A network or TLS error must not take the backend down: report it, so the default art is served
+  request.on('error', function (err) {
+    finish('Error: Cannot download album art from ' + uri + ': ' + err.message);
   });
 };
 
