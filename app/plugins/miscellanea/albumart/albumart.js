@@ -169,11 +169,10 @@ var searchOnline = function (defer, web) {
             if (err) {
               defer.reject(new Error(err));
             } else {
-              // Record the file only once it is on disk: a failed download must not leave
-              // an entry pointing to a file that does not exist
-              infoJson[resolution] = diskFileName;
               try {
-                fs.writeJsonSync(infoPath, infoJson);
+                var current = fs.readJsonSync(infoPath, {throws: false}) || {};
+                current[resolution] = diskFileName;
+                fs.writeJsonSync(infoPath, current);
               } catch (e) {
                 console.log('Error in writing albumart JSON file: ' + e);
               }
@@ -734,15 +733,8 @@ var download = function (uri, dest, cb) {
 
   var request = require(protocol).get(uri, function (response) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      var file = fs.createWriteStream(dest);
-      file.on('error', function (err) {
-        finish('Error: Cannot write album art to ' + dest + ': ' + err.message);
-      });
-      response.pipe(file);
-      file.on('finish', function () {
-        file.close(function () {
-          finish();
-        });
+      require('stream').pipeline(response, fs.createWriteStream(dest), function (err) {
+        finish(err && 'Error: Cannot download album art from ' + uri + ': ' + err.message);
       });
     } else if (response.headers.location) {
       response.resume();
@@ -753,7 +745,6 @@ var download = function (uri, dest, cb) {
       finish(response.statusMessage);
     }
   });
-  // A network or TLS error must not take the backend down: report it, so the default art is served
   request.on('error', function (err) {
     finish('Error: Cannot download album art from ' + uri + ': ' + err.message);
   });
