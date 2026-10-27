@@ -948,6 +948,12 @@ ControllerMpd.prototype.saveResampleOptions = function (data) {
 ControllerMpd.prototype.restartMpd = function (callback) {
   var self = this;
 
+  var stateMachine = self.commandRouter.stateMachine;
+  var trackBlock = stateMachine.getTrack(stateMachine.currentPosition);
+  if (!stateMachine.isVolatile && (stateMachine.consumeUpdateService === 'mpd' || (!stateMachine.isConsume && trackBlock && trackBlock.service === 'mpd'))) {
+    self.commandRouter.volumioStop();
+  }
+
   if (callback) {
     exec('/usr/bin/sudo /bin/systemctl restart mpd.service ', {uid: 1000, gid: 1000},
       function (error, stdout, stderr) {

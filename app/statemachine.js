@@ -1241,6 +1241,7 @@ CoreStateMachine.prototype.stop = function (promisedResponse) {
       // Play -> Stop transition
       this.currentStatus = 'stop';
       this.currentSeek = 0;
+      this.consumeState.status = 'stop';
 
       this.stopPlaybackTimer();
       this.updateTrackBlock();
@@ -1250,6 +1251,7 @@ CoreStateMachine.prototype.stop = function (promisedResponse) {
       // Pause -> Stop transition
       this.currentStatus = 'stop';
       this.currentSeek = 0;
+      this.consumeState.status = 'stop';
 
       this.updateTrackBlock();
       this.stopPlaybackTimer();
