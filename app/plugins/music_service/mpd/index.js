@@ -687,7 +687,20 @@ ControllerMpd.prototype.mpdEstablish = function () {
   // Save a reference to the parent commandRouter
   self.commandRouter = self.context.coreCommand;
   // Connect to MPD
+  var previousClient = self.clientMpd;
   self.mpdConnect();
+  var client = self.clientMpd;
+  var connected = false;
+  if (previousClient) previousClient.socket.destroy();
+  client.on('connect', function () {
+    connected = true;
+  });
+  client.on('end', function () {
+    if (connected && self.clientMpd === client) {
+      self.logger.error('MPD connection closed, reconnecting');
+      self.mpdEstablish();
+    }
+  });
 
   // Make a promise for when the MPD connection is ready to receive events
   self.mpdReady = libQ.nfcall(self.clientMpd.on.bind(self.clientMpd), 'ready');
@@ -1598,6 +1611,13 @@ ControllerMpd.prototype.search = function (query) {
   deferArray.push(libQ.defer());
 
   var cmd = libMpd.cmd;
+  var anyReply;
+  var sendAny = function (callback) {
+    anyReply = anyReply || libQ.nfcall(self.clientMpd.sendCommand.bind(self.clientMpd), cmd(commandAny, []));
+    anyReply.then(function (msg) {
+      callback(null, msg);
+    }, callback);
+  };
   // ARTIST
   self.mpdReady.then(function () {
     self.clientMpd.sendCommand(cmd(commandArtist, []), function (err, msg) {
@@ -1631,7 +1651,7 @@ ControllerMpd.prototype.search = function (query) {
   });
   // ALBUM
   self.mpdReady.then(function () {
-    self.clientMpd.sendCommand(cmd(commandAny, []), function (err, msg) {
+    sendAny(function (err, msg) {
       var subList = [];
 
       if (msg) {
@@ -1668,7 +1688,7 @@ ControllerMpd.prototype.search = function (query) {
   });
   // SONG
   self.mpdReady.then(function () {
-    self.clientMpd.sendCommand(cmd(commandAny, []), function (err, msg) {
+    sendAny(function (err, msg) {
       var subList = [];
       if (msg) {
         var lines = msg.split('\n');

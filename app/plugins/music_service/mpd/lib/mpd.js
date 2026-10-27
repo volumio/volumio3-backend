@@ -43,6 +43,7 @@ MpdClient.connect = function (options) {
     client.receive(data);
   });
   client.socket.on('close', function () {
+    while (client.msgHandlerQueue.length) client.msgHandlerQueue.shift()(new Error('MPD connection closed'));
     client.emit('end');
   });
   client.socket.on('error', function (err) {
