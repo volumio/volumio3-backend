@@ -751,7 +751,35 @@ PluginManager.prototype.checkRequiredConfigurationParameters = function (require
   configJson.save();
 };
 
+PluginManager.prototype.queueInstallTask = function (task) {
+  var self = this;
+
+  self.installsPending = (self.installsPending || 0) + 1;
+  if (self.installsPending > 1) {
+    self.logger.info('An install is already running, queueing this one');
+    self.pushMessage('installPluginStatus', {
+      'progress': 5,
+      'message': self.coreCommand.getI18nString('PLUGINS.WAITING_FOR_RUNNING_INSTALL'),
+      'title': self.coreCommand.getI18nString('PLUGINS.INSTALLING_PLUGIN')
+    });
+  }
+
+  var run = (self.installChain || libQ.resolve()).then(task, task);
+  var release = function () {
+    self.installsPending--;
+  };
+  self.installChain = run.then(release, release);
+
+  return run;
+};
+
 PluginManager.prototype.installPlugin = function (url) {
+  var self = this;
+
+  return self.queueInstallTask(self.doInstallPlugin.bind(self, url));
+};
+
+PluginManager.prototype.doInstallPlugin = function (url) {
   var self = this;
   var defer = libQ.defer();
   var modaltitle = self.coreCommand.getI18nString('PLUGINS.INSTALLING_PLUGIN');
@@ -915,6 +943,12 @@ PluginManager.prototype.installPlugin = function (url) {
 };
 
 PluginManager.prototype.updatePlugin = function (data) {
+  var self = this;
+
+  return self.queueInstallTask(self.doUpdatePlugin.bind(self, data));
+};
+
+PluginManager.prototype.doUpdatePlugin = function (data) {
   var self = this;
   var defer = libQ.defer();
   var modaltitle = self.coreCommand.getI18nString('PLUGINS.UPDATING_PLUGIN');
@@ -1123,9 +1157,10 @@ PluginManager.prototype.unzipPackage = function () {
 
   }
 
-  exec('/usr/bin/miniunzip -o /tmp/downloaded_plugin.zip -d ' + extractFolder, {maxBuffer: 816000}, function (error) {
+  exec('/usr/bin/miniunzip -o /tmp/downloaded_plugin.zip -d ' + extractFolder, {maxBuffer: 816000}, function (error, stdout) {
     if (error !== null) {
-      defer.reject(new Error('Error unzipping plugin: ' + error));
+      var reason = String(stdout).trim().split('\n').pop();
+      defer.reject(new Error('Error unzipping plugin: ' + error + ' ' + reason));
     } else {
       defer.resolve(extractFolder);
     }
