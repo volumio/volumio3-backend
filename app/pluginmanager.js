@@ -2083,6 +2083,9 @@ PluginManager.prototype.translateMyMusicPluginString = function (pluginPrettyNam
   case 'DLNA Browser':
     return  self.coreCommand.getI18nString('MUSIC_SOURCES.DLNA_BROWSER');
     break;
+  case 'Shairport-Sync':
+    return  self.coreCommand.getI18nString('MUSIC_SOURCES.AIRPLAY_PLAYBACK');
+    break;
   default:
     return pluginPrettyName;
   }

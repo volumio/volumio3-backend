@@ -632,6 +632,7 @@
         "CD_PLAYBACK_AND_RIPPING": "CD Playback and Ripping",
         "DIGITAL_AND_ANALOG_INPUTS": "Digital and Analog Inputs",
         "DIGITAL_INPUTS": "Digital Inputs",
-        "DLNA_BROWSER": "DLNA Browser"
+        "DLNA_BROWSER": "DLNA Browser",
+        "AIRPLAY_PLAYBACK": "AirPlay Playback"
     }
 }
