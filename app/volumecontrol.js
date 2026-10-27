@@ -393,7 +393,7 @@ CoreVolumeController.prototype.updateVolumeSettings = function (data) {
 
   self.logger.info('Updating Volume Controller Parameters: Device: ' + data.device + ' Name: ' + data.name + ' Mixer: ' + data.mixer + ' Max Vol: ' + data.maxvolume + ' Vol Curve; ' + data.volumecurve + ' Vol Steps: ' + data.volumesteps);
 
-  if (data.mixertype !== undefined && mixertype !== 'None' && mixer !== undefined && mixer.length && (data.mixertype === 'None' || data.mixertype === 'Software')) {
+  if (data.mixertype !== undefined && data.mixertype !== mixertype && mixertype !== 'None' && mixer !== undefined && mixer.length && (data.mixertype === 'None' || data.mixertype === 'Software')) {
     self.setVolume(100, function (err) {
       if (err) {
         self.logger.error('Cannot set ALSA Volume: ' + err);

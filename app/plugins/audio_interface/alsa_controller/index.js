@@ -941,7 +941,7 @@ ControllerAlsa.prototype.saveVolumeOptions = function (data) {
         self.enableSoftMixer(outdevice);
         self.commandRouter.sharedVars.set('alsa.outputdevice', 'volumio');
       } else {
-        self.restorePreviousVolumeLevel(currentVolume, currentMute, true);
+        self.restorePreviousVolumeLevel(currentVolume, currentMute, false);
       }
     } else {
       if (outdevice != 'softvolume') {
@@ -951,7 +951,7 @@ ControllerAlsa.prototype.saveVolumeOptions = function (data) {
         self.config.set('outputdevice', outdevice);
         self.commandRouter.sharedVars.set('alsa.outputdevice', outdevice);
       } else {
-        self.restorePreviousVolumeLevel(currentVolume, currentMute, true);
+        self.restorePreviousVolumeLevel(currentVolume, currentMute, false);
       }
     }
   } else if (data.mixer_type.value === 'None' && externalVolume === false) {
