@@ -1104,7 +1104,10 @@ ControllerMpd.prototype.createMPDFile = function (callback) {
 
       for (var callback of self.registeredCallbacks) {
         var data = self.commandRouter.executeOnPlugin(callback.type, callback.plugin, callback.data);
-        conf12 += data;
+        // A plugin that has been stopped or uninstalled returns undefined; appending it would write the text "undefined" into mpd.conf
+        if (typeof data === 'string') {
+          conf12 += data;
+        }
       }
 
       var additionalConfs = self.getSpecialCardConfig();
@@ -3865,6 +3868,14 @@ ControllerMpd.prototype.registerConfigCallback = function (callback) {
   var self = this;
   self.logger.info('register callback: ' + JSON.stringify(callback, null, 4));
   self.registeredCallbacks.push(callback);
+};
+
+ControllerMpd.prototype.unregisterConfigCallback = function (callback) {
+  var self = this;
+  self.logger.info('unregister callback: ' + JSON.stringify(callback, null, 4));
+  self.registeredCallbacks = self.registeredCallbacks.filter(function (registered) {
+    return !(registered.type === callback.type && registered.plugin === callback.plugin);
+  });
 };
 
 ControllerMpd.prototype.checkUSBDrives = function () {
