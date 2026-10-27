@@ -751,16 +751,6 @@ PluginManager.prototype.checkRequiredConfigurationParameters = function (require
   configJson.save();
 };
 
-/**
- * Runs an install/update pipeline one at a time.
- * The pipeline works on fixed shared paths (/tmp/downloaded_plugin.zip,
- * /data/temp/downloaded_plugin, /tmp/installog), so two of them running
- * together delete and truncate each other's files: installing several plugins
- * in a row fails with 'Error unzipping plugin: Command failed:
- * /usr/bin/miniunzip -o /tmp/downloaded_plugin.zip', because the zip was
- * already removed by the sibling install or was still being downloaded.
- * @param task function returning the pipeline promise
- */
 PluginManager.prototype.queueInstallTask = function (task) {
   var self = this;
 
@@ -774,8 +764,6 @@ PluginManager.prototype.queueInstallTask = function (task) {
     });
   }
 
-  // run the task whatever the previous one did, but keep the chain resolved so
-  // a failed install does not block every install queued behind it
   var run = (self.installChain || libQ.resolve()).then(task, task);
   var release = function () {
     self.installsPending--;
@@ -1171,8 +1159,6 @@ PluginManager.prototype.unzipPackage = function () {
 
   exec('/usr/bin/miniunzip -o /tmp/downloaded_plugin.zip -d ' + extractFolder, {maxBuffer: 816000}, function (error, stdout) {
     if (error !== null) {
-      // miniunzip reports its own failures ('Cannot open ...') on stdout and
-      // leaves stderr empty, so without its last line the error says nothing
       var reason = String(stdout).trim().split('\n').pop();
       defer.reject(new Error('Error unzipping plugin: ' + error + ' ' + reason));
     } else {
