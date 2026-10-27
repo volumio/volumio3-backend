@@ -1592,6 +1592,25 @@ ControllerMpd.prototype.search = function (query) {
   deferArray.push(libQ.defer());
 
   var cmd = libMpd.cmd;
+
+  // The ALBUM and SONG lists below are built from one and the same MPD query,
+  // so send it once and hand the single response to both. A library search is
+  // the slowest thing the backend asks of MPD — 43 microseconds per song,
+  // measured on a Rivo — and MPD answers it from the same loop that feeds its
+  // systemd watchdog (WatchdogSec=20), so issuing this scan twice spent a third
+  // of every search's watchdog budget on a byte-identical repeat.
+  var anyResult = null;
+  var anyWaiting = [];
+  var anySearch = function (callback) {
+    if (anyResult) return callback(anyResult.err, anyResult.msg);
+    anyWaiting.push(callback);
+    if (anyWaiting.length > 1) return;
+    self.clientMpd.sendCommand(cmd(commandAny, []), function (err, msg) {
+      anyResult = { err: err, msg: msg };
+      while (anyWaiting.length) anyWaiting.shift()(err, msg);
+    });
+  };
+
   // ARTIST
   self.mpdReady.then(function () {
     self.clientMpd.sendCommand(cmd(commandArtist, []), function (err, msg) {
@@ -1625,7 +1644,7 @@ ControllerMpd.prototype.search = function (query) {
   });
   // ALBUM
   self.mpdReady.then(function () {
-    self.clientMpd.sendCommand(cmd(commandAny, []), function (err, msg) {
+    anySearch(function (err, msg) {
       var subList = [];
 
       if (msg) {
@@ -1662,7 +1681,7 @@ ControllerMpd.prototype.search = function (query) {
   });
   // SONG
   self.mpdReady.then(function () {
-    self.clientMpd.sendCommand(cmd(commandAny, []), function (err, msg) {
+    anySearch(function (err, msg) {
       var subList = [];
       if (msg) {
         var lines = msg.split('\n');
