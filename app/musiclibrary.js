@@ -664,22 +664,33 @@ CoreMusicLibrary.prototype.searchOnPlugin = function (plugin_type, plugin_name, 
   }
   var alreadyResolved = false;
   var defer = libQ.defer();
-
-  var performedSearch = self.commandRouter.executeOnPlugin(plugin_type, plugin_name, 'search', query);
-  if (performedSearch !== undefined) {
-    performedSearch.then((result) => {
-      alreadyResolved = true;
-      defer.resolve(result);
-    })
-      .fail((error) => {
-        self.logger.error('Failed search in plugin ' + plugin_name + ': ' + error);
-        alreadyResolved = true;
-        defer.resolve(null);
-      });
-  } else {
-    alreadyResolved = true;
-    defer.resolve(null);
+  var searchTimesOutAt = Date.now() + searchTimeoutMS;
+  var previousMpdSearchDone = libQ.resolve();
+  if (plugin_name === 'mpd') {
+    previousMpdSearchDone = self.lastMpdSearch || previousMpdSearchDone;
+    self.lastMpdSearch = defer.promise;
   }
+
+  previousMpdSearchDone.then(() => {
+    if (searchTimesOutAt - Date.now() < 1000) {
+      return;
+    }
+    var performedSearch = self.commandRouter.executeOnPlugin(plugin_type, plugin_name, 'search', query);
+    if (performedSearch !== undefined) {
+      performedSearch.then((result) => {
+        alreadyResolved = true;
+        defer.resolve(result);
+      })
+        .fail((error) => {
+          self.logger.error('Failed search in plugin ' + plugin_name + ': ' + error);
+          alreadyResolved = true;
+          defer.resolve(null);
+        });
+    } else {
+      alreadyResolved = true;
+      defer.resolve(null);
+    }
+  });
 
   setTimeout(() => {
     if (!alreadyResolved) {
@@ -970,10 +981,10 @@ CoreMusicLibrary.prototype.executeGlobalSearch = function (data) {
                 results[i].items.forEach(item=>item.priorityScore=priorityScore);
                 itemsList = itemsList.concat(results[i].items);
               }
-              if (i+1 == results.length) {
-                itemsList = _.sortBy(itemsList, 'priorityScore');
-                defer.resolve(itemsList);
-              }
+            }
+            if (i+1 == results.length) {
+              itemsList = _.sortBy(itemsList, 'priorityScore');
+              defer.resolve(itemsList);
             }
           }
         } else {

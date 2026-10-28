@@ -687,7 +687,20 @@ ControllerMpd.prototype.mpdEstablish = function () {
   // Save a reference to the parent commandRouter
   self.commandRouter = self.context.coreCommand;
   // Connect to MPD
+  var oldClient = self.clientMpd;
   self.mpdConnect();
+  var newClient = self.clientMpd;
+  var hadConnected = false;
+  if (oldClient) oldClient.socket.destroy();
+  newClient.on('connect', function () {
+    hadConnected = true;
+  });
+  newClient.on('end', function () {
+    if (hadConnected && self.clientMpd === newClient) {
+      self.logger.error('MPD connection closed, reconnecting');
+      self.mpdEstablish();
+    }
+  });
 
   // Make a promise for when the MPD connection is ready to receive events
   self.mpdReady = libQ.nfcall(self.clientMpd.on.bind(self.clientMpd), 'ready');
@@ -709,7 +722,7 @@ ControllerMpd.prototype.mpdEstablish = function () {
   // Catch and log errors
   self.clientMpd.on('error', function (err) {
     self.logger.error('MPD error: ' + err);
-    if (err === "{ [Error: This socket has been ended by the other party] code: 'EPIPE' }" || err.toString().includes('ECONNRESET')) {
+    if (err === "{ [Error: This socket has been ended by the other party] code: 'EPIPE' }" || err.toString().includes('ECONNRESET') || err.toString().includes('ECONNREFUSED')) {
       // Wait 5 seconds before trying to reconnect
       setTimeout(function () {
         self.mpdEstablish();
@@ -1598,6 +1611,13 @@ ControllerMpd.prototype.search = function (query) {
   deferArray.push(libQ.defer());
 
   var cmd = libMpd.cmd;
+  var searchAnyResult;
+  var getSearchAnyResult = function (callback) {
+    searchAnyResult = searchAnyResult || libQ.nfcall(self.clientMpd.sendCommand.bind(self.clientMpd), cmd(commandAny, []));
+    searchAnyResult.then(function (msg) {
+      callback(null, msg);
+    }, callback);
+  };
   // ARTIST
   self.mpdReady.then(function () {
     self.clientMpd.sendCommand(cmd(commandArtist, []), function (err, msg) {
@@ -1631,7 +1651,7 @@ ControllerMpd.prototype.search = function (query) {
   });
   // ALBUM
   self.mpdReady.then(function () {
-    self.clientMpd.sendCommand(cmd(commandAny, []), function (err, msg) {
+    getSearchAnyResult(function (err, msg) {
       var subList = [];
 
       if (msg) {
@@ -1668,7 +1688,7 @@ ControllerMpd.prototype.search = function (query) {
   });
   // SONG
   self.mpdReady.then(function () {
-    self.clientMpd.sendCommand(cmd(commandAny, []), function (err, msg) {
+    getSearchAnyResult(function (err, msg) {
       var subList = [];
       if (msg) {
         var lines = msg.split('\n');
