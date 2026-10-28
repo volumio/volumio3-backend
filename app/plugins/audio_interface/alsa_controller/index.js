@@ -2063,9 +2063,11 @@ ControllerAlsa.prototype.restorePreviousVolumeLevel = function (volume, mute, so
   var self = this;
 
   self.logger.info('Restoring Previous Volume level: ' + volume + ' ' + mute + ' ' + softmixer);
-  if (softmixer) {
-    self.commandRouter.volumiosetvolume(100);
-  }
+  // Commented out: setting volume to 100 here makes the volume jump on a switch to Software mixer
+  // TODO: find a more reliable way that can also set the hardware volume to 100
+  // if (softmixer) {
+  //   self.commandRouter.volumiosetvolume(100);
+  // }
 
   setTimeout(() => {
     self.commandRouter.volumiosetvolume(parseInt(volume));
