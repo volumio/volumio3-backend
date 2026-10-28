@@ -664,15 +664,15 @@ CoreMusicLibrary.prototype.searchOnPlugin = function (plugin_type, plugin_name, 
   }
   var alreadyResolved = false;
   var defer = libQ.defer();
-  var deadline = Date.now() + searchTimeoutMS;
-  var turn = libQ.resolve();
+  var searchTimesOutAt = Date.now() + searchTimeoutMS;
+  var previousMpdSearchDone = libQ.resolve();
   if (plugin_name === 'mpd') {
-    turn = self.mpdSearchQueue || turn;
-    self.mpdSearchQueue = defer.promise;
+    previousMpdSearchDone = self.lastMpdSearch || previousMpdSearchDone;
+    self.lastMpdSearch = defer.promise;
   }
 
-  turn.then(() => {
-    if (alreadyResolved || deadline - Date.now() < 1000) {
+  previousMpdSearchDone.then(() => {
+    if (searchTimesOutAt - Date.now() < 1000) {
       return;
     }
     var performedSearch = self.commandRouter.executeOnPlugin(plugin_type, plugin_name, 'search', query);
@@ -695,7 +695,6 @@ CoreMusicLibrary.prototype.searchOnPlugin = function (plugin_type, plugin_name, 
   setTimeout(() => {
     if (!alreadyResolved) {
       self.logger.error('Search in plugin ' + plugin_name + ' timed out');
-      alreadyResolved = true;
       defer.resolve(null);
     }
   }, searchTimeoutMS);
@@ -973,15 +972,24 @@ CoreMusicLibrary.prototype.executeGlobalSearch = function (data) {
       .then(function (results) {
         self.logger.info('All search sources collected, pushing search results');
         results = _.flatten(results.filter(items => items));
-        for (var i = 0; i < results.length; i++) {
-          if (results[i] && results[i].items && results[i].items[0] && results[i].items[0].service) {
-            var itemsService = results[i].items[0].service;
-            var priorityScore = self.getPriorityWeightsToItems(itemsService);
-            results[i].items.forEach(item=>item.priorityScore=priorityScore);
-            itemsList = itemsList.concat(results[i].items);
+        if (results && results.length) {
+          for (var i = 0; i < results.length; i++) {
+            if (results[i] && results[i].items && results[i].items[0] && results[i].items[0].service) {
+              var itemsService = results[i].items[0].service;
+              var priorityScore = self.getPriorityWeightsToItems(itemsService);
+              if (results[i] && results[i].items) {
+                results[i].items.forEach(item=>item.priorityScore=priorityScore);
+                itemsList = itemsList.concat(results[i].items);
+              }
+            }
+            if (i+1 == results.length) {
+              itemsList = _.sortBy(itemsList, 'priorityScore');
+              defer.resolve(itemsList);
+            }
           }
+        } else {
+          defer.resolve([]);
         }
-        defer.resolve(_.sortBy(itemsList, 'priorityScore'));
       })
 
   return defer.promise;

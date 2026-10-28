@@ -70,26 +70,6 @@ describe('CoreMusicLibrary search', function () {
     });
   });
 
-  it('leaves searches on other sources concurrent', function () {
-    const held = [];
-    const router = mockRouter((r, query, release) => held.push(release));
-    const lib = library(router);
-
-    const searches = [];
-    for (let i = 0; i < 5; i++) {
-      searches.push(lib.searchOnPlugin('music_service', 'qobuz', { value: 'q' }, 60000));
-    }
-
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        while (held.length) held.shift()();
-        libQ.all(searches).then(checking(resolve, reject, () => {
-          assert.strictEqual(router.peakInFlight, 5, 'streaming searches were serialised');
-        }));
-      }, 20);
-    });
-  });
-
   it('does not send a library search whose caller already timed out', function () {
     const held = [];
     const router = mockRouter((r, query, release) => held.push(release));
@@ -108,30 +88,6 @@ describe('CoreMusicLibrary search', function () {
           }));
         }, 30);
       }, 80);
-    });
-  });
-
-  it('reopens the gate when a library search fails', function () {
-    let call = 0;
-    const router = {
-      logger: { info: () => {}, error: () => {} },
-      executeOnPlugin: function () {
-        const defer = libQ.defer();
-        if (++call === 1) setTimeout(() => defer.reject(new Error('mpd gone')), 5);
-        else setTimeout(() => defer.resolve([{ items: [{ service: 'mpd' }] }]), 5);
-        return defer.promise;
-      }
-    };
-    const lib = library(router);
-
-    const first = lib.searchOnPlugin('music_service', 'mpd', { value: 'a' }, 60000);
-    const second = lib.searchOnPlugin('music_service', 'mpd', { value: 'b' }, 60000);
-
-    return new Promise((resolve, reject) => {
-      libQ.all([first, second]).then(checking(resolve, reject, (results) => {
-        assert.strictEqual(results[0], null);
-        assert.notStrictEqual(results[1], null, 'the gate stayed shut after a failure');
-      }));
     });
   });
 

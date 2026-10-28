@@ -687,16 +687,16 @@ ControllerMpd.prototype.mpdEstablish = function () {
   // Save a reference to the parent commandRouter
   self.commandRouter = self.context.coreCommand;
   // Connect to MPD
-  var previousClient = self.clientMpd;
+  var oldClient = self.clientMpd;
   self.mpdConnect();
-  var client = self.clientMpd;
-  var connected = false;
-  if (previousClient) previousClient.socket.destroy();
-  client.on('connect', function () {
-    connected = true;
+  var newClient = self.clientMpd;
+  var hadConnected = false;
+  if (oldClient) oldClient.socket.destroy();
+  newClient.on('connect', function () {
+    hadConnected = true;
   });
-  client.on('end', function () {
-    if (connected && self.clientMpd === client) {
+  newClient.on('end', function () {
+    if (hadConnected && self.clientMpd === newClient) {
       self.logger.error('MPD connection closed, reconnecting');
       self.mpdEstablish();
     }
@@ -722,14 +722,6 @@ ControllerMpd.prototype.mpdEstablish = function () {
   // Catch and log errors
   self.clientMpd.on('error', function (err) {
     self.logger.error('MPD error: ' + err);
-    if (err === "{ [Error: This socket has been ended by the other party] code: 'EPIPE' }" || err.toString().includes('ECONNRESET')) {
-      // Wait 5 seconds before trying to reconnect
-      setTimeout(function () {
-        self.mpdEstablish();
-      }, 5000);
-    } else {
-      self.logger.error(err);
-    }
   });
 
   // This tracks the the timestamp of the newest detected status change
@@ -1611,10 +1603,10 @@ ControllerMpd.prototype.search = function (query) {
   deferArray.push(libQ.defer());
 
   var cmd = libMpd.cmd;
-  var anyReply;
-  var sendAny = function (callback) {
-    anyReply = anyReply || libQ.nfcall(self.clientMpd.sendCommand.bind(self.clientMpd), cmd(commandAny, []));
-    anyReply.then(function (msg) {
+  var searchAnyResult;
+  var getSearchAnyResult = function (callback) {
+    searchAnyResult = searchAnyResult || libQ.nfcall(self.clientMpd.sendCommand.bind(self.clientMpd), cmd(commandAny, []));
+    searchAnyResult.then(function (msg) {
       callback(null, msg);
     }, callback);
   };
@@ -1651,7 +1643,7 @@ ControllerMpd.prototype.search = function (query) {
   });
   // ALBUM
   self.mpdReady.then(function () {
-    sendAny(function (err, msg) {
+    getSearchAnyResult(function (err, msg) {
       var subList = [];
 
       if (msg) {
@@ -1688,7 +1680,7 @@ ControllerMpd.prototype.search = function (query) {
   });
   // SONG
   self.mpdReady.then(function () {
-    sendAny(function (err, msg) {
+    getSearchAnyResult(function (err, msg) {
       var subList = [];
       if (msg) {
         var lines = msg.split('\n');
