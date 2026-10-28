@@ -722,6 +722,14 @@ ControllerMpd.prototype.mpdEstablish = function () {
   // Catch and log errors
   self.clientMpd.on('error', function (err) {
     self.logger.error('MPD error: ' + err);
+    if (err === "{ [Error: This socket has been ended by the other party] code: 'EPIPE' }" || err.toString().includes('ECONNRESET') || err.toString().includes('ECONNREFUSED')) {
+      // Wait 5 seconds before trying to reconnect
+      setTimeout(function () {
+        self.mpdEstablish();
+      }, 5000);
+    } else {
+      self.logger.error(err);
+    }
   });
 
   // This tracks the the timestamp of the newest detected status change
