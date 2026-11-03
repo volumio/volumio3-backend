@@ -107,14 +107,14 @@ ControllerVolumioDiscovery.prototype.restartBrowse = function () {
 
   self.browsingRestartPending = true;
 
-  if (self.browse) {
+  if (self.browser) {
     self.logger.info('Discovery: Stopping current browser');
     try {
-      self.browse.stop();
+      self.browser.stop();
     } catch (e) {
       self.logger.error('Discovery: Error stopping browser: ' + e);
     }
-    self.browse = null;
+    self.browser = null;
   }
 
   self.forceRename = true;
