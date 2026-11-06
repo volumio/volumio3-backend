@@ -78,7 +78,9 @@ try {
 
 try {
   var activeUIConf = fs.readJsonSync('/data/active_volumio_ui');
-  if (activeUIConf.uiName !== undefined && activeUIConf.uiPath !== undefined && activeUIConf.uiPrettyName !== undefined && fs.existsSync(activeUIConf.uiPath)) {
+  // A legacy UI saved before ALLOW_LEGACY_UIS_SELECTION was turned off falls back to the default UI
+  var isDisallowedLegacyUI = process.env.ALLOW_LEGACY_UIS_SELECTION === 'false' && (activeUIConf.uiName === 'classic' || activeUIConf.uiName === 'contemporary');
+  if (activeUIConf.uiName !== undefined && activeUIConf.uiPath !== undefined && activeUIConf.uiPrettyName !== undefined && fs.existsSync(activeUIConf.uiPath) && !isDisallowedLegacyUI) {
     process.env.VOLUMIO_ACTIVE_UI_NAME = activeUIConf.uiName;
     process.env.VOLUMIO_ACTIVE_UI_PATH = activeUIConf.uiPath;
     process.env.VOLUMIO_ACTIVE_UI_PRETTY_NAME = activeUIConf.uiPrettyName;
