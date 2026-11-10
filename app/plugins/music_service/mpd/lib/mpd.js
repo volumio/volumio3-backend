@@ -6,7 +6,6 @@ https://github.com/andrewrk/mpd.js
 
 var EventEmitter = require('events').EventEmitter,
 	 util = require('util'),
-	 assert = require('assert'),
 	 net = require('net'),
 	 MPD_SENTINEL = /^(OK|ACK|list_OK)(.*)$/m,
 	 OK_MPD = /^OK MPD /;
@@ -43,6 +42,8 @@ MpdClient.connect = function (options) {
     client.receive(data);
   });
   client.socket.on('close', function () {
+    client.idling = false;
+    client.failPending(new Error('MPD connection closed'));
     client.emit('end');
   });
   client.socket.on('error', function (err) {
@@ -77,6 +78,16 @@ MpdClient.prototype.handleMessage = function (err, msg) {
   handler(err, msg);
 };
 
+// The connection is gone: every command still waiting for a reply gets an
+// error, otherwise its caller waits forever
+MpdClient.prototype.failPending = function (err) {
+  var queue = this.msgHandlerQueue;
+  this.msgHandlerQueue = [];
+  queue.forEach(function (handler) {
+    handler(err);
+  });
+};
+
 MpdClient.prototype.setupIdling = function () {
   var self = this;
   self.sendWithCallback('idle', function (err, msg) {
@@ -88,9 +99,17 @@ MpdClient.prototype.setupIdling = function () {
 
 MpdClient.prototype.sendCommand = function (command, callback) {
   var self = this;
+  if (!self.idling) {
+    // Not connected, or not any more: tell the caller, not only the log
+    var err = new Error('MPD connection is not ready');
+    self.emit('error', err);
+    if (callback) {
+      callback(err);
+    }
+    return;
+  }
   callback = callback || noop.bind(this);
   try {
-    assert.ok(self.idling);
     self.send('noidle\n');
     self.sendWithCallback(command, callback);
     self.sendWithCallback('idle', function (err, msg) {
