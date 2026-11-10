@@ -35,6 +35,16 @@ describe('mpd client, connection loss', function () {
     assert.strictEqual(errors.length, 1);
   });
 
+  it('emits the error once when a command list without callback is sent before ready', function () {
+    var client = fakeClient();
+    var errors = [];
+    client.on('error', function (err) { errors.push(err); });
+
+    client.sendCommands(['status', 'stats']);
+    assert.strictEqual(errors.length, 1);
+    assert.strictEqual(client.written.length, 0, 'nothing is written to the socket');
+  });
+
   it('fails every pending command when the connection drops', function () {
     var client = fakeClient();
     var errors = [];

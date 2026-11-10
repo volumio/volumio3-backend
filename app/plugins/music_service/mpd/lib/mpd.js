@@ -122,7 +122,7 @@ MpdClient.prototype.sendCommand = function (command, callback) {
 
 MpdClient.prototype.sendCommands = function (commandList, callback) {
   var fullCmd = 'command_list_begin\n' + commandList.join('\n') + '\ncommand_list_end';
-  this.sendCommand(fullCmd, callback || noop.bind(this));
+  this.sendCommand(fullCmd, callback);
 };
 
 MpdClient.prototype.handleIdleResultsLoop = function (err, msg) {
