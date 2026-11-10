@@ -22,6 +22,9 @@ var artistsort = true;
 var dsd_autovolume = false;
 var singleBrowse = false;
 var startup = true;
+// Songs per "search" window in listAlbums. Keeps every MPD reply far below
+// max_output_buffer_size (mpd.conf.tmpl) whatever the library size.
+var albumListWindow = 10000;
 var stickingMusicLibrary = false;
 var collectionStats = {};
 var nextMoveToNextTrackDebounce;
@@ -3002,54 +3005,69 @@ ControllerMpd.prototype.listAlbums = function (ui) {
         response.navigation.prev = {'uri': 'music-library'};
       }
       var cmd = libMpd.cmd;
+      var albumsfound = new Set();
+      var start = 0;
 
-      self.clientMpd.sendCommand(cmd('search album ""', []), function (err, msg) {
-        if (err) {
-          defer.reject(new Error('Cannot list albums'));
-        } else {
-          var lines = msg.split('\n');
-          var albumsfound = [];
-          for (var i = 0; i < lines.length; i++) {
-            var line = lines[i];
-            if (line.startsWith('file:')) {
-              var path = line.slice(6);
-              var albumName = self.searchFor(lines, i + 1, 'Album:');
-              var albumYear = self.searchFor(lines, i + 1, 'Date:');
-              var artistName = self.searchFor(lines, i + 1, 'AlbumArtist:') || self.searchFor(lines, i + 1, 'Artist:');
+      // Ask for the songs in windows. A single 'search album ""' makes MPD put
+      // the whole library in one reply; on large libraries that overflows its
+      // output buffer and MPD drops the connection.
+      var listWindow = function () {
+        var end = start + albumListWindow;
+        self.clientMpd.sendCommand(cmd('search album "" window ' + start + ':' + end, []), function (err, msg) {
+          if (err) {
+            defer.reject(new Error('Cannot list albums'));
+          } else {
+            var lines = msg.split('\n');
+            var songs = 0;
+            for (var i = 0; i < lines.length; i++) {
+              var line = lines[i];
+              if (line.startsWith('file:')) {
+                songs++;
+                var path = line.slice(6);
+                var albumName = self.searchFor(lines, i + 1, 'Album:');
+                var albumYear = self.searchFor(lines, i + 1, 'Date:');
+                var artistName = self.searchFor(lines, i + 1, 'AlbumArtist:') || self.searchFor(lines, i + 1, 'Artist:');
 
-              // This causes all orphaned tracks (tracks without an album) in the Albums view to be
-              //  grouped into a single dummy-album, rather than creating one such dummy-album per artist.
-              var albumId = albumName + artistName;
-              if (!albumName) {
-                albumId = '';
-                albumName = '';
-                artistName = '*';
-              }
-              // Check if album and artist combination is already found and exists in 'albumsfound' array (Allows for duplicate album names)
-              if (albumsfound.indexOf(albumId) < 0) { // Album/Artist is not in 'albumsfound' array
-                albumsfound.push(albumId);
-                var album = {
-                  service: 'mpd',
-                  type: 'folder',
-                  title: albumName,
-                  artist: artistName,
-                  year: albumYear,
-                  album: '',
-                  uri: 'albums://' + encodeURIComponent(artistName) + '/' + encodeURIComponent(albumName),
-                  // Get correct album art from path- only download if not existent
-                  albumart: self.getAlbumArt({artist: artistName, album: albumName}, self.getParentFolder('/mnt/' + path), 'dot-circle-o')
-                };
-                response.navigation.lists[0].items.push(album);
+                // This causes all orphaned tracks (tracks without an album) in the Albums view to be
+                //  grouped into a single dummy-album, rather than creating one such dummy-album per artist.
+                var albumId = albumName + artistName;
+                if (!albumName) {
+                  albumId = '';
+                  albumName = '';
+                  artistName = '*';
+                }
+                // Check if album and artist combination is already found and exists in 'albumsfound' set (Allows for duplicate album names)
+                if (!albumsfound.has(albumId)) { // Album/Artist is not in 'albumsfound' set
+                  albumsfound.add(albumId);
+                  var album = {
+                    service: 'mpd',
+                    type: 'folder',
+                    title: albumName,
+                    artist: artistName,
+                    year: albumYear,
+                    album: '',
+                    uri: 'albums://' + encodeURIComponent(artistName) + '/' + encodeURIComponent(albumName),
+                    // Get correct album art from path- only download if not existent
+                    albumart: self.getAlbumArt({artist: artistName, album: albumName}, self.getParentFolder('/mnt/' + path), 'dot-circle-o')
+                  };
+                  response.navigation.lists[0].items.push(album);
+                }
               }
             }
+            if (songs < albumListWindow) {
+              // Last window. Save response in albumList cache for future use
+              memoryCache.set('cacheAlbumList', response);
+              if (ui) {
+                defer.resolve(response);
+              }
+            } else {
+              start = end;
+              listWindow();
+            }
           }
-          // Save response in albumList cache for future use
-          memoryCache.set('cacheAlbumList', response);
-          if (ui) {
-            defer.resolve(response);
-          }
-        }
-      });
+        });
+      };
+      listWindow();
     } else {
       self.logger.info('listAlbums - loading Albums from cache');
       if (ui) {
