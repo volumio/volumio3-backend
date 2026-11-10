@@ -19,13 +19,22 @@ function makeSongs (count, perAlbum, prefix) {
 
 // A fake MPD client that answers 'search album "" window START:END' from
 // `songs`, one tick later as the real one does. `onReply(n)` runs just before
-// the reply to the n-th command is delivered.
+// the reply to the n-th command is delivered. The `mute`-th command is never
+// answered, as if the connection had gone; its callback is kept in `pending`
+// and `onMute()` runs when that happens.
 function fakeClient (songs) {
-  var client = {songs: songs, commands: [], onReply: null};
+  var client = {songs: songs, commands: [], pending: [], onReply: null, mute: 0, onMute: null};
   client.sendCommand = function (command, callback) {
     var text = String(command).trim();
     var m = text.match(/window (\d+):(\d+)$/);
     client.commands.push(text);
+    if (client.commands.length === client.mute) {
+      client.pending.push(callback);
+      if (client.onMute) {
+        client.onMute();
+      }
+      return;
+    }
     var reply = client.songs.slice(Number(m[1]), Number(m[2])).map(function (s) {
       return 'file: ' + s.file + '\nAlbum: ' + s.album + '\nAlbumArtist: ' + s.artist + '\nDate: 2001\n';
     }).join('');
@@ -53,6 +62,7 @@ describe('mpd album list in windows', function () {
   var mpd = Object.create(ControllerMpd.prototype);
   mpd.logger = {info: function () {}, error: function () {}, verbose: function () {}};
   mpd.getAlbumArt = function () { return '/albumart'; };
+  var lost;
 
   it('reads the library in windows and lists every album once', function () {
     var songs = makeSongs(25000, 10, 'a');
@@ -139,6 +149,60 @@ describe('mpd album list in windows', function () {
       return mpd.listAlbums(true);
     }).then(function (response) {
       assert.strictEqual(response.navigation.lists[0].items.length, 5);
+    });
+  });
+
+  it('releases a scan whose connection was replaced and reads again on the new one', function () {
+    var songs = makeSongs(15000, 10, 'e');
+    var before = fakeClient(songs);
+    var after = fakeClient(songs.slice(0, 12000));
+    lost = before;
+    mpd.clientMpd = before;
+
+    return new Promise(function (resolve, reject) {
+      var first;
+      // The second window is never answered: the connection is gone
+      before.mute = 2;
+      before.onMute = function () {
+        setImmediate(function () {
+          // Reconnected: a new client. The next caller finds the old scan on it.
+          mpd.clientMpd = after;
+          var second = mpd.listAlbums(true);
+          first.then(function () {
+            reject(new Error('the scan on the lost connection should fail'));
+          }, function (err) {
+            try {
+              assert.strictEqual(err.message, 'MPD connection lost');
+            } catch (e) {
+              return reject(e);
+            }
+            second.then(function (response) {
+              try {
+                assert.deepStrictEqual(titlesOf(response), albumsOf(after.songs));
+                assert.strictEqual(before.commands.length, 2, 'the old scan got no further');
+                assert.strictEqual(after.commands.length, 2, 'the library was read on the new connection');
+                resolve();
+              } catch (e) {
+                reject(e);
+              }
+            }, reject);
+          });
+        });
+      };
+
+      mpd.rebuildAlbumCache();
+      first = mpd.listAlbums(true);
+    });
+  });
+
+  it('ignores a late reply from the replaced connection', function () {
+    // The window the previous test left unanswered is answered now, to nobody
+    var pending = lost.pending[0];
+    pending(null, 'file: e/late.flac\nAlbum: late\nAlbumArtist: late\n');
+
+    return mpd.listAlbums(true).then(function (response) {
+      assert.strictEqual(response.navigation.lists[0].items.length, 1200, 'the cache holds the new scan');
+      assert.strictEqual(lost.commands.length, 2);
     });
   });
 });

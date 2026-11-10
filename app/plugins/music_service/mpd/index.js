@@ -29,7 +29,9 @@ var albumListWindow = 10000;
 // reads the windows again before it caches: between two windows the song
 // offsets may have shifted under it.
 var albumListGeneration = 0;
-// The window scan in progress, if any. Callers join it instead of starting one more.
+// The window scan in progress, if any: its promise and the client it runs on.
+// Callers join it instead of starting one more; a scan whose client is gone is
+// released at the next call, so a dropped connection cannot park the list.
 var albumListScan = null;
 var stickingMusicLibrary = false;
 var collectionStats = {};
@@ -2995,15 +2997,22 @@ ControllerMpd.prototype.listAlbums = function (ui) {
   var response = memoryCache.get('cacheAlbumList', function (err, response) {
     if (response == undefined) {
       if (albumListScan) {
-        // A scan is reading the windows already: its result is ours too
-        albumListScan.promise.then(function (result) {
-          defer.resolve(result);
-        }, function (e) {
-          defer.reject(e);
-        });
-        return;
+        if (albumListScan.client === self.clientMpd) {
+          // A scan is reading the windows already: its result is ours too
+          albumListScan.defer.promise.then(function (result) {
+            defer.resolve(result);
+          }, function (e) {
+            defer.reject(e);
+          });
+          return;
+        }
+        // The scan sits on a connection that was replaced: its windows will
+        // never arrive. Release it and read the library on this connection.
+        albumListScan.defer.reject(new Error('MPD connection lost'));
+        albumListScan = null;
       }
-      albumListScan = defer;
+      var scan = {defer: defer, client: self.clientMpd};
+      albumListScan = scan;
       response = {
         'navigation': {
           'lists': [
@@ -3031,7 +3040,11 @@ ControllerMpd.prototype.listAlbums = function (ui) {
       // output buffer and MPD drops the connection.
       var listWindow = function () {
         var end = start + albumListWindow;
-        self.clientMpd.sendCommand(cmd('search album "" window ' + start + ':' + end, []), function (err, msg) {
+        scan.client.sendCommand(cmd('search album "" window ' + start + ':' + end, []), function (err, msg) {
+          if (albumListScan !== scan) {
+            // Released meanwhile: a late reply from a connection that was replaced
+            return;
+          }
           if (err) {
             albumListScan = null;
             defer.reject(new Error('Cannot list albums'));
