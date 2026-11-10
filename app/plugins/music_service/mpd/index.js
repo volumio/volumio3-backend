@@ -687,6 +687,11 @@ ControllerMpd.prototype.mpdEstablish = function () {
   // Save a reference to the parent commandRouter
   self.commandRouter = self.context.coreCommand;
   // Connect to MPD
+  if (self.mpdReconnectTimer) {
+    // Connecting now: the pending reconnect is not needed any more
+    clearTimeout(self.mpdReconnectTimer);
+    self.mpdReconnectTimer = null;
+  }
   self.mpdConnect();
 
   // Make a promise for when the MPD connection is ready to receive events
@@ -703,20 +708,32 @@ ControllerMpd.prototype.mpdEstablish = function () {
         self.listAlbums();
         self.getMyCollectionStats();
       }, 5000);
+    } else if (self.mpdReconnecting) {
+      self.mpdReconnecting = false;
+      // Back after a lost connection: push MPD's real state, so that an update
+      // that ended while the connection was down is not shown as still running
+      self.logStart('MPD connection restored, syncing state')
+        .then(self.getState.bind(self))
+        .then(self.pushState.bind(self))
+        .fail(self.pushError.bind(self));
     }
   });
 
   // Catch and log errors
   self.clientMpd.on('error', function (err) {
     self.logger.error('MPD error: ' + err);
-    if (err === "{ [Error: This socket has been ended by the other party] code: 'EPIPE' }" || err.toString().includes('ECONNRESET')) {
-      // Wait 5 seconds before trying to reconnect
-      setTimeout(function () {
-        self.mpdEstablish();
-      }, 5000);
+    var code = err && err.code;
+    if (code === 'ECONNRESET' || code === 'EPIPE' || code === 'ECONNREFUSED' || code === 'ENOENT') {
+      self.mpdReconnect(code);
     } else {
       self.logger.error(err);
     }
+  });
+
+  // MPD closes a client whose output buffer overflows, with no socket error on
+  // our side: reconnect on a plain close as well
+  self.clientMpd.on('end', function () {
+    self.mpdReconnect('connection closed');
   });
 
   // This tracks the the timestamp of the newest detected status change
@@ -788,7 +805,29 @@ ControllerMpd.prototype.mpdConnect = function () {
 
   var nHost = self.config.get('nHost');
   var nPort = self.config.get('nPort');
+  if (self.clientMpd) {
+    // Retire the previous client, or its handlers keep running next to the new
+    // one's: every reconnect added a client, three were seen after one boot
+    self.clientMpd.removeAllListeners();
+    self.clientMpd.on('error', function () {});
+    self.clientMpd.socket.destroy();
+  }
   self.clientMpd = libMpd.connect({port: nPort, host: nHost});
+};
+
+ControllerMpd.prototype.mpdReconnect = function (reason) {
+  var self = this;
+
+  if (self.mpdReconnectTimer) {
+    return;
+  }
+  self.logger.info('MPD connection lost (' + reason + '), reconnecting in 5 seconds');
+  // Wait 5 seconds before trying to reconnect
+  self.mpdReconnectTimer = setTimeout(function () {
+    self.mpdReconnectTimer = null;
+    self.mpdReconnecting = true;
+    self.mpdEstablish();
+  }, 5000);
 };
 
 ControllerMpd.prototype.outputDeviceCallback = function () {
