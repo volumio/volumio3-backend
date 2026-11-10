@@ -202,8 +202,23 @@ describe('mpd reconnect', function () {
 
     loseAndRecover();
     return settle(function () {
-      assert.strictEqual(mpd.stateReads, 0, 'MPD was not even asked');
-      assert.deepStrictEqual(events, []);
+      assert.deepStrictEqual(events, [], 'nothing stopped, nothing pushed');
+    });
+  });
+
+  it('leaves a volatile service alone that took over while MPD was being read', function () {
+    stateMachine.track = {service: 'mpd'};
+    mpd.mpdState = {status: 'play', updatedb: false};
+    mpd.getState = function () {
+      // AirPlay starts between the two commands of the read
+      stateMachine.isVolatile = true;
+      stateMachine.currentStatus = 'play';
+      return libQ.resolve(mpd.mpdState);
+    };
+
+    loseAndRecover();
+    return settle(function () {
+      assert.deepStrictEqual(events, [], 'the MPD snapshot is not pushed over the new session');
     });
   });
 

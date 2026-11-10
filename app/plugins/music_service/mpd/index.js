@@ -838,20 +838,22 @@ ControllerMpd.prototype.syncStateAfterReconnect = function () {
   var self = this;
   var stateMachine = self.commandRouter.stateMachine;
 
-  if (stateMachine.isVolatile) {
-    self.logger.info('MPD connection restored, a volatile service is playing, state left alone');
-    return libQ.resolve();
-  }
   return self.logStart('MPD connection restored, syncing state')
     .then(self.getState.bind(self))
     .then(function (state) {
+      // Checked after the read, not before: a volatile service (AirPlay,
+      // Bluetooth) may have taken over meanwhile, and syncState lets a play or
+      // pause pushed while volatile replace that session
+      if (stateMachine.isVolatile) {
+        self.logger.info('MPD connection restored, a volatile service is playing, state left alone');
+        return;
+      }
       if (state.status === 'stop' && stateMachine.currentStatus !== 'stop' && self.mpdIsThePlayer()) {
         self.logger.info('MPD stopped while the connection was down: stopping playback, the queue position is kept');
         self.commandRouter.volumioStop();
       }
-      return state;
+      return self.pushState(state);
     })
-    .then(self.pushState.bind(self))
     .fail(self.pushError.bind(self));
 };
 
