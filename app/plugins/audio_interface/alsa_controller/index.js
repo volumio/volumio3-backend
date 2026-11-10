@@ -1453,6 +1453,11 @@ ControllerAlsa.prototype.checkMixer = function () {
   var outputdevice = self.config.get('outputdevice');
 
   if (mixer_tpye === 'Hardware') {
+    var card = String(outputdevice).split(',')[0];
+    if (/^\d+$/.test(card) && !fs.existsSync('/proc/asound/card' + card)) {
+      self.logger.info('Output device ' + outputdevice + ' not available, keeping mixer settings');
+      return;
+    }
     var mixers = self.getMixerControls(outputdevice);
 
     if (mixers.length > 0) {
