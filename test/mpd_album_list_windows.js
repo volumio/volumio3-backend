@@ -205,4 +205,46 @@ describe('mpd album list in windows', function () {
       assert.strictEqual(lost.commands.length, 2);
     });
   });
+
+  it('does not finish a scan with a reply from a replaced connection', function () {
+    var songs = makeSongs(15000, 10, 'f');
+    var before = fakeClient(songs);
+    var after = fakeClient(songs.slice(0, 11000));
+    mpd.clientMpd = before;
+
+    return new Promise(function (resolve, reject) {
+      var first;
+      before.mute = 2;
+      before.onMute = function () {
+        setImmediate(function () {
+          // Reconnected, nobody has asked for albums yet, and the old
+          // connection's reply to the last window turns up: a short one, which
+          // would end the scan with the first window's albums only
+          mpd.clientMpd = after;
+          before.pending[0](null, '');
+          first.then(function () {
+            reject(new Error('a scan on the old connection should not finish'));
+          }, function (err) {
+            try {
+              assert.strictEqual(err.message, 'MPD connection lost');
+            } catch (e) {
+              return reject(e);
+            }
+            mpd.listAlbums(true).then(function (response) {
+              try {
+                assert.deepStrictEqual(titlesOf(response), albumsOf(after.songs), 'read on the new connection, not cached from the old');
+                assert.strictEqual(after.commands.length, 2);
+                resolve();
+              } catch (e) {
+                reject(e);
+              }
+            }, reject);
+          });
+        });
+      };
+
+      mpd.rebuildAlbumCache();
+      first = mpd.listAlbums(true);
+    });
+  });
 });

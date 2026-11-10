@@ -3045,6 +3045,13 @@ ControllerMpd.prototype.listAlbums = function (ui) {
             // Released meanwhile: a late reply from a connection that was replaced
             return;
           }
+          if (scan.client !== self.clientMpd) {
+            // The connection was replaced while this window was pending: a reply
+            // from the old one must not complete a scan the new one did not read
+            albumListScan = null;
+            defer.reject(new Error('MPD connection lost'));
+            return;
+          }
           if (err) {
             albumListScan = null;
             defer.reject(new Error('Cannot list albums'));
