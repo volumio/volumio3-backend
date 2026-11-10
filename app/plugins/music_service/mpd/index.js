@@ -25,6 +25,12 @@ var startup = true;
 // Songs per "search" window in listAlbums. Keeps every MPD reply far below
 // max_output_buffer_size (mpd.conf.tmpl) whatever the library size.
 var albumListWindow = 10000;
+// Bumped on every database change MPD reports. A window scan that saw a bump
+// reads the windows again before it caches: between two windows the song
+// offsets may have shifted under it.
+var albumListGeneration = 0;
+// The window scan in progress, if any. Callers join it instead of starting one more.
+var albumListScan = null;
 var stickingMusicLibrary = false;
 var collectionStats = {};
 var nextMoveToNextTrackDebounce;
@@ -765,6 +771,7 @@ ControllerMpd.prototype.mpdEstablish = function () {
     // return self.commandRouter.fileUpdate();
     // return self.reportUpdatedLibrary();
     // Refresh AlbumList - delete the current AlbumList cache entry
+    albumListGeneration++;
     memoryCache.del('cacheAlbumList', function (err) {});
     // Store new AlbumList in cache
     self.listAlbums();
@@ -2987,6 +2994,16 @@ ControllerMpd.prototype.listAlbums = function (ui) {
   var defer = libQ.defer();
   var response = memoryCache.get('cacheAlbumList', function (err, response) {
     if (response == undefined) {
+      if (albumListScan) {
+        // A scan is reading the windows already: its result is ours too
+        albumListScan.promise.then(function (result) {
+          defer.resolve(result);
+        }, function (e) {
+          defer.reject(e);
+        });
+        return;
+      }
+      albumListScan = defer;
       response = {
         'navigation': {
           'lists': [
@@ -3007,6 +3024,7 @@ ControllerMpd.prototype.listAlbums = function (ui) {
       var cmd = libMpd.cmd;
       var albumsfound = new Set();
       var start = 0;
+      var generation = albumListGeneration;
 
       // Ask for the songs in windows. A single 'search album ""' makes MPD put
       // the whole library in one reply; on large libraries that overflows its
@@ -3015,6 +3033,7 @@ ControllerMpd.prototype.listAlbums = function (ui) {
         var end = start + albumListWindow;
         self.clientMpd.sendCommand(cmd('search album "" window ' + start + ':' + end, []), function (err, msg) {
           if (err) {
+            albumListScan = null;
             defer.reject(new Error('Cannot list albums'));
           } else {
             var lines = msg.split('\n');
@@ -3055,11 +3074,20 @@ ControllerMpd.prototype.listAlbums = function (ui) {
               }
             }
             if (songs < albumListWindow) {
-              // Last window. Save response in albumList cache for future use
-              memoryCache.set('cacheAlbumList', response);
-              if (ui) {
-                defer.resolve(response);
+              if (generation !== albumListGeneration) {
+                // The database changed while the windows were read: albums may
+                // have moved across a window boundary. Read them again.
+                generation = albumListGeneration;
+                start = 0;
+                albumsfound = new Set();
+                response.navigation.lists[0].items = [];
+                listWindow();
+                return;
               }
+              // Last window. Save response in albumList cache for future use
+              albumListScan = null;
+              memoryCache.set('cacheAlbumList', response);
+              defer.resolve(response);
             } else {
               start = end;
               listWindow();
@@ -3881,6 +3909,7 @@ ControllerMpd.prototype.rebuildAlbumCache = function () {
   var self = this;
 
   self.logger.info('Rebuild Album cache');
+  albumListGeneration++;
   memoryCache.del('cacheAlbumList', function (err) {});
   self.listAlbums();
 };
