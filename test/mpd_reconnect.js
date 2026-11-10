@@ -22,11 +22,14 @@ describe('mpd reconnect', function () {
   var cleared;
   var clients;
   var mpd;
+  var stateMachine;
+  var events;
 
   beforeEach(function () {
     timers = [];
     cleared = [];
     clients = [];
+    events = [];
     global.setTimeout = function (fn, delay) {
       var id = {fn: fn, delay: delay};
       timers.push(id);
@@ -39,14 +42,34 @@ describe('mpd reconnect', function () {
       return client;
     };
 
+    // The state machine as the plugin sees it: nothing playing, empty queue
+    stateMachine = {
+      isVolatile: false,
+      isConsume: false,
+      consumeUpdateService: undefined,
+      currentStatus: 'stop',
+      currentPosition: 0,
+      track: undefined,
+      getTrack: function () { return stateMachine.track; }
+    };
+
     mpd = Object.create(ControllerMpd.prototype);
-    mpd.context = {coreCommand: {pushConsoleMessage: function () {}}};
+    mpd.context = {coreCommand: {
+      pushConsoleMessage: function () {},
+      stateMachine: stateMachine,
+      volumioStop: function () {
+        events.push('stop');
+        stateMachine.currentStatus = 'stop';
+        return libQ.resolve();
+      }
+    }};
     mpd.logger = {info: function () {}, error: function () {}, verbose: function () {}};
     mpd.config = {get: function () { return undefined; }};
     mpd.updateQueue = function () {};
-    mpd.pushed = [];
-    mpd.getState = function () { return libQ.resolve({status: 'stop', updatedb: false}); };
-    mpd.pushState = function (state) { mpd.pushed.push(state); return libQ.resolve(); };
+    mpd.mpdState = {status: 'stop', updatedb: false};
+    mpd.stateReads = 0;
+    mpd.getState = function () { mpd.stateReads++; return libQ.resolve(mpd.mpdState); };
+    mpd.pushState = function (state) { events.push('push ' + state.status); return libQ.resolve(); };
   });
 
   afterEach(function () {
@@ -57,6 +80,15 @@ describe('mpd reconnect', function () {
 
   function settle (fn) {
     return new Promise(function (resolve) { setImmediate(resolve); }).then(fn);
+  }
+
+  // Establish, lose the connection, let the reconnect timer fire, ready again
+  function loseAndRecover () {
+    mpd.mpdEstablish();
+    clients[0].emit('ready');
+    clients[0].emit('end');
+    timers[timers.length - 1].fn();
+    clients[1].emit('ready');
   }
 
   it('reconnects once after a clean close, retires the old client and syncs state', function () {
@@ -81,8 +113,7 @@ describe('mpd reconnect', function () {
 
     clients[1].emit('ready');
     return settle(function () {
-      assert.strictEqual(mpd.pushed.length, 1, 'state pushed once after the lost connection came back');
-      assert.strictEqual(mpd.pushed[0].updatedb, false);
+      assert.deepStrictEqual(events, ['push stop'], 'state pushed once, nothing stopped');
     });
   });
 
@@ -117,7 +148,90 @@ describe('mpd reconnect', function () {
 
     clients[1].emit('ready');
     return settle(function () {
-      assert.strictEqual(mpd.pushed.length, 0, 'an explicit restart handles its own state');
+      assert.deepStrictEqual(events, [], 'an explicit restart handles its own state');
     });
+  });
+
+  it('stops the state machine before pushing a stopped MPD that was playing an MPD track', function () {
+    stateMachine.currentStatus = 'play';
+    stateMachine.track = {service: 'mpd'};
+    mpd.mpdState = {status: 'stop', updatedb: false};
+
+    loseAndRecover();
+    return settle(function () {
+      assert.deepStrictEqual(events, ['stop', 'push stop'], 'stopped first, so the push is not an end of track');
+    });
+  });
+
+  it('does the same for a service that plays through MPD in consume mode', function () {
+    stateMachine.currentStatus = 'play';
+    stateMachine.isConsume = true;
+    stateMachine.consumeUpdateService = 'mpd';
+    stateMachine.track = {service: 'tidal'};
+
+    loseAndRecover();
+    return settle(function () {
+      assert.deepStrictEqual(events, ['stop', 'push stop']);
+    });
+  });
+
+  it('does not stop anything when MPD comes back still playing', function () {
+    stateMachine.currentStatus = 'play';
+    stateMachine.track = {service: 'mpd'};
+    mpd.mpdState = {status: 'play', updatedb: false};
+
+    loseAndRecover();
+    return settle(function () {
+      assert.deepStrictEqual(events, ['push play']);
+    });
+  });
+
+  it('does not stop the state machine for a track of another service', function () {
+    stateMachine.currentStatus = 'play';
+    stateMachine.track = {service: 'spop'};
+
+    loseAndRecover();
+    return settle(function () {
+      assert.deepStrictEqual(events, ['push stop'], 'the state machine ignores a push from a service that is not playing');
+    });
+  });
+
+  it('leaves a volatile service alone', function () {
+    stateMachine.isVolatile = true;
+    stateMachine.currentStatus = 'play';
+
+    loseAndRecover();
+    return settle(function () {
+      assert.strictEqual(mpd.stateReads, 0, 'MPD was not even asked');
+      assert.deepStrictEqual(events, []);
+    });
+  });
+
+  it('rejects what waited on a client that was replaced before it was ready', function () {
+    mpd.mpdEstablish();
+    var waited = mpd.mpdReady;
+    var first = clients[0];
+
+    mpd.mpdEstablish();
+    assert.deepStrictEqual(first.eventNames(), ['error']);
+    return waited.then(function () {
+      throw new Error('the ready promise of the replaced connection should reject');
+    }, function (err) {
+      assert.strictEqual(err.message, 'MPD connection replaced before it was ready');
+    });
+  });
+
+  it('tells MPD tracks and consume services through MPD from the rest', function () {
+    mpd.commandRouter = mpd.context.coreCommand;
+    assert.strictEqual(mpd.mpdIsThePlayer(), false, 'empty queue');
+    stateMachine.track = {service: 'mpd'};
+    assert.strictEqual(mpd.mpdIsThePlayer(), true, 'an MPD track');
+    stateMachine.track = {service: 'spop'};
+    assert.strictEqual(mpd.mpdIsThePlayer(), false, 'another service');
+    stateMachine.isConsume = true;
+    stateMachine.consumeUpdateService = 'mpd';
+    assert.strictEqual(mpd.mpdIsThePlayer(), true, 'a consume service through MPD');
+    stateMachine.isVolatile = true;
+    assert.strictEqual(mpd.mpdIsThePlayer(), false, 'volatile wins');
   });
 });

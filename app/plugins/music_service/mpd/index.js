@@ -695,7 +695,13 @@ ControllerMpd.prototype.mpdEstablish = function () {
   self.mpdConnect();
 
   // Make a promise for when the MPD connection is ready to receive events
-  self.mpdReady = libQ.nfcall(self.clientMpd.on.bind(self.clientMpd), 'ready');
+  var client = self.clientMpd;
+  client.readyDefer = libQ.defer();
+  client.once('ready', function () {
+    client.isReady = true;
+    client.readyDefer.resolve();
+  });
+  self.mpdReady = client.readyDefer.promise;
 
   self.mpdReady.then(function () {
     if (startup) {
@@ -710,12 +716,7 @@ ControllerMpd.prototype.mpdEstablish = function () {
       }, 5000);
     } else if (self.mpdReconnecting) {
       self.mpdReconnecting = false;
-      // Back after a lost connection: push MPD's real state, so that an update
-      // that ended while the connection was down is not shown as still running
-      self.logStart('MPD connection restored, syncing state')
-        .then(self.getState.bind(self))
-        .then(self.pushState.bind(self))
-        .fail(self.pushError.bind(self));
+      self.syncStateAfterReconnect();
     }
   });
 
@@ -808,11 +809,50 @@ ControllerMpd.prototype.mpdConnect = function () {
   if (self.clientMpd) {
     // Retire the previous client, or its handlers keep running next to the new
     // one's: every reconnect added a client, three were seen after one boot
+    if (self.clientMpd.readyDefer && !self.clientMpd.isReady) {
+      // Whatever waits on this connection's ready promise would wait for ever
+      self.clientMpd.readyDefer.reject(new Error('MPD connection replaced before it was ready'));
+    }
     self.clientMpd.removeAllListeners();
     self.clientMpd.on('error', function () {});
     self.clientMpd.socket.destroy();
   }
   self.clientMpd = libMpd.connect({port: nPort, host: nHost});
+};
+
+// MPD plays the current item: an MPD track, or a service that plays through MPD
+// in consume mode (Tidal, Qobuz, webradio). Not while a volatile service
+// (AirPlay, Bluetooth) owns playback.
+ControllerMpd.prototype.mpdIsThePlayer = function () {
+  var stateMachine = this.commandRouter.stateMachine;
+  var trackBlock = stateMachine.getTrack(stateMachine.currentPosition);
+  return !stateMachine.isVolatile && (stateMachine.consumeUpdateService === 'mpd' || (!stateMachine.isConsume && Boolean(trackBlock) && trackBlock.service === 'mpd'));
+};
+
+// The connection came back after a loss. Push MPD's state, so that the UI shows
+// what MPD has (an update that ended meanwhile, the playback state). A restarted
+// MPD reports stop with an empty queue; pushed while the state machine plays,
+// that is the end-of-track path of syncState, which moves the queue on. Stop the
+// state machine first in that case, as restartMpd does: the current item stays.
+ControllerMpd.prototype.syncStateAfterReconnect = function () {
+  var self = this;
+  var stateMachine = self.commandRouter.stateMachine;
+
+  if (stateMachine.isVolatile) {
+    self.logger.info('MPD connection restored, a volatile service is playing, state left alone');
+    return libQ.resolve();
+  }
+  return self.logStart('MPD connection restored, syncing state')
+    .then(self.getState.bind(self))
+    .then(function (state) {
+      if (state.status === 'stop' && stateMachine.currentStatus !== 'stop' && self.mpdIsThePlayer()) {
+        self.logger.info('MPD stopped while the connection was down: stopping playback, the queue position is kept');
+        self.commandRouter.volumioStop();
+      }
+      return state;
+    })
+    .then(self.pushState.bind(self))
+    .fail(self.pushError.bind(self));
 };
 
 ControllerMpd.prototype.mpdReconnect = function (reason) {
@@ -987,9 +1027,7 @@ ControllerMpd.prototype.saveResampleOptions = function (data) {
 ControllerMpd.prototype.restartMpd = function (callback) {
   var self = this;
 
-  var stateMachine = self.commandRouter.stateMachine;
-  var trackBlock = stateMachine.getTrack(stateMachine.currentPosition);
-  if (!stateMachine.isVolatile && (stateMachine.consumeUpdateService === 'mpd' || (!stateMachine.isConsume && trackBlock && trackBlock.service === 'mpd'))) {
+  if (self.mpdIsThePlayer()) {
     self.commandRouter.volumioStop();
   }
 
