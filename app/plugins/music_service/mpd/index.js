@@ -709,14 +709,25 @@ ControllerMpd.prototype.mpdEstablish = function () {
   // Catch and log errors
   self.clientMpd.on('error', function (err) {
     self.logger.error('MPD error: ' + err);
-    if (err === "{ [Error: This socket has been ended by the other party] code: 'EPIPE' }" || err.toString().includes('ECONNRESET')) {
-      // Wait 5 seconds before trying to reconnect
-      setTimeout(function () {
-        self.mpdEstablish();
-      }, 5000);
-    } else {
+    // The reconnect happens on 'end', which follows every socket error
+    if (!err.toString().includes('ECONNRESET')) {
       self.logger.error(err);
     }
+  });
+
+  // Reconnect when the connection to MPD closes, whether an error came first
+  // (ECONNRESET, EPIPE) or not. mpd.service has no Restart=: after a crash MPD
+  // only comes back through mpd.socket, when a client connects again.
+  var client = self.clientMpd;
+  client.on('end', function () {
+    self.logger.error('MPD connection closed, reconnecting in 5 seconds');
+    // Wait 5 seconds before trying to reconnect
+    setTimeout(function () {
+      // restartMpd may have connected a new client in the meantime
+      if (self.clientMpd === client) {
+        self.mpdEstablish();
+      }
+    }, 5000);
   });
 
   // This tracks the the timestamp of the newest detected status change
