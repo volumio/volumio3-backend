@@ -37,6 +37,8 @@
         "DISPLAY_METER_DOC": "Peak follows the loudest sample. RMS follows the average level, the way a VU meter reads.",
         "DISPLAY_METER_PEAK": "Peak",
         "DISPLAY_METER_RMS": "RMS",
+        "DISPLAY_ON": "Display on",
+        "DISPLAY_ON_DOC": "When off, the front display stays dark, also after standby or a restart, until you turn it back on here.",
         "DISPLAY_SAVED": "Display saved",
         "DISPLAY_THEME_DARK": "Dark",
         "DISPLAY_THEME_LIGHT": "Light",
