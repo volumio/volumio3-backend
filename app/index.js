@@ -46,6 +46,9 @@ function CoreCommandRouter (server) {
   this.configManager = new (require(__dirname + '/configManager.js'))(this.logger);
 
   var pluginPromise = this.pluginManager.startPlugins();
+  this.pluginStartupPromise = pluginPromise.fin(() => {
+    this.pluginStartupPromise = undefined;
+  });
 
   this.loadI18nStrings();
   this.musicLibrary.updateBrowseSourcesLang();
@@ -2003,6 +2006,14 @@ CoreCommandRouter.prototype.getMyVolumioStatus = function () {
       defer.resolve(result);
     }).fail(function () {
       defer.resolve(notLoggedInResponseObject);
+    });
+  } else if (self.pluginStartupPromise) {
+    // Plugins are still starting, so the MyVolumio plugin may just not be loaded yet:
+    // answer once startup is done instead of a premature {loggedIn: false}
+    self.pluginStartupPromise.fin(function () {
+      self.getMyVolumioStatus().then(function (result) {
+        defer.resolve(result);
+      });
     });
   } else {
     	// MyVolumio plugin not loaded
