@@ -14,6 +14,8 @@ const COUNT = num(args.count, 1000);
 const MAX_PAGES = num(args['max-pages'], 200);
 const MAX_REQUESTS = num(args['max-requests'], 3000);
 const TIMEOUT = num(args.timeout, 60000);
+const MAX_BYTES = num(args['max-mb'], 300) * 1048576;
+let written = 0;
 const VOLUMIO_UA = 'Android UPnP/1.0 DLNADOC/1.50';
 
 function parseArgs (argv) {
@@ -182,7 +184,11 @@ async function captureServer (location, outDir) {
     return null;
   }
 
-  const capture = { tool: 'dlna-capture/1', date: new Date().toISOString(), location: location, info: info, description: desc.body, args: args, exchanges: [], containers: [] };
+  const slug = (info.friendlyName || 'server').replace(/[^\w.-]+/g, '_').slice(0, 40) + '_' + new URL(location).hostname + '_' + (new URL(location).port || 80);
+  const dir = path.join(outDir, slug);
+  fs.mkdirSync(dir, { recursive: true });
+  const exchangesFile = path.join(dir, 'exchanges.jsonl');
+  const capture = { tool: 'dlna-capture/2', date: new Date().toISOString(), location: location, info: info, description: desc.body, args: args, containers: [] };
   let requests = 0;
 
   async function browse (id, flag, start, count) {
@@ -197,14 +203,16 @@ async function captureServer (location, outDir) {
       }
     }, body);
     requests++;
-    capture.exchanges.push({ objectId: id, browseFlag: flag, startingIndex: start, requestedCount: count, status: r.status, error: r.error, ms: r.ms, headers: r.headers, body: r.body });
+    const line = JSON.stringify({ objectId: id, browseFlag: flag, startingIndex: start, requestedCount: count, status: r.status, error: r.error, ms: r.ms, headers: r.headers, body: r.body }) + '\n';
+    fs.appendFileSync(exchangesFile, line);
+    written += line.length;
     return r;
   }
 
   const queue = [{ id: '0', title: 'root', depth: 0 }].concat(args.id.map((id) => ({ id: id, title: 'requested', depth: DEPTH })));
   const seen = new Set();
 
-  while (queue.length && requests < MAX_REQUESTS) {
+  while (queue.length && requests < MAX_REQUESTS && written < MAX_BYTES) {
     const node = queue.shift();
     if (seen.has(node.id)) continue;
     seen.add(node.id);
@@ -246,6 +254,10 @@ async function captureServer (location, outDir) {
         summary.stop = 'max-requests reached';
         break;
       }
+      if (written >= MAX_BYTES) {
+        summary.stop = 'max-mb reached';
+        break;
+      }
     }
     capture.containers.push(summary);
     const first = summary.pages[0] || {};
@@ -257,9 +269,7 @@ async function captureServer (location, outDir) {
     }
   }
 
-  const slug = (info.friendlyName || 'server').replace(/[^\w.-]+/g, '_').slice(0, 40) + '_' + new URL(location).hostname;
-  fs.mkdirSync(path.join(outDir, slug), { recursive: true });
-  fs.writeFileSync(path.join(outDir, slug, 'capture.json'), JSON.stringify(capture));
+  fs.writeFileSync(path.join(dir, 'capture.json'), JSON.stringify(capture));
   return { name: info.friendlyName, info: info, containers: capture.containers, requests: requests };
 }
 
@@ -282,11 +292,11 @@ function report (results) {
 
 async function main () {
   if (args.help) {
-    log('usage: node dlna-capture.js [--location URL]... [--server NAME] [--id OBJECTID]... [--depth 3] [--fanout 10] [--max-pages 200] [--max-requests 3000] [--out DIR]');
+    log('usage: node dlna-capture.js [--location URL]... [--server NAME] [--id OBJECTID]... [--depth 3] [--fanout 10] [--max-pages 200] [--max-requests 3000] [--max-mb 300] [--out DIR]');
     return;
   }
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const outDir = args.out || path.join(os.tmpdir(), 'dlna-capture-' + stamp);
+  const outDir = args.out || path.join(os.homedir(), 'dlna-capture-' + stamp);
   fs.mkdirSync(outDir, { recursive: true });
 
   let locations = args.location;

@@ -36,6 +36,7 @@ const fault = '<?xml version="1.0" encoding="utf-8"?><s:Envelope xmlns:s="http:/
 
 const servers = files.map((file, i) => {
   const cap = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const exchanges = fs.readFileSync(file.replace(/capture\.json$/, 'exchanges.jsonl'), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
   const port = basePort + i;
   const udn = 'uuid:mock-' + i + '-' + cap.info.udn.replace(/^uuid:/, '');
   const description = cap.description
@@ -44,7 +45,7 @@ const servers = files.map((file, i) => {
     .replace(/<URLBase>[^<]*<\/URLBase>/, '');
   const exact = new Map();
   const loose = new Map();
-  cap.exchanges.forEach((x) => {
+  exchanges.forEach((x) => {
     exact.set([x.objectId, x.browseFlag, x.startingIndex, x.requestedCount].join('|'), x);
     loose.set([x.objectId, x.browseFlag, x.startingIndex].join('|'), x);
   });
