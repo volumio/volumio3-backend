@@ -249,11 +249,18 @@ var browseAll = function (id, controlUrl, options, callback) {
   var all = {};
   var first = parseInt(options.startIndex, 10) || 0;
   var started = Date.now();
+  var total = 0;
   var next = function (start) {
     browseServer(id, controlUrl, Object.assign({}, options, {startIndex: start}), function (err, page) {
       if (err) {
-        return start > first ? callback(undefined, all) : callback(err);
+        if (start > first) {
+          all.next = start;
+          all.total = total;
+          return callback(undefined, all);
+        }
+        return callback(err);
       }
+      total = page.total;
       ['container', 'item'].forEach(function (key) {
         if (page[key]) {
           all[key] = (all[key] || []).concat(page[key]);

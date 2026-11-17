@@ -110,8 +110,7 @@ ControllerUPNPBrowser.prototype.initializeClient = function () {
             if (!ContentDirectoryService) {
               return;
             }
-            var controlURL = (ContentDirectoryService.controlURL || [])[0] || '';
-            server.location += (controlURL.startsWith('/') ? '' : '/') + controlURL;
+            server.location = new URL((ContentDirectoryService.controlURL || [])[0] || '', (data.root.URLBase || [])[0] || headers.LOCATION).toString();
 
             var duplicate = false;
             for (var i = 0; i < self.DLNAServers.length; i++) {
@@ -400,12 +399,15 @@ ControllerUPNPBrowser.prototype.listUPNP = function (data) {
       }
     }
     if (data.next) {
-      obj.navigation.lists[0].items.push({
-        'service': 'upnp_browser',
-        'type': 'streaming-category',
-        'title': self.commandRouter.getI18nString('COMMON.SHOW_MORE'),
-        'icon': 'fa fa-plus',
-        'uri': 'upnp/folder/' + address + '@' + id + '@' + data.next
+      obj.navigation.lists.push({
+        'availableListViews': obj.navigation.lists[0].availableListViews,
+        'items': [{
+          'service': 'upnp_browser',
+          'type': 'streaming-category',
+          'title': self.commandRouter.getI18nString('COMMON.SHOW_MORE'),
+          'icon': 'fa fa-plus',
+          'uri': 'upnp/folder/' + address + '@' + id + '@' + data.next
+        }]
       });
     }
     browseDLNAServer(id, address, {browseFlag: 'BrowseMetadata'}, (err, data) => {
@@ -576,12 +578,12 @@ ControllerUPNPBrowser.prototype.explodeUri = function (uri) {
   uri = uri.replace('upnp/', '');// Removing upnp/
   var folder = uri.startsWith('folder/');
   if (folder) {
-    uri = uri.replace('folder/');
+    uri = uri.replace('folder/', '');
   }
   var address = uri.split('@')[0];// Getting server address
   var id = uri.split('@')[1];// Getting item ID
   var browseFlag = folder ? 'BrowseDirectChildren' : 'BrowseMetadata';
-  browseDLNAServer(id, address, {browseFlag: browseFlag}, (err, data) => {
+  browseDLNAServer(id, address, {browseFlag: browseFlag, startIndex: parseInt(uri.split('@')[2], 10) || 0}, (err, data) => {
     if (err) {
       self.logger.error(err);
       return defer.reject(err);
