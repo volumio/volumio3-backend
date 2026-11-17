@@ -402,9 +402,9 @@ ControllerUPNPBrowser.prototype.listUPNP = function (data) {
     if (data.next) {
       obj.navigation.lists[0].items.push({
         'service': 'upnp_browser',
-        'type': 'folder',
-        'title': (data.next + 1) + '-' + data.total + ' \u203a',
-        'albumart': '/albumart?icon=folder-o',
+        'type': 'streaming-category',
+        'title': self.commandRouter.getI18nString('COMMON.SHOW_MORE'),
+        'icon': 'fa fa-plus',
         'uri': 'upnp/folder/' + address + '@' + id + '@' + data.next
       });
     }
