@@ -110,7 +110,8 @@ ControllerUPNPBrowser.prototype.initializeClient = function () {
             if (!ContentDirectoryService) {
               return;
             }
-            server.location += ((ContentDirectoryService.controlURL || [])[0] || '');
+            var controlURL = (ContentDirectoryService.controlURL || [])[0] || '';
+            server.location += (controlURL.startsWith('/') ? '' : '/') + controlURL;
 
             var duplicate = false;
             for (var i = 0; i < self.DLNAServers.length; i++) {
@@ -312,6 +313,7 @@ ControllerUPNPBrowser.prototype.listUPNP = function (data) {
   var title = '';
   if (address.startsWith('folder/')) { address = address.replace('folder/', ''); }
   var id = data.split('@')[1];
+  var startIndex = parseInt(data.split('@')[2], 10) || 0;
   var obj = {
     'navigation': {
       'prev': {
@@ -328,7 +330,7 @@ ControllerUPNPBrowser.prototype.listUPNP = function (data) {
     }
   };
 
-  browseDLNAServer(id, address, {}, (err, data) => {
+  browseDLNAServer(id, address, {startIndex: startIndex}, (err, data) => {
     if (err) {
       self.logger.error('Error browsing' + id + ':' + err);
       return defer.reject('');
@@ -396,6 +398,15 @@ ControllerUPNPBrowser.prototype.listUPNP = function (data) {
           obj.navigation.lists[0].items.push(track);
         }
       }
+    }
+    if (data.next) {
+      obj.navigation.lists[0].items.push({
+        'service': 'upnp_browser',
+        'type': 'folder',
+        'title': (data.next + 1) + '-' + data.total + ' \u203a',
+        'albumart': '/albumart?icon=folder-o',
+        'uri': 'upnp/folder/' + address + '@' + id + '@' + data.next
+      });
     }
     browseDLNAServer(id, address, {browseFlag: 'BrowseMetadata'}, (err, data) => {
       if (err) {
