@@ -15,7 +15,6 @@ const MAX_PAGES = num(args['max-pages'], 200);
 const MAX_REQUESTS = num(args['max-requests'], 3000);
 const TIMEOUT = num(args.timeout, 60000);
 const MAX_BYTES = num(args['max-mb'], 300) * 1048576;
-let written = 0;
 const VOLUMIO_UA = 'Android UPnP/1.0 DLNADOC/1.50';
 
 function parseArgs (argv) {
@@ -190,6 +189,7 @@ async function captureServer (location, outDir) {
   const exchangesFile = path.join(dir, 'exchanges.jsonl');
   const capture = { tool: 'dlna-capture/2', date: new Date().toISOString(), location: location, info: info, description: desc.body, args: args, containers: [] };
   let requests = 0;
+  let written = 0;
 
   async function browse (id, flag, start, count) {
     const body = browseXml(id, flag, start, count);
