@@ -477,8 +477,7 @@ var processExpressRequest = function (req, res) {
           return sendDefaultAlbumart(req, res);
         }
       } else {
-        res.setHeader('Cache-Control', 'public, max-age=' + maxage);
-        return sendDefaultAlbumart(req, res);
+        return sendDefaultAlbumart(req, res, 3600);
       }
     });
 };
@@ -750,9 +749,9 @@ var download = function (uri, dest, cb) {
   });
 };
 
-var sendDefaultAlbumart = function (req, res) {
+var sendDefaultAlbumart = function (req, res, cacheMaxAge) {
 
-  res.setHeader('Cache-Control', 'public, max-age=' + maxage);
+  res.setHeader('Cache-Control', 'public, max-age=' + (cacheMaxAge || maxage));
   res.sendFile(__dirname + '/default.jpg');
 };
 
