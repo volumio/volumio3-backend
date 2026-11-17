@@ -174,6 +174,9 @@ function parseContainer (metadata) {
       if (metadata.class) {
         container.class = metadata.class[0]['_'];
       }
+      if (metadata.albumArtURI) {
+        container.image = metadata.albumArtURI[0]['_'];
+      }
       if (metadata['$']) {
         if (metadata['$'].id) {
           container.id = metadata['$'].id;

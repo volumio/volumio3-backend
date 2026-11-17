@@ -357,6 +357,9 @@ ControllerUPNPBrowser.prototype.listUPNP = function (data) {
           } else {
             var albumart = self.getAlbumArt({artist: artist, album: title}, path, self.getAlbumartClass(data.container[i].class));
           }
+          if (data.container[i].image) {
+            albumart = data.container[i].image;
+          }
 
           obj.navigation.lists[0].items.push({
             'service': 'upnp_browser',
