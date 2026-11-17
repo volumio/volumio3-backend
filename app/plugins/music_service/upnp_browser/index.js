@@ -253,7 +253,7 @@ ControllerUPNPBrowser.prototype.listRoot = function () {
       obj.navigation.prev = {'uri': 'music-library'};
     }
     for (var i = 0; i < self.DLNAServers.length; i++) {
-      if (Date.now() - self.DLNAServers[i].lastTimeAlive < 60000) {
+      if (Date.now() - self.DLNAServers[i].lastTimeAlive < 180000) {
         obj.navigation.lists[0].items.push({
           service: 'upnp_browser',
           type: 'streaming-category',
