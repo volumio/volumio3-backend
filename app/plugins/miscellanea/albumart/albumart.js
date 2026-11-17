@@ -435,7 +435,7 @@ var processExpressRequest = function (req, res) {
 
   // var starttime=Date.now();
   var promise = processRequest(web, path, meta);
-  promise.then(function (filePath, maxage) {
+  promise.then(function (filePath) {
     // logger.info('Sending file ' + filePath);
 
     // var stoptime=Date.now();
@@ -444,7 +444,7 @@ var processExpressRequest = function (req, res) {
     res.sendFile(filePath);
   })
     .fail(function () {
-      res.setHeader('Cache-Control', 'public, max-age=' + maxage);
+      res.setHeader('Cache-Control', 'public, max-age=3600');
       if (icon !== undefined) {
         res.sendFile(__dirname + '/icons/' + icon + '.svg');
       } else if (sectionimage !== undefined) {
