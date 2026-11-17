@@ -435,7 +435,7 @@ var processExpressRequest = function (req, res) {
 
   // var starttime=Date.now();
   var promise = processRequest(web, path, meta);
-  promise.then(function (filePath) {
+  promise.then(function (filePath, maxage) {
     // logger.info('Sending file ' + filePath);
 
     // var stoptime=Date.now();
@@ -506,7 +506,7 @@ var processExpressRequestDirect = function (req, res) {
 
   // var starttime=Date.now();
   var promise = processRequest(web, path, meta);
-  promise.then(function (filePath) {
+  promise.then(function (filePath, maxage) {
     // logger.info('Sending file ' + filePath);
 
     // var stoptime=Date.now();
@@ -572,7 +572,7 @@ var processExpressRequestTinyArt = function (req, res) {
     var web = encodeURIComponent(splitted[0]) + '/' + encodeURIComponent(splitted[1]) + '/' + splitted[2];
   }
   var promise = processRequest(web, '', false);
-  promise.then(function (filePath) {
+  promise.then(function (filePath, maxage) {
     return sendTinyArt(req, res, filePath);
   })
     .fail(function (e) {
