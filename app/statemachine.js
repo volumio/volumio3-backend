@@ -981,6 +981,23 @@ CoreStateMachine.prototype.getTrack = function (position) {
 };
 
 // Volumio Play Command
+// Guard for the moment playback is asked for. With no ALSA card on the unit
+// every service fails identically and silently deep inside MPD ("Failed to
+// open ALSA device"), so the client is left showing a paused track and no
+// reason. Fails open on any error: never block a working unit.
+CoreStateMachine.prototype.audioOutputAvailable = function () {
+  var self = this;
+
+  try {
+    // undefined when the alsa_controller plugin is not loaded on this variant.
+    var available = self.commandRouter.executeOnPlugin('audio_interface', 'alsa_controller', 'hasAudioOutput');
+    return available !== false;
+  } catch (e) {
+    self.commandRouter.pushConsoleMessage('CoreStateMachine::audioOutputAvailable check failed, assuming an output is present: ' + e);
+    return true;
+  }
+};
+
 CoreStateMachine.prototype.play = function (index) {
   var self = this;
 
@@ -1015,6 +1032,15 @@ CoreStateMachine.prototype.play = function (index) {
           self.currentPosition = 0;
           self.randomQueue.reset();
           return libQ.reject();
+        }
+
+        if (!self.audioOutputAvailable()) {
+          // Raise the translated "connect an audio output device" modal rather
+          // than queuing a track that cannot reach a speaker.
+          self.commandRouter.executeOnPlugin('audio_interface', 'alsa_controller', 'checkAudioDeviceAvailable', '');
+          self.currentStatus = 'stop';
+          self.pushState();
+          return libQ.reject(new Error('No audio output device available'));
         }
 
         var thisPlugin = self.commandRouter.pluginManager.getPlugin('music_service', trackBlock.service);
