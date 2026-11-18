@@ -12,6 +12,8 @@ const Entities = require('html-entities').XmlEntities;
 const entities = new Entities();
 
 var debug = false;
+const MAX_ITEMS = 10000;
+const MAX_MS = 10000;
 
 // function to build the xml required for the saop request to the DLNA server
 const buildRequestXml = function (id, options) {
@@ -107,7 +109,10 @@ var browseServer = function (id, controlUrl, options, callback) {
             (result['Envelope']['Body'][0]['BrowseResponse'][0]['Result']) &&
             (result['Envelope']['Body'][0]['BrowseResponse'][0]['Result'][0])
         ) {
-          var listResult = result['Envelope']['Body'][0]['BrowseResponse'][0]['Result'][0];
+          var browseResponse = result['Envelope']['Body'][0]['BrowseResponse'][0];
+          var listResult = browseResponse['Result'][0];
+          browseResult.returned = parseInt(((browseResponse['NumberReturned'] || [])[0] || {})['_'], 10) || 0;
+          browseResult.total = parseInt(((browseResponse['TotalMatches'] || [])[0] || {})['_'], 10) || 0;
           // this likely needs to be generalized to acount for the arrays. I don't have
           // a server that I've seen return more than one entry in the array, but I assume
           // the standard allows for that.  Will update when I have a server that I can
@@ -168,6 +173,9 @@ function parseContainer (metadata) {
       }
       if (metadata.class) {
         container.class = metadata.class[0]['_'];
+      }
+      if (metadata.albumArtURI) {
+        container.image = metadata.albumArtURI[0]['_'];
       }
       if (metadata['$']) {
         if (metadata['$'].id) {
@@ -240,4 +248,39 @@ function log (message) {
   }
 }
 
-module.exports = browseServer;
+var browseAll = function (id, controlUrl, options, callback) {
+  var all = {};
+  var first = parseInt(options.startIndex, 10) || 0;
+  var started = Date.now();
+  var total = 0;
+  var next = function (start) {
+    browseServer(id, controlUrl, Object.assign({}, options, {startIndex: start}), function (err, page) {
+      if (err) {
+        if (start > first) {
+          all.next = start;
+          all.total = total;
+          return callback(undefined, all);
+        }
+        return callback(err);
+      }
+      total = page.total;
+      ['container', 'item'].forEach(function (key) {
+        if (page[key]) {
+          all[key] = (all[key] || []).concat(page[key]);
+        }
+      });
+      start += page.returned;
+      if (page.returned > 0 && start < page.total) {
+        if (start - first < MAX_ITEMS && Date.now() - started < MAX_MS) {
+          return next(start);
+        }
+        all.next = start;
+        all.total = page.total;
+      }
+      callback(undefined, all);
+    });
+  };
+  next(first);
+};
+
+module.exports = browseAll;
