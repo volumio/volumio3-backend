@@ -22,6 +22,17 @@ var artistsort = true;
 var dsd_autovolume = false;
 var singleBrowse = false;
 var startup = true;
+// Songs per "search" window in listAlbums. Keeps every MPD reply far below
+// max_output_buffer_size (mpd.conf.tmpl) whatever the library size.
+var albumListWindow = 10000;
+// Bumped on every database change MPD reports. A window scan that saw a bump
+// reads the windows again before it caches: between two windows the song
+// offsets may have shifted under it.
+var albumListGeneration = 0;
+// The window scan in progress, if any: its promise and the client it runs on.
+// Callers join it instead of starting one more; a scan whose client is gone is
+// released at the next call, so a dropped connection cannot park the list.
+var albumListScan = null;
 var stickingMusicLibrary = false;
 var collectionStats = {};
 var nextMoveToNextTrackDebounce;
@@ -773,6 +784,7 @@ ControllerMpd.prototype.mpdEstablish = function () {
     // return self.commandRouter.fileUpdate();
     // return self.reportUpdatedLibrary();
     // Refresh AlbumList - delete the current AlbumList cache entry
+    albumListGeneration++;
     memoryCache.del('cacheAlbumList', function (err) {});
     // Store new AlbumList in cache
     self.listAlbums();
@@ -2995,6 +3007,23 @@ ControllerMpd.prototype.listAlbums = function (ui) {
   var defer = libQ.defer();
   var response = memoryCache.get('cacheAlbumList', function (err, response) {
     if (response == undefined) {
+      if (albumListScan) {
+        if (albumListScan.client === self.clientMpd) {
+          // A scan is reading the windows already: its result is ours too
+          albumListScan.defer.promise.then(function (result) {
+            defer.resolve(result);
+          }, function (e) {
+            defer.reject(e);
+          });
+          return;
+        }
+        // The scan sits on a connection that was replaced: its windows will
+        // never arrive. Release it and read the library on this connection.
+        albumListScan.defer.reject(new Error('MPD connection lost'));
+        albumListScan = null;
+      }
+      var scan = {defer: defer, client: self.clientMpd};
+      albumListScan = scan;
       response = {
         'navigation': {
           'lists': [
@@ -3013,54 +3042,91 @@ ControllerMpd.prototype.listAlbums = function (ui) {
         response.navigation.prev = {'uri': 'music-library'};
       }
       var cmd = libMpd.cmd;
+      var albumsfound = new Set();
+      var start = 0;
+      var generation = albumListGeneration;
 
-      self.clientMpd.sendCommand(cmd('search album ""', []), function (err, msg) {
-        if (err) {
-          defer.reject(new Error('Cannot list albums'));
-        } else {
-          var lines = msg.split('\n');
-          var albumsfound = [];
-          for (var i = 0; i < lines.length; i++) {
-            var line = lines[i];
-            if (line.startsWith('file:')) {
-              var path = line.slice(6);
-              var albumName = self.searchFor(lines, i + 1, 'Album:');
-              var albumYear = self.searchFor(lines, i + 1, 'Date:');
-              var artistName = self.searchFor(lines, i + 1, 'AlbumArtist:') || self.searchFor(lines, i + 1, 'Artist:');
+      // Ask for the songs in windows. A single 'search album ""' makes MPD put
+      // the whole library in one reply; on large libraries that overflows its
+      // output buffer and MPD drops the connection.
+      var listWindow = function () {
+        var end = start + albumListWindow;
+        scan.client.sendCommand(cmd('search album "" window ' + start + ':' + end, []), function (err, msg) {
+          if (albumListScan !== scan) {
+            // Released meanwhile: a late reply from a connection that was replaced
+            return;
+          }
+          if (scan.client !== self.clientMpd) {
+            // The connection was replaced while this window was pending: a reply
+            // from the old one must not complete a scan the new one did not read
+            albumListScan = null;
+            defer.reject(new Error('MPD connection lost'));
+            return;
+          }
+          if (err) {
+            albumListScan = null;
+            defer.reject(new Error('Cannot list albums'));
+          } else {
+            var lines = msg.split('\n');
+            var songs = 0;
+            for (var i = 0; i < lines.length; i++) {
+              var line = lines[i];
+              if (line.startsWith('file:')) {
+                songs++;
+                var path = line.slice(6);
+                var albumName = self.searchFor(lines, i + 1, 'Album:');
+                var albumYear = self.searchFor(lines, i + 1, 'Date:');
+                var artistName = self.searchFor(lines, i + 1, 'AlbumArtist:') || self.searchFor(lines, i + 1, 'Artist:');
 
-              // This causes all orphaned tracks (tracks without an album) in the Albums view to be
-              //  grouped into a single dummy-album, rather than creating one such dummy-album per artist.
-              var albumId = albumName + artistName;
-              if (!albumName) {
-                albumId = '';
-                albumName = '';
-                artistName = '*';
-              }
-              // Check if album and artist combination is already found and exists in 'albumsfound' array (Allows for duplicate album names)
-              if (albumsfound.indexOf(albumId) < 0) { // Album/Artist is not in 'albumsfound' array
-                albumsfound.push(albumId);
-                var album = {
-                  service: 'mpd',
-                  type: 'folder',
-                  title: albumName,
-                  artist: artistName,
-                  year: albumYear,
-                  album: '',
-                  uri: 'albums://' + encodeURIComponent(artistName) + '/' + encodeURIComponent(albumName),
-                  // Get correct album art from path- only download if not existent
-                  albumart: self.getAlbumArt({artist: artistName, album: albumName}, self.getParentFolder('/mnt/' + path), 'dot-circle-o')
-                };
-                response.navigation.lists[0].items.push(album);
+                // This causes all orphaned tracks (tracks without an album) in the Albums view to be
+                //  grouped into a single dummy-album, rather than creating one such dummy-album per artist.
+                var albumId = albumName + artistName;
+                if (!albumName) {
+                  albumId = '';
+                  albumName = '';
+                  artistName = '*';
+                }
+                // Check if album and artist combination is already found and exists in 'albumsfound' set (Allows for duplicate album names)
+                if (!albumsfound.has(albumId)) { // Album/Artist is not in 'albumsfound' set
+                  albumsfound.add(albumId);
+                  var album = {
+                    service: 'mpd',
+                    type: 'folder',
+                    title: albumName,
+                    artist: artistName,
+                    year: albumYear,
+                    album: '',
+                    uri: 'albums://' + encodeURIComponent(artistName) + '/' + encodeURIComponent(albumName),
+                    // Get correct album art from path- only download if not existent
+                    albumart: self.getAlbumArt({artist: artistName, album: albumName}, self.getParentFolder('/mnt/' + path), 'dot-circle-o')
+                  };
+                  response.navigation.lists[0].items.push(album);
+                }
               }
             }
+            if (songs < albumListWindow) {
+              if (generation !== albumListGeneration) {
+                // The database changed while the windows were read: albums may
+                // have moved across a window boundary. Read them again.
+                generation = albumListGeneration;
+                start = 0;
+                albumsfound = new Set();
+                response.navigation.lists[0].items = [];
+                listWindow();
+                return;
+              }
+              // Last window. Save response in albumList cache for future use
+              albumListScan = null;
+              memoryCache.set('cacheAlbumList', response);
+              defer.resolve(response);
+            } else {
+              start = end;
+              listWindow();
+            }
           }
-          // Save response in albumList cache for future use
-          memoryCache.set('cacheAlbumList', response);
-          if (ui) {
-            defer.resolve(response);
-          }
-        }
-      });
+        });
+      };
+      listWindow();
     } else {
       self.logger.info('listAlbums - loading Albums from cache');
       if (ui) {
@@ -3874,6 +3940,7 @@ ControllerMpd.prototype.rebuildAlbumCache = function () {
   var self = this;
 
   self.logger.info('Rebuild Album cache');
+  albumListGeneration++;
   memoryCache.del('cacheAlbumList', function (err) {});
   self.listAlbums();
 };
