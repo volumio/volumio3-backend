@@ -325,6 +325,9 @@ ControllerNetwork.prototype.getWirelessNetworks = function (defer) {
         defer.resolve(networkresults);
       }
     });
+  } else {
+    // Wireless disabled: answer with no networks rather than leaving the UI scanning forever
+    defer.resolve({'available': []});
   }
 
   return defer.promise;
