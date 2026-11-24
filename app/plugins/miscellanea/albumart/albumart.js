@@ -6,7 +6,6 @@ var S = require('string');
 var fs = require('fs-extra');
 var exec = require('child_process').exec;
 var execSync = require('child_process').execSync;
-var apiKey = '4cb074e4b8ec4ee9ad3eb37d6f7eb240';
 var diskCache = true;
 var variant = 'none';
 const { v4: uuidv4 } = require('uuid');
@@ -624,6 +623,50 @@ var sanitizeUri = function (uri) {
   return uri.replace('music-library/', '').replace('mnt/', '');
 };
 
+var readFileOrEmpty = function (path) {
+  var defer = Q.defer();
+  fs.readFile(path, 'utf8', function (err, data) {
+    defer.resolve(err ? '' : data);
+  });
+  return defer.promise;
+};
+
+var deviceUserAgent = Q.all([
+  readFileOrEmpty('/etc/os-release'),
+  readFileOrEmpty('/sys/class/net/eth0/address'),
+  readFileOrEmpty('/data/configuration/system_controller/system/config.json')
+]).then(function (files) {
+  var release = {};
+  files[0].split('\n').forEach(function (line) {
+    var match = line.match(/^VOLUMIO_(\w+)="?([^"]*)"?$/);
+    if (match) {
+      release[match[1]] = match[2];
+    }
+  });
+  var systemConfig = {};
+  try {
+    systemConfig = JSON.parse(files[2]);
+  } catch (e) {}
+  var id;
+  if (files[1]) {
+    id = require('crypto').createHash('md5').update(files[1]).digest('hex');
+  } else {
+    id = (systemConfig.uuid && systemConfig.uuid.value) || '0000000000000000000000000';
+  }
+  var device = {
+    arch: release.ARCH || 'unknown',
+    variant: release.VARIANT || variant,
+    hash: release.HASH || '000000000000000000000000000000000000000000',
+    hardware: release.HARDWARE,
+    id: id,
+    name: (systemConfig.playerName && systemConfig.playerName.value) || 'none',
+    version: release.VERSION
+  };
+  return Object.keys(device).map(function (key) {
+    return key + '=' + encodeURIComponent(device[key] || '');
+  }).join('&');
+});
+
 // Included this code as an effort to reduce dependencies
 // Original code at https://github.com/lacymorrow/album-art/tree/66755c918ece5093cf32d49f6263144f6669d695
 // Copyright MIT © Lacy Morrow https://lacymorrow.github.io/
@@ -640,12 +683,17 @@ var retrieveAlbumart = function (artist, album, size, cb) {
     size = null;
   }
 
+  var data = '';
+  var https = require('https');
+  var artist = artist.replace('&', 'and');
+  var url;
   if (album === null) {
-    var data = '';
-    var https = require('https');
-    var artist = artist.replace('&', 'and');
-    var url = 'https://meta.volumio.org' + encodeURI('/metas/v1/getDatas?mode=artistArt&artist=' + artist + '&variant=' + variant);
-    https.get(url, function (resp) {
+    url = 'https://meta.volumio.org' + encodeURI('/metas/v1/getDatas?mode=artistArt&artist=' + artist);
+  } else {
+    url = 'https://meta.volumio.org/metas/v1/getDatas?mode=albumArt&artist=' + encodeURIComponent(artist) + '&album=' + encodeURIComponent(album) + '&size=' + encodeURIComponent(size || '');
+  }
+  deviceUserAgent.then(function (userAgent) {
+    https.get(url, {headers: {'User-Agent': userAgent}}, function (resp) {
       resp.on('data', function (chunk) {
         data += chunk;
       });
@@ -663,54 +711,15 @@ var retrieveAlbumart = function (artist, album, size, cb) {
           cb('Error: No image found.', '');
         }
       });
-    }).on('error', function (e) {
-      return cb('Got error: ' + e.message);
-    });
-  } else {
-    var data = '';
-    var sizes = ['small', 'medium', 'large', 'extralarge', 'mega'];
-    var method = (album === null) ? 'artist' : 'album';
-    var http = require('http');
-    var artist = artist.replace('&', 'and');
-    var options = {
-      host: 'ws.audioscrobbler.com',
-      port: 80,
-      path: encodeURI('/2.0/?format=json&api_key=' + apiKey + '&method=' + method + '.getinfo&artist=' + artist + '&album=' + album)
-    };
-    http.get(options, function (resp) {
-      resp.on('data', function (chunk) {
-        data += chunk;
-      });
-      resp.on('end', function () {
-        try {
-          var json = JSON.parse(data);
-        } catch (e) {
-          return cb('JSON Error: ' + e, '');
-        }
-
-        if (typeof (json.error) !== 'undefined') {
-          // Error
-          return cb('JSON Error: ' + json.message, '');
-        } else if (sizes.indexOf(size) !== -1 && json[method] && json[method].image) {
-          // Return image in specific size
-          json[method].image.forEach(function (e, i) {
-            if (e.size === size) {
-              cb(null, e['#text']);
-            }
-          });
-        } else if (json[method] && json[method].image) {
-          // Return largest image
-          var i = json[method].image.length - 2;
-          cb(null, json[method].image[i]['#text']);
-        } else {
-          // No image art found
-          cb('Error: No image found.', '');
-        }
+      resp.on('error', function (e) {
+        return cb('Got error: ' + e.message);
       });
     }).on('error', function (e) {
       return cb('Got error: ' + e.message);
     });
-  }
+  }).fail(function (e) {
+    return cb('Got error: ' + e.message);
+  });
 };
 
 var download = function (uri, dest, cb) {
