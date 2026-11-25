@@ -7,12 +7,14 @@ var execSync = require('child_process').execSync;
 var spawn = require('child_process').spawn;
 var iwlist = require('./lib/iwlist.js');
 var ifconfig = require('./lib/ifconfig.js');
+var wifiCountry = require('./lib/wifiCountry.js');
 var config = new (require('v-conf'))();
 var os = require('os');
 var crypto = require('crypto');
 var wirelessNetworksScanCache;
 var cachedEth0IPAddress;
 var cachedWlan0IPAddress;
+var detectWifiCountry = wifiCountry.createDetector();
 
 // Define the ControllerNetwork class
 module.exports = ControllerNetwork;
@@ -45,7 +47,12 @@ ControllerNetwork.prototype.onVolumioStart = function () {
   }
 
   self.initializeNetworkMonitor();
-  self.getWirelessNetworks();
+  var wirelessNetworks = self.getWirelessNetworks();
+  if (self.commandRouter.executeOnPlugin('system_controller', 'system', 'getShowWizard', '') === true) {
+    wirelessNetworks.then(function () {
+      self.warmWifiCountry(3);
+    });
+  }
   self.restoreNetworkBackup();
 
   return promise;
@@ -1285,6 +1292,33 @@ ControllerNetwork.prototype.getWirelessNetworksScanCache = function () {
   if (wireless_enabled_setting) {
     return wirelessNetworksScanCache;
   }
+};
+
+// Resolves { country: string | null, countries: string[] } from the country
+// codes nearby access points advertise. Never rejects.
+ControllerNetwork.prototype.getWifiCountry = function () {
+  var self = this;
+  var defer = libQ.defer();
+
+  detectWifiCountry().then(function (result) {
+    self.logger.info('Wi-Fi country: ' + JSON.stringify(result));
+    defer.resolve(result);
+  });
+
+  return defer.promise;
+};
+
+ControllerNetwork.prototype.warmWifiCountry = function (tries) {
+  var self = this;
+
+  detectWifiCountry().then(function (result) {
+    self.logger.info('Wi-Fi country at startup: ' + JSON.stringify(result));
+    if (result.countries.length === 0 && tries > 1) {
+      setTimeout(function () {
+        self.warmWifiCountry(tries - 1);
+      }, 3000);
+    }
+  });
 };
 
 ControllerNetwork.prototype.forceHotspot = function () {

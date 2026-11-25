@@ -1638,6 +1638,22 @@ function InterfaceWebUI (context) {
       selfConnWebSocket.emit('pushWizard', {'openWizard': showWizard});
     });
 
+    connWebSocket.on('getWifiCountry', function () {
+      var selfConnWebSocket = this;
+      var empty = { country: null, countries: [] };
+
+      var wifiCountry = self.commandRouter.executeOnPlugin('system_controller', 'network', 'getWifiCountry', '');
+      if (wifiCountry) {
+        wifiCountry.then(function (data) {
+          selfConnWebSocket.emit('pushWifiCountry', data);
+        }).fail(function () {
+          selfConnWebSocket.emit('pushWifiCountry', empty);
+        });
+      } else {
+        selfConnWebSocket.emit('pushWifiCountry', empty);
+      }
+    });
+
     connWebSocket.on('runFirstConfigWizard', function () {
       var selfConnWebSocket = this;
       self.commandRouter.executeOnPlugin('miscellanea', 'wizard', 'openWizard', '');
