@@ -1639,7 +1639,7 @@ ControllerSystem.prototype.initializeFirstStart = function () {
   var isFirstStart = self.config.get('first_start', false);
   var showWizard = self.config.get('show_wizard', true);
   if (showWizard) {
-    if (process.env.NEW_WIZARD === 'true') {
+    if (process.env.NEW_WIZARD === 'true' && process.env.NOVA_DEFAULT_UI !== 'true') {
       process.env.SHOW_NEW_WIZARD = 'true';
     }
   }

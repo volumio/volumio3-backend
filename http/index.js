@@ -87,6 +87,13 @@ try {
   }
 } catch(e) {}
 
+app.get('/wizard', function (req, res) {
+  if (process.env.NEW_WIZARD === 'true') {
+    process.env.SHOW_NEW_WIZARD = 'true';
+  }
+  res.redirect('/');
+});
+
 app.use(function (req, res, next) {
   var userAgent = req.get('user-agent') || '';
   if (userAgent.includes('ultraui') && process.env.HAS_ULTRAUI === 'true') {
