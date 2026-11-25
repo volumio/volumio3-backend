@@ -47,7 +47,12 @@ ControllerNetwork.prototype.onVolumioStart = function () {
   }
 
   self.initializeNetworkMonitor();
-  self.getWirelessNetworks();
+  var wirelessNetworks = self.getWirelessNetworks();
+  if (self.commandRouter.executeOnPlugin('system_controller', 'system', 'getShowWizard', '') === true) {
+    wirelessNetworks.then(function () {
+      self.warmWifiCountry(3);
+    });
+  }
   self.restoreNetworkBackup();
 
   return promise;
@@ -1301,6 +1306,19 @@ ControllerNetwork.prototype.getWifiCountry = function () {
   });
 
   return defer.promise;
+};
+
+ControllerNetwork.prototype.warmWifiCountry = function (tries) {
+  var self = this;
+
+  detectWifiCountry().then(function (result) {
+    self.logger.info('Wi-Fi country at startup: ' + JSON.stringify(result));
+    if (result.countries.length === 0 && tries > 1) {
+      setTimeout(function () {
+        self.warmWifiCountry(tries - 1);
+      }, 3000);
+    }
+  });
 };
 
 ControllerNetwork.prototype.forceHotspot = function () {
