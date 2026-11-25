@@ -7,12 +7,14 @@ var execSync = require('child_process').execSync;
 var spawn = require('child_process').spawn;
 var iwlist = require('./lib/iwlist.js');
 var ifconfig = require('./lib/ifconfig.js');
+var wifiCountry = require('./lib/wifiCountry.js');
 var config = new (require('v-conf'))();
 var os = require('os');
 var crypto = require('crypto');
 var wirelessNetworksScanCache;
 var cachedEth0IPAddress;
 var cachedWlan0IPAddress;
+var detectWifiCountry = wifiCountry.createDetector();
 
 // Define the ControllerNetwork class
 module.exports = ControllerNetwork;
@@ -1285,6 +1287,20 @@ ControllerNetwork.prototype.getWirelessNetworksScanCache = function () {
   if (wireless_enabled_setting) {
     return wirelessNetworksScanCache;
   }
+};
+
+// Resolves { country: string | null, countries: string[] } from the country
+// codes nearby access points advertise. Never rejects.
+ControllerNetwork.prototype.getWifiCountry = function () {
+  var self = this;
+  var defer = libQ.defer();
+
+  detectWifiCountry().then(function (result) {
+    self.logger.info('Wi-Fi country: ' + JSON.stringify(result));
+    defer.resolve(result);
+  });
+
+  return defer.promise;
 };
 
 ControllerNetwork.prototype.forceHotspot = function () {
