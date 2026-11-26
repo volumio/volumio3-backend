@@ -22,6 +22,9 @@ function CoreMusicLibrary (commandRouter) {
   // Specify the preference for service when adding tracks to the queue
   self.servicePriority = ['mpd', 'spop'];
 
+  // Serialises library searches, see searchOnPlugin
+  self.librarySearchGate = libQ.resolve();
+
   // The library contains hash tables for genres, artists, albums, and tracks
   self.library = {};
   self.libraryIndex = {};
@@ -665,25 +668,51 @@ CoreMusicLibrary.prototype.searchOnPlugin = function (plugin_type, plugin_name, 
   var alreadyResolved = false;
   var defer = libQ.defer();
 
-  var performedSearch = self.commandRouter.executeOnPlugin(plugin_type, plugin_name, 'search', query);
-  if (performedSearch !== undefined) {
-    performedSearch.then((result) => {
-      alreadyResolved = true;
-      defer.resolve(result);
-    })
-      .fail((error) => {
-        self.logger.error('Failed search in plugin ' + plugin_name + ': ' + error);
-        alreadyResolved = true;
-        defer.resolve(null);
-      });
-  } else {
-    alreadyResolved = true;
-    defer.resolve(null);
+  // MPD answers every client command from a single thread, so library searches
+  // issued together queue up inside it. One batch of globalUri tracks becomes one
+  // library search per track, and while those run MPD stops pinging its systemd
+  // watchdog (WatchdogSec=20, set by volumio-os) and is killed mid-playback.
+  // Let one library search reach MPD at a time; the streaming sources have no
+  // such constraint and stay concurrent.
+  var isLibrarySearch = (plugin_name === 'mpd');
+  var libraryGateOpen = isLibrarySearch ? self.librarySearchGate : libQ.resolve();
+  var releaseLibraryGate = libQ.defer();
+  if (isLibrarySearch) {
+    self.librarySearchGate = releaseLibraryGate.promise;
   }
+
+  libraryGateOpen.then(() => {
+    // The caller timed out while we waited our turn: searching now would add load
+    // to MPD for a result nobody is going to read.
+    if (alreadyResolved) {
+      releaseLibraryGate.resolve();
+      return;
+    }
+
+    var performedSearch = self.commandRouter.executeOnPlugin(plugin_type, plugin_name, 'search', query);
+    if (performedSearch !== undefined) {
+      performedSearch.then((result) => {
+        alreadyResolved = true;
+        defer.resolve(result);
+        releaseLibraryGate.resolve();
+      })
+        .fail((error) => {
+          self.logger.error('Failed search in plugin ' + plugin_name + ': ' + error);
+          alreadyResolved = true;
+          defer.resolve(null);
+          releaseLibraryGate.resolve();
+        });
+    } else {
+      alreadyResolved = true;
+      defer.resolve(null);
+      releaseLibraryGate.resolve();
+    }
+  });
 
   setTimeout(() => {
     if (!alreadyResolved) {
       self.logger.error('Search in plugin ' + plugin_name + ' timed out');
+      alreadyResolved = true;
       defer.resolve(null);
     }
   }, searchTimeoutMS);
@@ -961,24 +990,18 @@ CoreMusicLibrary.prototype.executeGlobalSearch = function (data) {
       .then(function (results) {
         self.logger.info('All search sources collected, pushing search results');
         results = _.flatten(results.filter(items => items));
-        if (results && results.length) {
-          for (var i = 0; i < results.length; i++) {
-            if (results[i] && results[i].items && results[i].items[0] && results[i].items[0].service) {
-              var itemsService = results[i].items[0].service;
-              var priorityScore = self.getPriorityWeightsToItems(itemsService);
-              if (results[i] && results[i].items) {
-                results[i].items.forEach(item=>item.priorityScore=priorityScore);
-                itemsList = itemsList.concat(results[i].items);
-              }
-              if (i+1 == results.length) {
-                itemsList = _.sortBy(itemsList, 'priorityScore');
-                defer.resolve(itemsList);
-              }
-            }
+        for (var i = 0; i < results.length; i++) {
+          if (results[i] && results[i].items && results[i].items[0] && results[i].items[0].service) {
+            var itemsService = results[i].items[0].service;
+            var priorityScore = self.getPriorityWeightsToItems(itemsService);
+            results[i].items.forEach(item=>item.priorityScore=priorityScore);
+            itemsList = itemsList.concat(results[i].items);
           }
-        } else {
-          defer.resolve([]);
         }
+        // Resolve whatever we gathered: resolving only from the last usable entry
+        // left this promise pending for good whenever the last source came back
+        // empty, and the globalUri explode waiting on it never finished.
+        defer.resolve(_.sortBy(itemsList, 'priorityScore'));
       })
 
   return defer.promise;
