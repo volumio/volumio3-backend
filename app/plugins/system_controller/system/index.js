@@ -609,6 +609,10 @@ ControllerSystem.prototype.getSystemVersion = function () {
     releaseinfo.hwVersion = hwVersion;
   }
 
+  if (process.env.KIOSK_SCREEN !== undefined) {
+    releaseinfo.kioskScreen = process.env.KIOSK_SCREEN;
+  }
+
   defer.resolve(releaseinfo);
 
   return defer.promise;
