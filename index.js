@@ -3,6 +3,7 @@ var fs = require('fs-extra');
 var dotenv = require('dotenv').config({ path: path.join(__dirname, '.env')}); // eslint-disable-line
 var execSync = require('child_process').execSync;
 var expressInstance = require('./http/index.js');
+var wizardServing = require('./http/wizardServing.js');
 var expressApp = expressInstance.app;
 var newWizardDir = '/volumio/http/wizard';
 
@@ -57,7 +58,7 @@ var commandRouter = new (require('./app/index.js'))(httpServer); // eslint-disab
 expressApp.get('/?*', function (req, res) {
   var userAgent = req.get('user-agent');
   
-  if (process.env.SHOW_NEW_WIZARD === 'true') {
+  if (wizardServing.shouldServeWizard(process.env)) {
     res.sendFile(path.join(newWizardDir, 'index.html'));
   } else {
     res.sendFile(path.join(process.env.VOLUMIO_ACTIVE_UI_PATH, 'index.html'));

@@ -3,6 +3,7 @@ var compression = require('compression');
 var path = require('path');
 var bodyParser = require('body-parser');
 var routes = require('./routes.js');
+var wizardServing = require('./wizardServing.js');
 var restapi = require('./restapi.js');
 var fs = require('fs-extra');
 var io = require('socket.io-client');
@@ -91,7 +92,7 @@ app.use(function (req, res, next) {
   var userAgent = req.get('user-agent') || '';
   if (userAgent.includes('ultraui') && process.env.HAS_ULTRAUI === 'true') {
     express.static(ultraUIPath)(req, res, next);
-  } else if (process.env.SHOW_NEW_WIZARD === 'true') {
+  } else if (wizardServing.shouldServeWizard(process.env)) {
     express.static(newWizardDir)(req, res, next);
   } else {
     express.static(process.env.VOLUMIO_ACTIVE_UI_PATH)(req, res, next);

@@ -275,6 +275,8 @@ volumioWizard.prototype.openWizard = function () {
   var self = this;
   if (process.env.NEW_WIZARD === 'true') {
     process.env.SHOW_NEW_WIZARD = 'true';
+    // Explicit request: serve the wizard even when the active UI has its own first-run screen
+    process.env.WIZARD_REQUESTED = 'true';
     self.commandRouter.reloadUi();
     self.commandRouter.broadcastMessage('openWizard', '');
   }
@@ -285,6 +287,7 @@ volumioWizard.prototype.setSkip = function () {
 
   self.logger.info('Wizard skipped');
   process.env.SHOW_NEW_WIZARD = 'false';
+  process.env.WIZARD_REQUESTED = 'false';
   self.commandRouter.reloadUi();
   self.commandRouter.executeOnPlugin('system_controller', 'system', 'setShowWizard', false);
   self.commandRouter.broadcastMessage('closeWizard', '');
@@ -303,6 +306,7 @@ volumioWizard.prototype.setCloseWizard = function () {
   var self = this;
 
   process.env.SHOW_NEW_WIZARD = 'false';
+  process.env.WIZARD_REQUESTED = 'false';
   self.commandRouter.reloadUi();
   self.commandRouter.executeOnPlugin('system_controller', 'system', 'setShowWizard', false);
   self.logger.info('Wizard terminated Successfully');
