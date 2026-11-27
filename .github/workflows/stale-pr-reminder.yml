@@ -1,0 +1,134 @@
+name: Stale PR Reminder
+
+on:
+  schedule:
+    - cron: '0 9 * * *'  # Daily at 9am UTC
+  workflow_dispatch:      # Manual trigger for testing
+
+jobs:
+  remind-reviewers:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check stale PRs and notify
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const EXCLUDE_LABELS = ['on-hold', 'waiting-upstream', 'wip', 'draft', 'do-not-merge'];
+            const REPO_OWNERS = ['volumio'];  // Add specific maintainer handles here
+            
+            const TIERS = [
+              { days: 30, marker: '[STALE-30]', message: 'URGENT: This PR has been awaiting review for over 30 days. This is causing significant community impact. Please either review, request changes, or close with explanation. Continued inaction is blocking project progress. **This reminder will repeat weekly until actioned.**' },
+              { days: 21, marker: '[STALE-21]', message: 'CRITICAL: This PR has been pending review for 21 days. The community is waiting on this fix. Please prioritise review or provide a clear timeline.' },
+              { days: 14, marker: '[STALE-14]', message: 'REMINDER: This PR has been open for 14 days without review. Please action this or indicate what is blocking progress.' },
+              { days: 7,  marker: '[STALE-7]',  message: 'This PR has been awaiting review for 7 days. A review would be appreciated when time permits.' }
+            ];
+            
+            const now = new Date();
+            
+            const prs = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+            
+            for (const pr of prs.data) {
+              // Skip drafts
+              if (pr.draft) continue;
+              
+              // Skip if has exclusion label
+              const labels = pr.labels.map(l => l.name.toLowerCase());
+              if (EXCLUDE_LABELS.some(ex => labels.includes(ex.toLowerCase()))) continue;
+              
+              // Calculate age in days
+              const created = new Date(pr.created_at);
+              const ageDays = Math.floor((now - created) / (1000 * 60 * 60 * 24));
+              
+              // Find applicable tier
+              const tier = TIERS.find(t => ageDays >= t.days);
+              if (!tier) continue;  // Less than 7 days old
+              
+              // Check if we already posted this tier's reminder
+              const comments = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                per_page: 100
+              });
+              
+              const matchingComments = comments.data.filter(c => 
+                c.body.includes(tier.marker) && 
+                c.user.type === 'Bot'
+              );
+              
+              if (matchingComments.length > 0) {
+                // For 30-day tier, allow weekly repeats
+                if (tier.days === 30) {
+                  const lastPosted = new Date(matchingComments[matchingComments.length - 1].created_at);
+                  const daysSinceLastPost = Math.floor((now - lastPosted) / (1000 * 60 * 60 * 24));
+                  if (daysSinceLastPost < 7) continue;  // Wait at least 7 days before repeating
+                } else {
+                  continue;  // Other tiers only post once
+                }
+              }
+              
+              // Build mention list
+              const mentions = new Set();
+              
+              // Add requested reviewers (individuals)
+              for (const reviewer of pr.requested_reviewers || []) {
+                mentions.add('@' + reviewer.login);
+              }
+              
+              // Add requested teams
+              for (const team of pr.requested_teams || []) {
+                mentions.add('@' + context.repo.owner + '/' + team.slug);
+              }
+              
+              // Fetch all reviews to find anyone who has reviewed but PR still open
+              const reviews = await github.rest.pulls.listReviews({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+                per_page: 100
+              });
+              
+              // Add all reviewers who have interacted with this PR
+              for (const review of reviews.data) {
+                if (review.user && review.user.login) {
+                  mentions.add('@' + review.user.login);
+                }
+              }
+              
+              // Add repo owners/maintainers (always)
+              for (const owner of REPO_OWNERS) {
+                mentions.add('@' + owner);
+              }
+              
+              // Remove PR author from mentions - they don't need to review their own PR
+              mentions.delete('@' + pr.user.login);
+              
+              const mentionStr = Array.from(mentions).join(' ');
+              
+              const body = [
+                tier.marker,
+                '',
+                '**PR Age: ' + ageDays + ' days**',
+                '',
+                tier.message,
+                '',
+                'cc: ' + mentionStr,
+                '',
+                '---',
+                '*Automated reminder - exclude with labels: ' + EXCLUDE_LABELS.join(', ') + '*'
+              ].join('\n');
+              
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: body
+              });
+              
+              console.log(`Posted ${tier.marker} reminder on PR #${pr.number} (${ageDays} days old)`);
+            }
