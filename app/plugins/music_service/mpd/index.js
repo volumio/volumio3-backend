@@ -1412,7 +1412,7 @@ ControllerMpd.prototype.lsInfo = function (uri) {
                     icon: 'fa fa-list-ol',
                     uri: s0 + path
                   });
-                  var tracks = cuesheet.files[0].tracks;
+                  var tracks = getCueTracks(cuesheet);
                   for (var j in tracks) {
                     list.push({
                       service: 'mpd',
@@ -1954,7 +1954,7 @@ ControllerMpd.prototype.explodeUri = function (uri) {
 
     var cuesheet = parser.parse(path);
 
-    var tracks = cuesheet.files[0].tracks;
+    var tracks = getCueTracks(cuesheet);
     var cueartist = tracks[index].performer;
     var cuealbum =	cuesheet.title;
     var cuenumber = tracks[index].number - 1;
@@ -1976,7 +1976,7 @@ ControllerMpd.prototype.explodeUri = function (uri) {
 
       var cuesheet = parser.parse(uriPath);
 
-      var tracks = cuesheet.files[0].tracks;
+      var tracks = getCueTracks(cuesheet);
       var list = [];
 
       for (var j in tracks) {
@@ -2388,6 +2388,13 @@ ControllerMpd.prototype.explodeUri = function (uri) {
   return defer.promise;
 };
 
+// A CUE sheet can list one FILE per track: flatten so indexes match mpd's playlist order
+function getCueTracks (cuesheet) {
+  return cuesheet.files.reduce(function (tracks, file) {
+    return tracks.concat(file.tracks || []);
+  }, []);
+}
+
 ControllerMpd.prototype.explodeCue = function (uri, index) {
   var self = this;
 
@@ -2397,7 +2404,7 @@ ControllerMpd.prototype.explodeCue = function (uri, index) {
   var cueartist;
   var cuename;
 
-  var tracks = cuesheet.files[0].tracks;
+  var tracks = getCueTracks(cuesheet);
   var list = [];
 
   if (cuesheet.title != undefined && cuesheet.title.length > 0) {
