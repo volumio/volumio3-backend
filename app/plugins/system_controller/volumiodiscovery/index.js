@@ -715,14 +715,20 @@ ControllerVolumioDiscovery.prototype.browseForService = function (serviceType) {
       'DNSServiceGetAddrInfo' in mdns.dns_sd ? mdns.rst.DNSServiceGetAddrInfo() : mdns.rst.getaddrinfo({families:[4]}),
       mdns.rst.makeAddressesUnique()
     ];
-    self.serviceBrowser = mdns.createBrowser(mdns.tcp(serviceType), {resolverSequence: sequence});
-    self.serviceBrowser.on('serviceUp', function (service) {
+    var serviceBrowser = mdns.createBrowser(mdns.tcp(serviceType), {resolverSequence: sequence});
+    // A device that advertises the service but does not resolve makes mdns emit
+    // 'error'. Without a listener that is an uncaught exception, and it can come
+    // after stop(): the resolvers outlive the browser.
+    serviceBrowser.on('error', function (error) {
+      self.logger.error('Discovery: Browse for ' + serviceType + ' raised the following error ' + error);
+    });
+    serviceBrowser.on('serviceUp', function (service) {
       devicesArray.push(service);
     });
-    self.serviceBrowser.start();
+    serviceBrowser.start();
 
     setTimeout(()=>{
-      self.serviceBrowser.stop();
+      serviceBrowser.stop();
       defer.resolve(devicesArray);
     }, 1500);
   } else {
