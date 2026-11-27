@@ -393,13 +393,15 @@ CoreVolumeController.prototype.updateVolumeSettings = function (data) {
 
   self.logger.info('Updating Volume Controller Parameters: Device: ' + data.device + ' Name: ' + data.name + ' Mixer: ' + data.mixer + ' Max Vol: ' + data.maxvolume + ' Vol Curve; ' + data.volumecurve + ' Vol Steps: ' + data.volumesteps);
 
-  if (data.mixertype !== undefined && data.mixertype !== mixertype && mixertype !== 'None' && mixer !== undefined && mixer.length && (data.mixertype === 'None' || data.mixertype === 'Software')) {
-    self.setVolume(100, function (err) {
-      if (err) {
-        self.logger.error('Cannot set ALSA Volume: ' + err);
-      }
-    });
-  }
+  // Commented out: setting volume to 100 here makes the volume jump on a switch to Software mixer
+  // TODO: find a more reliable way that can also set the hardware volume to 100
+  // if (data.mixertype !== undefined && data.mixertype !== mixertype && mixertype !== 'None' && mixer !== undefined && mixer.length && (data.mixertype === 'None' || data.mixertype === 'Software')) {
+  //   self.setVolume(100, function (err) {
+  //     if (err) {
+  //       self.logger.error('Cannot set ALSA Volume: ' + err);
+  //     }
+  //   });
+  // }
 
   if (mixertype && mixertype === 'None' && data.mixertype !== undefined && (data.mixertype === 'Software' || data.mixertype === 'Hardware')) {
     setTimeout(() => {
