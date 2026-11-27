@@ -4,6 +4,7 @@ var libQ = require('kew');
 var fs = require('fs-extra');
 var exec = require('child_process').exec;
 const NodeCache = require( "node-cache" );
+var queueWithPlayNext = require('./playqueue-order').queueWithPlayNext;
 
 // Define the CorePlayQueue class
 module.exports = CorePlayQueue;
@@ -318,41 +319,35 @@ CorePlayQueue.prototype.playNextItems = function (infoPlayNext) {
   
   libQ.all(promiseArray)
     .then(function (content) {
-      var contentArray = [];
       for (var j in content) {
         if (content[j]) {
           if (content[j].samplerate === undefined) {
             content[j].samplerate = self.defaultSampleRate;
           }
-  
+
           if (content[j].bitdepth === undefined) {
             content[j].bitdepth = self.defaultBitdepth;
           }
-  
+
           if (content[j].channels === undefined) {
             content[j].channels = self.defaultChannels;
           }
-          contentArray = contentArray.concat(content[j]);
         }
       }
-      var spliceIndex = currentItemPlaying + 1;
-  
+
       if (!Array.isArray(content)) {
         defer.reject(new Error('content is not an array'));
         return defer.promise;
       }
-  
+
       var contentArray = content.flat();
-  
-      self.arrayQueue = self.arrayQueue.filter(item => !contentArray.some(newItem => newItem.uri === item.uri));
-  
-      spliceIndex = Math.min(spliceIndex, self.arrayQueue.length);
-  
-      var queueBeforeIndex = self.arrayQueue.slice(0, spliceIndex);
-      var queueAfterIndex = self.arrayQueue.slice(spliceIndex);
-  
-      self.arrayQueue = queueBeforeIndex.concat(contentArray, queueAfterIndex);
-  
+
+      /* playqueue-order.js carries the index arithmetic and the rule that
+         nothing at or before the playing row may be removed: de-duplicating
+         the whole queue made play next a no-op on the list already playing,
+         and spliced at an index measured before the removal. */
+      self.arrayQueue = queueWithPlayNext(self.arrayQueue, contentArray, currentItemPlaying);
+
       self.commandRouter.volumioPushQueue(self.arrayQueue);
       self.saveQueue();
     })
