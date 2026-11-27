@@ -86,7 +86,16 @@ class ShairportSyncReader extends EventEmitter {
           this.emit(data.code, data.cont);
       }
     } else {
-      this._meta[data.code] = parser.parseTag(data.code, data.cont);
+      // daap-parser reads numbers with Buffer.readUIntBE, which only accepts
+      // 1-6 bytes, but senders such as Apple Music send some fields as 8-byte
+      // integers. An uncaught throw here takes down the whole backend, so skip
+      // the field instead.
+      try {
+        this._meta[data.code] = parser.parseTag(data.code, data.cont);
+      } catch (e) {
+        console.log('WARNING: skipped AirPlay metadata ' + data.code + ' (' +
+          (data.cont ? data.cont.length : 0) + ' bytes): ' + e.message);
+      }
     }
   }
 }
