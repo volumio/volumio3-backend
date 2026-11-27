@@ -439,11 +439,11 @@ var processExpressRequest = function (req, res) {
 
     // var stoptime=Date.now();
     // logger.info('Serving request took '+(stoptime-starttime)+' milliseconds');
-    res.setHeader('Cache-Control', 'public, max-age=' + maxage);
+    res.setHeader('Cache-Control', 'public, max-age=2628000');
     res.sendFile(filePath);
   })
     .fail(function () {
-      res.setHeader('Cache-Control', 'public, max-age=' + maxage);
+      res.setHeader('Cache-Control', 'public, max-age=3600');
       if (icon !== undefined) {
         res.sendFile(__dirname + '/icons/' + icon + '.svg');
       } else if (sectionimage !== undefined) {
@@ -476,8 +476,7 @@ var processExpressRequest = function (req, res) {
           return sendDefaultAlbumart(req, res);
         }
       } else {
-        res.setHeader('Cache-Control', 'public, max-age=' + maxage);
-        return sendDefaultAlbumart(req, res);
+        return sendDefaultAlbumart(req, res, 3600);
       }
     });
 };
@@ -759,9 +758,9 @@ var download = function (uri, dest, cb) {
   });
 };
 
-var sendDefaultAlbumart = function (req, res) {
+var sendDefaultAlbumart = function (req, res, cacheMaxAge) {
 
-  res.setHeader('Cache-Control', 'public, max-age=' + maxage);
+  res.setHeader('Cache-Control', 'public, max-age=' + (cacheMaxAge || maxage));
   res.sendFile(__dirname + '/default.jpg');
 };
 
