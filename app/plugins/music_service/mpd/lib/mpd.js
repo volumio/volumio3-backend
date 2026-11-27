@@ -8,7 +8,7 @@ var EventEmitter = require('events').EventEmitter,
 	 util = require('util'),
 	 assert = require('assert'),
 	 net = require('net'),
-	 MPD_SENTINEL = /^(OK|ACK|list_OK)(.*)$/m,
+	 MPD_SENTINEL = /^(OK|ACK|list_OK)(.*)\n/m,
 	 OK_MPD = /^OK MPD /;
 
 module.exports = MpdClient;
@@ -20,7 +20,9 @@ MpdClient.parseArrayMessage = parseArrayMessage;
 function MpdClient () {
   EventEmitter.call(this);
 
-  this.buffer = '';
+  // The reply in progress: its complete lines, and the incomplete last line
+  this.parts = [];
+  this.tail = '';
   this.msgHandlerQueue = [];
   this.idling = false;
 }
@@ -52,13 +54,20 @@ MpdClient.connect = function (options) {
 };
 
 MpdClient.prototype.receive = function (data) {
+  // Scan only what has not been scanned yet: the incomplete line carried over
+  // from the previous read, plus this read. The complete lines of the reply in
+  // progress are kept aside and joined once per reply, so the cost stays
+  // linear in the size of the reply however many reads it takes to arrive.
+  var text = this.tail + data;
   var m;
-  this.buffer += data;
-  while (m = this.buffer.match(MPD_SENTINEL)) {
-    var msg = this.buffer.substring(0, m.index),
+  while (m = text.match(MPD_SENTINEL)) {
+    this.parts.push(text.substring(0, m.index));
+    var msg = this.parts.join(''),
 			 line = m[0],
 			 code = m[1],
 			 str = m[2];
+    this.parts = [];
+    text = text.substring(m.index + line.length);
     if (code === 'ACK') {
       var err = new Error(str);
       this.handleMessage(err);
@@ -67,8 +76,14 @@ MpdClient.prototype.receive = function (data) {
     } else {
       this.handleMessage(null, msg);
     }
-
-    this.buffer = this.buffer.substring(msg.length + line.length + 1);
+  }
+  // Keep the complete lines, carry the incomplete last one over to the next read
+  var nl = text.lastIndexOf('\n');
+  if (nl === -1) {
+    this.tail = text;
+  } else {
+    this.parts.push(text.substring(0, nl + 1));
+    this.tail = text.substring(nl + 1);
   }
 };
 
