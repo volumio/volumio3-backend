@@ -376,6 +376,7 @@ CoreStateMachine.prototype.resetVolumioState = function () {
 
 // Start the timer to track playback time (counts in ms)
 CoreStateMachine.prototype.startPlaybackTimer = function (nStartTime) {
+  clearTimeout(this.playbackTimerHandle);
   this.commandRouter.pushConsoleMessage('CoreStateMachine::startPlaybackTimer');
 
   this.runPlaybackTimer = true;
@@ -388,7 +389,7 @@ CoreStateMachine.prototype.startPlaybackTimer = function (nStartTime) {
     this.askedForPrefetch = false;
     this.simulateStopStartDone = false;
     this.prefetchDone = false;
-    setTimeout(this.increasePlaybackTimer.bind(this), 250);
+    this.playbackTimerHandle = setTimeout(this.increasePlaybackTimer.bind(this), 250);
 
     var isLastTrack = this.checkIfLastTrack();
     if (isLastTrack) {
@@ -400,6 +401,7 @@ CoreStateMachine.prototype.startPlaybackTimer = function (nStartTime) {
 
 // Stop playback timer
 CoreStateMachine.prototype.stopPlaybackTimer = function () {
+  clearTimeout(this.playbackTimerHandle);
   this.commandRouter.pushConsoleMessage('CoreStateMachine::stPlaybackTimer');
 
   this.runPlaybackTimer = false;
@@ -447,7 +449,7 @@ CoreStateMachine.prototype.increasePlaybackTimer = function () {
 
     var remainingTime = this.currentSongDuration - this.currentSeek;
 
-    if (remainingTime >= 0 && remainingTime < 5000 && this.askedForPrefetch == false) {
+    if (remainingTime >= 0 && remainingTime < 30000 && this.askedForPrefetch == false) {
       this.askedForPrefetch = true;
 
       var trackBlock = this.getTrack(this.currentPosition);
@@ -488,7 +490,7 @@ CoreStateMachine.prototype.increasePlaybackTimer = function () {
 
       this.startPlaybackTimer();
     } else {
-      setTimeout(this.increasePlaybackTimer.bind(this), 250);
+      this.playbackTimerHandle = setTimeout(this.increasePlaybackTimer.bind(this), 250);
     }
   }
 };
@@ -857,7 +859,15 @@ CoreStateMachine.prototype.syncState = function (stateService, sService) {
           this.askedForPrefetch = false;
           this.simulateStopStartDone = false;
 
-          this.commandRouter.pushDebugConsoleMessage('Prefetch done, skipping queuing');
+          // The service stopped although the next track was already prefetched: the prefetch
+          // arrived after the track had really ended (position estimate drifted), so start it now
+          if (this.currentPosition >= this.playQueue.arrayQueue.length) {
+            this.currentPosition = 0;
+          }
+          this.play()
+            .then(self.pushState.bind(self))
+            .fail(this.pushError.bind(this));
+          this.commandRouter.pushConsoleMessage('Prefetch done but service stopped, starting playback');
         }
       } else {
         if (this.currentPosition >= this.playQueue.arrayQueue.length) {
@@ -879,7 +889,15 @@ CoreStateMachine.prototype.syncState = function (stateService, sService) {
               this.askedForPrefetch = false;
               this.simulateStopStartDone = false;
 
-              this.commandRouter.pushDebugConsoleMessage('Prefetch done, skipping queuing');
+              // The service stopped although the next track was already prefetched: the prefetch
+              // arrived after the track had really ended (position estimate drifted), so start it now
+              if (this.currentPosition >= this.playQueue.arrayQueue.length) {
+                this.currentPosition = 0;
+              }
+              this.play()
+                .then(self.pushState.bind(self))
+                .fail(this.pushError.bind(this));
+              this.commandRouter.pushConsoleMessage('Prefetch done but service stopped, starting playback');
             }
 
             this.commandRouter.pushDebugConsoleMessage('Repeating playlist ');
@@ -902,7 +920,15 @@ CoreStateMachine.prototype.syncState = function (stateService, sService) {
             this.askedForPrefetch = false;
             this.simulateStopStartDone = false;
             this.pushState();
-            this.commandRouter.pushDebugConsoleMessage('Prefetch done, skipping queuing');
+            // The service stopped although the next track was already prefetched: the prefetch
+            // arrived after the track had really ended (position estimate drifted), so start it now
+            if (this.currentPosition >= this.playQueue.arrayQueue.length) {
+              this.currentPosition = 0;
+            }
+            this.play()
+              .then(self.pushState.bind(self))
+              .fail(this.pushError.bind(this));
+            this.commandRouter.pushConsoleMessage('Prefetch done but service stopped, starting playback');
           }
         }
       }
